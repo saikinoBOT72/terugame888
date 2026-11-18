@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--BODY-START-->
+<title>壁蹴りシミュレーター</title>
+<style>
+  /* Layout: canvas on the left, parameter panel on the right; stacks on phones. Visuals are placeholders on purpose. */
+  :root {
+    --bg: #15171c;
+    --panel: #1d2027;
+    --line: #2d313b;
+    --ink: #e6e4de;
+    --dim: #8d94a1;
+    --accent: #f2b544;
+    --player: #7fd3ff;
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  html { box-sizing: border-box; }
+  *, *::before, *::after { box-sizing: inherit; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font: 13px/1.5 system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+  }
+  .wrap {
+    display: grid; grid-template-columns: auto minmax(280px, 380px); gap: 16px;
+    justify-content: center; height: 100%;
+    padding-block: 12px;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+  }
+  .stage { position: relative; min-height: 0; display: flex; flex-direction: column; gap: 6px; align-items: center; }
+  #cv { display: block; touch-action: none; cursor: pointer; background: #0f1115; border: 1px solid var(--line); }
+  .hint { color: var(--dim); font-size: 12px; text-align: center; }
+  .panel { min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding-right: 4px; }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  h2 { font-size: 12px; margin: 0 0 6px; font-weight: 600; color: var(--dim); letter-spacing: .06em; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+  .row { display: grid; grid-template-columns: 1fr 76px; gap: 2px 8px; align-items: center; margin-bottom: 8px; }
+  .row:last-child { margin-bottom: 0; }
+  .row label { font-size: 12px; }
+  .row .help { grid-column: 1 / -1; color: var(--dim); font-size: 11px; margin-top: -2px; }
+  .row input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; }
+  .row input[type=number] {
+    width: 76px; font: inherit; font-variant-numeric: tabular-nums; text-align: right;
+    background: #111318; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 4px;
+  }
+  .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+  button {
+    font: inherit; color: var(--ink); background: #262a33; border: 1px solid var(--line);
+    border-radius: 4px; padding: 5px 10px; cursor: pointer;
+  }
+  button:hover { background: #2e333e; }
+  button[aria-pressed=true] { background: var(--accent); color: #1a1408; border-color: var(--accent); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .stats { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+  .stats dt { color: var(--dim); }
+  .stats dd { margin: 0; text-align: right; }
+  #copyBox { width: 100%; height: 120px; font: 11px/1.4 ui-monospace, Menlo, monospace; background: #111318; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
+  @media (max-width: 760px) {
+    .wrap { grid-template-columns: 1fr; height: auto; }
+    .stage { height: 64vh; }
+    .panel { overflow: visible; padding-right: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="シミュレーター画面"></canvas>
+    <div class="hint">画面をタップ／Space：ジャンプ　R：スタート位置へ</div>
+  </div>
+
+  <div class="panel">
+    <h1>壁蹴りシミュレーター</h1>
+
+    <section>
+      <h2>計算結果（今の数値で壁から蹴ったとき）</h2>
+      <dl class="stats" id="stats"></dl>
+    </section>
+
+    <section id="groups"></section>
+
+    <section>
+      <h2>2段ジャンプの向き</h2>
+      <div class="seg" id="airMode">
+        <button type="button" data-v="keep">そのまま</button>
+        <button type="button" data-v="flip">反転</button>
+        <button type="button" data-v="up">真上</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>表示</h2>
+      <div class="seg">
+        <button type="button" id="tgArc" aria-pressed="true">予測の弧</button>
+        <button type="button" id="tgTrail" aria-pressed="true">通った跡</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>プリセット</h2>
+      <div class="seg" id="presets"></div>
+    </section>
+
+    <section>
+      <h2>数値の書き出し</h2>
+      <div class="seg">
+        <button type="button" id="btnCopy">数値をコピー</button>
+        <button type="button" id="btnReset">スタート位置へ</button>
+      </div>
+      <textarea id="copyBox" hidden readonly aria-label="数値"></textarea>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- いじれる数値 ---------- */
+const PARAMS = [
+  { g: 'キック（壁を蹴った瞬間）' },
+  { k: 'kickVx', label: '横の速さ', min: 50, max: 700, step: 5, def: 180, unit: 'px/s', help: '小さいほど弧が縦長になる' },
+  { k: 'kickVy', label: '上向きの速さ', min: 100, max: 1200, step: 5, def: 460, unit: 'px/s', help: '大きいほど高く上がる' },
+  { g: '空中' },
+  { k: 'gravity', label: '重力', min: 100, max: 2500, step: 10, def: 420, unit: 'px/s²', help: '小さいほどふわっと、ゆっくり落ちる' },
+  { k: 'maxFall', label: '落下速度の上限', min: 0, max: 1500, step: 10, def: 0, unit: 'px/s', help: '0 = 上限なし（素直な放物線）' },
+  { g: '2段ジャンプ' },
+  { k: 'airJumps', label: '回数', min: 0, max: 3, step: 1, def: 1, unit: '回', help: '壁に着くと回復' },
+  { k: 'airVy', label: '上向きの速さ', min: 0, max: 1000, step: 5, def: 340, unit: 'px/s' },
+  { g: '壁' },
+  { k: 'slide', label: 'ずり落ちる速さ', min: 0, max: 400, step: 2, def: 50, unit: 'px/s', help: '0 = 張り付いたまま止まる' },
+  { k: 'slideAccel', label: 'ずり落ちの効き', min: 0.5, max: 30, step: 0.5, def: 7, unit: '', help: '大きいほど張り付いてすぐ最高速になる' },
+  { k: 'carry', label: '着いたときに残す上向きの勢い', min: 0, max: 1, step: 0.05, def: 0.2, unit: '倍', help: '上昇中に壁に着いたとき、少し上へ滑る' },
+  { k: 'width', label: '縦穴の幅', min: 80, max: 340, step: 2, def: 292, unit: 'px' },
+  { g: '全体' },
+  { k: 'buffer', label: '先行入力の受付', min: 0, max: 0.4, step: 0.01, def: 0.14, unit: '秒', help: '壁に着く少し前に押しても蹴れる' },
+  { k: 'speed', label: 'ゲーム速度', min: 0.25, max: 2, step: 0.05, def: 1, unit: '倍' },
+];
+const DEFAULTS = Object.fromEntries(PARAMS.filter(p => p.k).map(p => [p.k, p.def]));
+DEFAULTS.airMode = 'keep';
+const PRESETS = {
+  '初期値': {},
+  '前回（ゆっくり縦長）': { gravity: 420, kickVx: 180, kickVy: 460, airVy: 340, slide: 50 },
+  'ふわっと（その前）': { gravity: 640, kickVx: 270, kickVy: 440, airVy: 380, slide: 74 },
+  'キビキビ（最初）': { gravity: 1150, kickVx: 430, kickVy: 560, airVy: 470, slide: 74 },
+};
+
+const W = 360, H = 640, R = 11, PX_PER_M = 60;
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+const V = Object.assign({}, DEFAULTS, store.get('kerisim_params', {}));
+const show = { arc: true, trail: true };
+
+/* ---------- panel ---------- */
+const inputs = {};
+function buildPanel() {
+  const root = $('groups');
+  let box = null;
+  for (const p of PARAMS) {
+    if (p.g) { box = document.createElement('div'); box.style.marginBottom = '10px'; const h = document.createElement('h2'); h.textContent = p.g; box.appendChild(h); root.appendChild(box); continue; }
+    const row = document.createElement('div'); row.className = 'row';
+    const id = 'p_' + p.k;
+    row.innerHTML = `<label for="${id}"></label><input type="number" id="${id}n" aria-label=""><input type="range" id="${id}">` + (p.help ? '<div class="help"></div>' : '');
+    row.querySelector('label').textContent = p.label + (p.unit ? `（${p.unit}）` : '');
+    row.querySelector('input[type=number]').setAttribute('aria-label', p.label);
+    if (p.help) row.querySelector('.help').textContent = p.help;
+    const rg = row.querySelector('input[type=range]'), nm = row.querySelector('input[type=number]');
+    for (const el of [rg, nm]) { el.min = p.min; el.max = p.max; el.step = p.step; }
+    rg.addEventListener('input', () => setParam(p.k, +rg.value));
+    nm.addEventListener('change', () => setParam(p.k, clamp(+nm.value, p.min, p.max)));
+    inputs[p.k] = { rg, nm };
+    box.appendChild(row);
+  }
+  for (const b of $('airMode').children) b.addEventListener('click', () => { V.airMode = b.dataset.v; save(); syncPanel(); });
+  const pr = $('presets');
+  for (const name in PRESETS) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = name;
+    b.addEventListener('click', () => { Object.assign(V, DEFAULTS, PRESETS[name]); save(); syncPanel(); resetPlayer(); });
+    pr.appendChild(b);
+  }
+  $('tgArc').addEventListener('click', () => { show.arc = !show.arc; $('tgArc').setAttribute('aria-pressed', show.arc); });
+  $('tgTrail').addEventListener('click', () => { show.trail = !show.trail; $('tgTrail').setAttribute('aria-pressed', show.trail); });
+  $('btnReset').addEventListener('click', resetPlayer);
+  $('btnCopy').addEventListener('click', () => {
+    const text = JSON.stringify(V, null, 2);
+    const box = $('copyBox'); box.value = text; box.hidden = false;
+    const done = () => { $('btnCopy').textContent = 'コピーしました'; setTimeout(() => $('btnCopy').textContent = '数値をコピー', 1500); };
+    const fallback = () => { box.focus(); box.select(); $('btnCopy').textContent = '下の欄から選んでコピーしてください'; };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+}
+function setParam(k, v) {
+  V[k] = v; save(); syncPanel();
+  if (k === 'width' && P.side) P.x = P.side < 0 ? wallL() + R : wallR() - R;
+}
+function save() { store.set('kerisim_params', V); }
+function syncPanel() {
+  for (const k in inputs) { inputs[k].rg.value = V[k]; inputs[k].nm.value = V[k]; }
+  for (const b of $('airMode').children) b.setAttribute('aria-pressed', b.dataset.v === V.airMode);
+  renderStats();
+}
+
+/* ---------- 計算結果 ---------- */
+// 壁から蹴った軌道を細かく計算する（airAtApex: 頂点で2段ジャンプを使う）
+function simulate(airAtApex) {
+  const L = wallL() + R, Rr = wallR() - R;
+  let x = L, y = 0, vx = V.kickVx, vy = -V.kickVy, t = 0, apex = 0, apexX = 0, used = !airAtApex;
+  const dt = 1 / 600, pts = [[x, y]];
+  let i = 0;
+  while (t < 8) {
+    i++;
+    if (!used && vy >= 0 && V.airJumps > 0) {
+      used = true; vy = -V.airVy;
+      if (V.airMode === 'flip') vx = -vx; else if (V.airMode === 'up') vx = 0;
+    }
+    vy += V.gravity * dt; if (V.maxFall > 0) vy = Math.min(vy, V.maxFall);
+    x += vx * dt; y += vy * dt; t += dt;
+    if (-y > apex) { apex = -y; apexX = x - L; }
+    if (i % 6 === 0 && pts.length < 2000) pts.push([x, y]);
+    if (x >= Rr || x <= L - 0.001) return { t, rise: -y, apex, apexX, landed: true, pts };
+    if (y > 2000) break;
+  }
+  return { t, rise: -y, apex, apexX, landed: false, pts };
+}
+function renderStats() {
+  const a = simulate(false), b = V.airJumps > 0 ? simulate(true) : null;
+  const span = wallR() - wallL() - R * 2;
+  const m = px => (px / PX_PER_M).toFixed(2) + 'm';
+  const rows = [
+    ['壁から壁まで渡る時間', a.landed ? a.t.toFixed(2) + ' 秒' : '届かない'],
+    ['反対の壁に着く高さ', a.landed ? `${a.rise.toFixed(0)}px（${m(a.rise)}）` : '—'],
+    ['弧のいちばん高い所', `${a.apex.toFixed(0)}px（${m(a.apex)}）`],
+    ['頂点が来る位置', a.apexX >= span - 0.5 ? '壁に着くまで上昇中' : `${Math.round(a.apexX / span * 100)}% 渡った所`],
+    ['1秒あたり登る高さ（蹴り続けたとき）', a.landed ? `${(a.rise / a.t).toFixed(0)}px/秒` : '—'],
+  ];
+  if (b) rows.push(['頂点で2段ジャンプしたときの最高点', `${b.apex.toFixed(0)}px（${m(b.apex)}）`]);
+  const st = $('stats'); st.textContent = '';
+  for (const [k, v] of rows) { const dt = document.createElement('dt'); dt.textContent = k; const dd = document.createElement('dd'); dd.textContent = v; st.append(dt, dd); }
+  arcCache = null;
+}
+
+/* ---------- canvas ---------- */
+const cv = $('cv'), ctx = cv.getContext('2d');
+let scale = 1, dpr = 1;
+function resize() {
+  const st = $('stage').getBoundingClientRect();
+  const availH = Math.max(200, (window.innerWidth <= 760 ? st.height : window.innerHeight - 24) - 26);
+  const availW = window.innerWidth <= 760 ? st.width : Math.min(st.width || W, W * 2);
+  scale = Math.min(availH / H, (availW || W) / W);
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  cv.style.width = Math.floor(W * scale) + 'px'; cv.style.height = Math.floor(H * scale) + 'px';
+  cv.width = Math.round(W * scale * dpr); cv.height = Math.round(H * scale * dpr);
+}
+addEventListener('resize', resize);
+
+const wallL = () => (W - V.width) / 2;
+const wallR = () => (W + V.width) / 2;
+
+/* ---------- player ---------- */
+let P, cam = { y: 0 }, trail = [], inputBuf = 0, arcCache = null, best = 0, lastKick = null;
+function resetPlayer() {
+  P = { x: wallL() + R, y: -R, vx: 0, vy: 0, side: -1, slideV: 0, air: V.airJumps, onFloor: true };
+  cam.y = 60 - H; trail = []; best = 0; lastKick = null;
+}
+function press() { inputBuf = V.buffer; tryJump(); }
+function tryJump() {
+  const p = P;
+  if (p.side !== 0) {
+    const dir = -p.side;
+    p.vx = dir * V.kickVx; p.vy = -V.kickVy; p.side = 0; p.air = V.airJumps; p.onFloor = false;
+    lastKick = { y: p.y, t: 0 }; inputBuf = 0;
+    return;
+  }
+  if (p.air > 0) {
+    const toWall = p.vx > 0 ? (wallR() - R - p.x) / p.vx : p.vx < 0 ? (p.x - wallL() - R) / -p.vx : 1;
+    if (toWall < 0.08) return;              // 壁の直前は壁キック用に取っておく
+    if (V.airMode === 'flip') p.vx = -p.vx || V.kickVx;
+    else if (V.airMode === 'up') p.vx = 0;
+    p.vy = -V.airVy; p.air--; inputBuf = 0;
+    trail.push({ x: p.x, y: p.y, mark: true });
+  }
+}
+function land(side) {
+  const p = P;
+  p.side = side; p.x = side < 0 ? wallL() + R : wallR() - R;
+  p.slideV = Math.min(0, p.vy) * V.carry; p.vx = 0; p.vy = 0; p.air = V.airJumps;
+  if (lastKick) { lastKick.rise = lastKick.y - p.y; }
+  if (inputBuf > 0) tryJump();
+}
+function step(dt) {
+  const p = P;
+  if (inputBuf > 0) { inputBuf -= dt; if (p.side === 0) tryJump(); }
+  if (lastKick && lastKick.rise == null) lastKick.t += dt;
+  if (p.side !== 0) {
+    p.slideV += (V.slide - p.slideV) * Math.min(1, dt * V.slideAccel);
+    p.y += p.slideV * dt;
+  } else {
+    p.vy += V.gravity * dt; if (V.maxFall > 0) p.vy = Math.min(p.vy, V.maxFall);
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.x - R <= wallL()) land(-1); else if (p.x + R >= wallR()) land(1);
+  }
+  if (p.y + R > 0) {                         // 床
+    p.y = -R;
+    if (p.side !== 0) p.slideV = 0;
+    else { p.vy = 0; p.vx = 0; land(p.x < W / 2 ? -1 : 1); }
+  }
+  best = Math.max(best, -p.y - R);
+  trail.push({ x: p.x, y: p.y }); if (trail.length > 600) trail.shift();
+  cam.y += (p.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
+  cam.y = Math.min(cam.y, 60 - H);
+}
+
+/* ---------- draw ---------- */
+function draw() {
+  const k = scale * dpr;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.fillStyle = '#0f1115'; ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.translate(0, -cam.y);
+  // 1mごとの目盛り
+  ctx.font = '10px system-ui, sans-serif'; ctx.textBaseline = 'middle';
+  for (let m = Math.max(0, Math.floor(-(cam.y + H) / PX_PER_M)); m <= -cam.y / PX_PER_M + 1; m++) {
+    const y = -m * PX_PER_M;
+    ctx.fillStyle = m % 5 === 0 ? '#2a2f3a' : '#1b1e25'; ctx.fillRect(wallL(), y, V.width, 1);
+    if (m % 5 === 0) { ctx.fillStyle = '#5b6270'; ctx.textAlign = 'center'; ctx.fillText(m + 'm', W / 2, y - 7); }
+  }
+  // 壁と床
+  ctx.fillStyle = '#3a3f4b';
+  ctx.fillRect(0, cam.y - 10, wallL(), H + 20);
+  ctx.fillRect(wallR(), cam.y - 10, W - wallR(), H + 20);
+  ctx.fillRect(0, 0, W, 400);
+  // 通った跡
+  if (show.trail && trail.length > 1) {
+    ctx.strokeStyle = 'rgba(127,211,255,.35)'; ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(trail[0].x, trail[0].y); for (const q of trail) ctx.lineTo(q.x, q.y); ctx.stroke();
+    ctx.fillStyle = '#7fd3ff'; for (const q of trail) if (q.mark) { ctx.beginPath(); ctx.arc(q.x, q.y, 3, 0, Math.PI * 2); ctx.fill(); }
+  }
+  // 予測の弧（壁に張り付いているとき）
+  if (show.arc && P.side !== 0) {
+    if (!arcCache) arcCache = simulate(false);
+    const dir = -P.side, x0 = P.x, y0 = P.y, L0 = wallL() + R;
+    ctx.strokeStyle = '#f2b544'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.beginPath();
+    for (let i = 0; i < arcCache.pts.length; i++) {
+      const [sx, sy] = arcCache.pts[i], x = dir > 0 ? x0 + (sx - L0) : x0 - (sx - L0), y = y0 + sy;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+    if (arcCache.landed) {
+      const ly = y0 - arcCache.rise, lx = dir > 0 ? wallR() - R : wallL() + R;
+      ctx.fillStyle = '#f2b544'; ctx.beginPath(); ctx.arc(lx, ly, 4, 0, Math.PI * 2); ctx.fill();
+      const ay = y0 - arcCache.apex;
+      ctx.fillStyle = 'rgba(242,181,68,.5)'; ctx.fillRect(wallL(), ay, V.width, 1);
+    }
+  }
+  // プレイヤー（ただの丸）
+  ctx.fillStyle = '#7fd3ff'; ctx.beginPath(); ctx.arc(P.x, P.y, R, 0, Math.PI * 2); ctx.fill();
+  if (P.side === 0 && P.air > 0) { ctx.fillStyle = '#fff'; ctx.fillRect(P.x - 2, P.y + R + 3, 4, 4); }
+  ctx.restore();
+  // 左上の数値
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, 38);
+  ctx.fillStyle = '#e6e4de'; ctx.font = '12px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const h = (-P.y - R) / PX_PER_M;
+  ctx.fillText(`高さ ${h.toFixed(1)}m　最高 ${(best / PX_PER_M).toFixed(1)}m`, 8, 12);
+  const lk = lastKick && lastKick.rise != null ? `直前のキック：${lastKick.rise.toFixed(0)}px 上昇／${lastKick.t.toFixed(2)}秒` : '直前のキック：—';
+  ctx.fillStyle = '#8d94a1'; ctx.fillText(lk, 8, 28);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#8d94a1';
+  ctx.fillText(P.side ? '壁' : '空中' + (P.air ? `（2段 残り${P.air}）` : ''), W - 8, 12);
+}
+
+/* ---------- input & loop ---------- */
+cv.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
+addEventListener('keydown', e => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); if (!e.repeat) press(); }
+  else if (e.key === 'r' || e.key === 'R') resetPlayer();
+});
+let last = performance.now();
+function loop(now) {
+  let dt = Math.min(1 / 30, (now - last) / 1000) * V.speed; last = now;
+  const n = Math.max(1, Math.ceil(dt / (1 / 240)));
+  for (let i = 0; i < n; i++) step(dt / n);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+buildPanel(); syncPanel(); resetPlayer(); resize();
+requestAnimationFrame(loop);
+window.__sim = { get P() { return P; }, V, press, simulate };
+})();
+</script>
+</body>
+</html>
