@@ -1,0 +1,8 @@
+<!-- @dsCard group="地形" height=230 width=760 subtitle="45度の斜め。上向きも下向きも張り付ける" -->
+<div id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+var G = Kabe.grid(['########', '##/..\\##', '#/....\\#', '#\\..../#', '##\\../##'], '.');
+Kabe.zoneRow(root, { w: 144, h: 90, zoom: 2, label: '斜め', draw: function (g, P, t) { Kabe.terrain(g, P, G, t); } });
+</script>

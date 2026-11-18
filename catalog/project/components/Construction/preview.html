@@ -1,0 +1,32 @@
+<!-- @dsCard group="原則" height=300 width=760 subtitle="形→縁取り→影→光→描き込みの順に描く" -->
+<div id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+var c = Kabe.canvas(430, 150, 2, '描く手順'); root.appendChild(c.c); root.style.padding = '10px';
+Kabe.animate(function (t) {
+  var P = Kabe.pal('underground'), g = c.g; g.setTransform(c.k, 0, 0, c.k, 0, 0); g.clearRect(0, 0, 430, 150);
+  var body = function () { g.beginPath(); g.moveTo(0, -12); g.bezierCurveTo(8, -12, 10.5, -5, 10, 1); g.bezierCurveTo(9.5, 7, 5, 10, 1.5, 12); g.quadraticCurveTo(-1, 14.5, -4, 13.5); g.quadraticCurveTo(-1.5, 12.5, -2, 11); g.bezierCurveTo(-7, 9, -10, 5, -10, 0); g.bezierCurveTo(-10, -6, -7, -12, 0, -12); g.closePath(); };
+  var labels = ['1 形', '2 縁取り', '3 影', '4 光', '5 描き込み'];
+  g.font = '500 9px "M PLUS Rounded 1c", sans-serif'; g.textAlign = 'center';
+  for (var i = 0; i < 5; i++) {
+    var x = 46 + i * 84;
+    g.fillStyle = P.uiMuted; g.fillText(labels[i], x, 12);
+    g.save(); g.translate(x, 46); g.scale(1.9, 1.9);
+    if (i === 0) { body(); g.fillStyle = P.playerBody; g.fill(); }
+    else if (i === 1) { body(); g.strokeStyle = P.playerLine; g.lineWidth = 2.3; g.lineJoin = 'round'; g.stroke(); g.fillStyle = P.playerBody; g.fill(); }
+    else if (i === 2) { Kabe.solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9); }
+    else if (i === 3) { Kabe.solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9); Kabe.shine(g, -5, -7.5, 2.4, 1.3, 0.9); }
+    g.restore();
+    if (i === 4) Kabe.ghost(g, P, 'drop', 'stand', x, 46, t, 1, 1.9);
+    // 地形のブロック（2×2マス）
+    var bx = x - 18, by = 94;
+    if (i === 0) { g.fillStyle = P.terrain; g.fillRect(bx, by, 36, 36); }
+    else if (i === 1) { g.fillStyle = P.terrain; Kabe.rr(g, bx, by, 36, 36, [6, 6, 0, 0]); g.fill(); g.fillStyle = P.uiMuted; g.fillText('縁取らない', x, 144); }
+    else if (i === 2) { g.fillStyle = P.terrain; Kabe.rr(g, bx, by, 36, 36, [6, 6, 0, 0]); g.fill(); g.fillStyle = P.terrainShade; g.fillRect(bx, by + 33, 36, 3); g.fillStyle = Kabe.mix(P.terrain, P.terrainDeep, 0.55); g.fillRect(bx + 8, by + 14, 20, 22); }
+    else { var G = Kabe.grid(['....', '.##.', '.##.'], '.'); g.save(); g.beginPath(); g.rect(bx, by - 8, 36, 44); g.clip(); g.translate(bx - 18, by - 18);
+      if (i === 3) { var GG = Kabe.grid(['....', '.##.', '.##.'], '.'); for (var r = 1; r < 3; r++) for (var cc = 1; cc < 3; cc++) Kabe.block(g, P, GG, cc, r, cc * 18, r * 18); }
+      else Kabe.terrain(g, P, G, t); g.restore(); }
+  }
+});
+</script>

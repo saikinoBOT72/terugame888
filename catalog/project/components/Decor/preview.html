@@ -1,0 +1,13 @@
+<!-- @dsCard group="地形" height=230 width=760 subtitle="光る飾りと、下から垂れるもの" -->
+<div id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+Kabe.zoneRow(root, { w: 144, h: 90, zoom: 2, label: '飾り', draw: function (g, P, t) {
+  g.fillStyle = P.terrain; g.fillRect(0, 0, 144, 16); g.fillStyle = P.terrainShade; g.fillRect(0, 13, 144, 3);
+  Kabe.hang(g, P, 24, 15, 24, 3); Kabe.hang(g, P, 70, 15, 16, 8); Kabe.hang(g, P, 110, 15, 28, 11);
+  g.fillStyle = P.terrain; g.fillRect(0, 70, 144, 20); g.fillStyle = P.terrainLight; g.fillRect(0, 70, 144, 4);
+  for (var i = 0; i < 8; i++) Kabe.lip(g, P, i * 18, 70, i, 0);
+  Kabe.decor(g, P, 36, 69.5, 1.5, t, 0); Kabe.decor(g, P, 84, 69.5, 1, t, 2); Kabe.decor(g, P, 118, 69.5, 1.25, t, 4);
+} });
+</script>

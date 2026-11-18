@@ -1,0 +1,10 @@
+/* 見本ページの枠（色は tokens.css の変数） */
+html, body { margin: 0; background: var(--ui-panel); color: var(--ui-ink); font-family: var(--font-round); }
+.kabe-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+.kabe-fig { margin: 0; display: grid; gap: 4px; justify-items: center; min-width: 0; }
+.kabe-fig canvas { border-radius: 8px; display: block; }
+.kabe-fig figcaption, .kabe-cap { font-size: 11px; color: var(--ui-muted); }
+.kabe-sheet { display: grid; gap: 6px; padding: 10px; justify-items: center; }
+.kabe-sheet canvas { border-radius: 10px; display: block; }
+.kabe-sheet .kabe-row { padding: 0; width: 100%; }
+@media (max-width: 520px) { .kabe-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

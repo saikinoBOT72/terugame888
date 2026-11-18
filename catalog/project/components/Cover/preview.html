@@ -1,0 +1,28 @@
+<!-- @dsCard height=288 -->
+<div class="cover">
+<svg viewBox="0 0 960 288" width="960" height="288" aria-hidden="true">
+<!-- blocks: scarf（大きなピル 380×110）、terrain（角 corner-block の板 220×110）、hazard（小さなピル 90×50）、enemy（円 r=30）、accent（ピル 150×110）
+     arrangement: 上に横一列の帯（高さ110）。大きさをそろえず、右へいくほど小さく
+     pattern: 丸いもの・やわらかい（大きな丸み）→ 円と丸い粒。地形の板の上に player-body の粒を12個（地形の「粒」の決まりから）
+     scales: 角は corner-block（6px）と corner-pill、間は hud-gap（8px）の倍数 -->
+<style>
+.cover { width: 960px; height: 288px; position: relative; background: var(--ui-panel); overflow: hidden; }
+.cover svg { position: absolute; inset: 0; }
+.scarf { fill: var(--scarf); } .terrain { fill: var(--terrain); } .hazard { fill: var(--hazard); } .enemy { fill: var(--enemy); } .accent { fill: var(--accent); } .grain { fill: var(--player-body); opacity: .85; }
+.block { rx: var(--corner-block); }
+.cover .name { position: absolute; left: 48px; top: 160px; margin: 0; font: 800 64px/0.95 var(--font-round); color: var(--ui-ink); letter-spacing: .02em; white-space: nowrap; }
+.cover .tag { position: absolute; left: 50px; top: 236px; margin: 0; font: 500 14px/1.4 var(--font-round); color: var(--ui-muted); }
+</style>
+<rect class="scarf" x="40" y="24" width="380" height="110" rx="55"></rect>
+<rect class="terrain block" x="436" y="24" width="220" height="110"></rect>
+<rect class="hazard" x="672" y="24" width="90" height="50" rx="25"></rect>
+<circle class="enemy" cx="717" cy="104" r="30"></circle>
+<rect class="accent" x="778" y="24" width="150" height="110" rx="55"></rect>
+<circle class="grain" cx="462" cy="52" r="6"></circle><circle class="grain" cx="498" cy="88" r="4"></circle><circle class="grain" cx="530" cy="56" r="5"></circle>
+<circle class="grain" cx="566" cy="104" r="7"></circle><circle class="grain" cx="602" cy="64" r="4"></circle><circle class="grain" cx="630" cy="98" r="5"></circle>
+<circle class="grain" cx="478" cy="114" r="5"></circle><circle class="grain" cx="546" cy="84" r="3"></circle><circle class="grain" cx="586" cy="40" r="3"></circle>
+<circle class="grain" cx="640" cy="44" r="4"></circle><circle class="grain" cx="512" cy="120" r="3"></circle><circle class="grain" cx="614" cy="120" r="3"></circle>
+</svg>
+<h1 class="name">壁蹴りタワー統一カタログ</h1>
+<p class="tag">形・線・影・質感をそろえる、ゲームの絵の決まりごと</p>
+</div>

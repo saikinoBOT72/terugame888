@@ -1,0 +1,8 @@
+<!-- @dsCard group="危険なもの" height=230 width=760 subtitle="トゲ。どのゾーンでも同じ形と色" -->
+<div id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+var G = Kabe.grid(['#^...^#.', '#^...^#.', '........', '.#^^#...', '.......^', '.......#'], '.');
+Kabe.zoneRow(root, { w: 144, h: 108, zoom: 2, label: 'トゲ', draw: function (g, P, t) { Kabe.terrain(g, P, G, t); } });
+</script>

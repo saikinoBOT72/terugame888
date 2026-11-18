@@ -1,0 +1,7 @@
+<!-- @dsCard group="危険なもの" height=230 width=760 subtitle="敵：丸い体・縁取り・白目と黒目" -->
+<div id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+Kabe.zoneRow(root, { w: 108, h: 72, zoom: 2.6, label: '敵', draw: function (g, P, t) { Kabe.enemy(g, P, 54 + Math.sin(t * 1.2) * 12, 36 + Math.sin(t * 2) * 3, t, 1.5, Math.cos(t * 1.2) > 0 ? 1 : -1); } });
+</script>
