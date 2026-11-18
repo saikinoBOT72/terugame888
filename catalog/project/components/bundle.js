@@ -240,45 +240,132 @@ window.Kabe = (function () {
     for (r = 0; r < G.rows; r++) for (c = 0; c < G.cols; c++) if (G.raw(c, r) === '^') spike(g, P, ox + c * CELL, oy + r * CELL, G.spikeDir(c, r));
   }
 
-  /* ---------- 敵：丸い体・縁取り・2段の影・白目と黒目（プレイヤーの線の目と区別） ---------- */
-  function enemyEyes(g, P, x, y, look) {
-    [-2.4, 2.4].forEach(function (ex) { g.fillStyle = '#ffffff'; ell(g, x + ex, y, 1.8, 2); g.fill(); g.fillStyle = P.ink; ell(g, x + ex + look * 0.5, y + 0.2, 0.95, 1.15); g.fill(); g.fillStyle = '#ffffff'; ell(g, x + ex - 0.3, y - 0.5, 0.35, 0.35); g.fill(); });
+  /* ---------- 敵：丸い体・縁取り・2段の影・白目と黒目（プレイヤーの線の目と区別） ----------
+     地下＝おおつばさ（コウモリ）、地上＝ころ鳥、上空＝もくもく（雷雲）、宇宙＝かさクラゲ。
+     羽は肩から回り、体は羽ばたきに合わせて上下する。耳・足・尾・触手は少し遅れてついてくる。 */
+  // 白目と黒目。目のふちは ink。blink 1 で閉じる
+  function enemyEyes(g, P, x, y, look, s, gap, blink) {
+    s = s || 1; gap = gap == null ? 2.4 : gap;
+    [-gap, gap].forEach(function (ex) {
+      var cx = x + ex;
+      if (blink) { g.strokeStyle = P.ink; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - 1.5 * s, y + 0.2 * s); g.quadraticCurveTo(cx, y + 1.2 * s, cx + 1.5 * s, y + 0.2 * s); g.stroke(); return; }
+      g.fillStyle = P.ink; ell(g, cx, y, 2.15 * s, 2.35 * s); g.fill();
+      g.fillStyle = '#ffffff'; ell(g, cx, y, 1.7 * s, 1.9 * s); g.fill();
+      g.fillStyle = P.ink; ell(g, cx + look * 0.55 * s, y + 0.25 * s, 1 * s, 1.2 * s); g.fill();
+      g.fillStyle = '#ffffff'; ell(g, cx + look * 0.55 * s - 0.35 * s, y - 0.25 * s, 0.38 * s, 0.38 * s); g.fill();
+    });
   }
+  function eBody(g, P, path, off) { solid(g, path, P.enemy, P.enemyShade, P.ink, off == null ? 1.2 : off, 1.0); }
+  function eSoft(g, P, path, off) { solid(g, path, P.enemyLight, P.enemyShade, P.ink, off == null ? 0.7 : off, 0.9); }
+  function eGlow(g, P, path) { solid(g, path, P.glow, mix(P.glow, '#000000', 0.25), P.ink, 0.5, 0.85); }
+  function blinkAt(t, seed) { return ((t + seed) % 3.7 + 3.7) % 3.7 < 0.12; }
+  function innerLine(g, color) { g.strokeStyle = color; g.lineWidth = 0.7; g.lineCap = 'round'; }
+  // 部品の形を回して置く（左右は x を反転するだけ。影の向きは左上のまま）
+  function xf(sx, ox, oy, a, k) { var c = Math.cos(a), s = Math.sin(a); k = k || 1; return function (p) { var x = p[0] * k, y = p[1]; return [ox + sx * (x * c - y * s), oy + x * s + y * c]; }; }
+  function shapePath(g, cmds, T, open) {
+    g.beginPath();
+    cmds.forEach(function (c) { var a = T(c[1]); if (c[0] === 'M') g.moveTo(a[0], a[1]); else if (c[0] === 'L') g.lineTo(a[0], a[1]); else { var b = T(c[2]); g.quadraticCurveTo(a[0], a[1], b[0], b[1]); } });
+    if (!open) g.closePath();
+  }
+
+  // 地下：おおつばさ。小さな体に大きな羽（骨2本）、耳の内側、胸のふさふさ、小さな牙
+  var BAT_WING = [['M', [0, -1]], ['Q', [4.5, -6.5], [8, -5.4]], ['Q', [13, -6.2], [17.5, -3.4]], ['L', [16.2, 3.4]], ['Q', [14, 1.8], [11.6, 5]], ['Q', [9.2, 2.8], [6.8, 5.4]], ['Q', [4.4, 3.2], [1.6, 3.4]]];
+  var BAT_EDGE = [['M', [0, -1]], ['Q', [4.5, -6.5], [8, -5.4]], ['Q', [13, -6.2], [17.5, -3.4]]];
+  function bat(g, P, t, look) {
+    var p = t * 11, u = Math.sin(p), by = Math.cos(p) * 0.9, a = -u * 0.6, k = 0.9 + 0.1 * Math.max(0, -u), lag = Math.sin(p - 1.2);
+    [-1, 1].forEach(function (s) { eBody(g, P, function () { ell(g, s * 2.2, 7.3 + by + lag * 0.5, 1.3, 1.6); }, 0.4); });
+    [-1, 1].forEach(function (s) {
+      var T = xf(s, s * 4.2, -1.2 + by, a, k);
+      eSoft(g, P, function () { shapePath(g, BAT_WING, T); });
+      g.save(); shapePath(g, BAT_WING, T); g.clip(); shapePath(g, BAT_EDGE, T, true); g.strokeStyle = P.enemy; g.lineWidth = 2.6; g.stroke(); g.restore();
+      var e = T([8, -5.4]), f1 = T([16.2, 3.4]), f2 = T([11.6, 5]);
+      innerLine(g, P.enemyShade); g.beginPath(); g.moveTo(e[0], e[1]); g.lineTo(f1[0], f1[1]); g.moveTo(e[0], e[1]); g.lineTo(f2[0], f2[1]); g.stroke();
+    });
+    var ey = by + lag * 0.4;
+    [-1, 1].forEach(function (s) {
+      eBody(g, P, function () { g.beginPath(); g.moveTo(s * 1.4, -4.6 + by); g.quadraticCurveTo(s * 2.6, -10 + ey, s * 5, -11.6 + ey); g.quadraticCurveTo(s * 6.6, -8 + ey, s * 6, -3.2 + by); g.closePath(); }, 0.5);
+      g.fillStyle = P.enemyLight; g.beginPath(); g.moveTo(s * 2.8, -5 + by); g.quadraticCurveTo(s * 3.6, -8.6 + ey, s * 4.9, -9.6 + ey); g.quadraticCurveTo(s * 5.4, -7 + ey, s * 5, -4.4 + by); g.closePath(); g.fill();
+    });
+    var bodyP = function () { ell(g, 0, 0.6 + by, 6.4, 6.1); };
+    eBody(g, P, bodyP);
+    g.save(); bodyP(); g.clip(); g.fillStyle = P.enemyLight;
+    [-2.7, 0, 2.7].forEach(function (x, i) { ell(g, x, 3 + by - (i === 1 ? 0.5 : 0), 2, 1.9); g.fill(); }); ell(g, 0, 5.6 + by, 3.8, 2.4); g.fill(); g.restore();
+    shine(g, -2.9, -2.4 + by, 1.6, 0.95, 0.55);
+    enemyEyes(g, P, 0, -1.2 + by, look, 0.95, 2.3, blinkAt(t, 0.3));
+    innerLine(g, P.ink); g.beginPath(); g.arc(0, 1 + by, 1.1, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+    g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(look * 0.5 - 0.6, 2 + by); g.lineTo(look * 0.5 + 0.6, 2 + by); g.lineTo(look * 0.5, 3.4 + by); g.closePath(); g.fill();
+  }
+
+  // 地上：ころ鳥。ひよこのような丸い体、羽の先は丸い山3つ、頭の毛2本、ときどき鳴くくちばし、扇の尾
+  var BIRD_WING = [['M', [0, -2.2]], ['Q', [5, -4.4], [8.6, -2.4]], ['Q', [10.6, -0.6], [9.2, 1.2]], ['Q', [8.6, 3], [6.4, 2.6]], ['Q', [5.4, 4.2], [3.4, 3.4]], ['Q', [1.4, 3.6], [0, 2.2]]];
+  var FEATHER = [['M', [0, -1.4]], ['Q', [4, -2.4], [6.4, 0]], ['Q', [4, 2.4], [0, 1.4]]];
+  function bird(g, P, t, look) {
+    var p = t * 13, u = Math.sin(p), by = Math.cos(p) * 0.7, lag = Math.sin(p - 1.5), L = function (x) { return x * look; };
+    [0.55, 0.15, -0.25].forEach(function (an) { eBody(g, P, function () { shapePath(g, FEATHER, xf(-look, L(-4.8), 2.8 + by, an + lag * 0.08)); }, 0.4); });
+    [-1, 1].forEach(function (s) { eGlow(g, P, function () { ell(g, s * 2.3, 7.4 + by * 0.5, 1.6, 1); }); });
+    [-1, 1].forEach(function (s) {
+      var T = xf(s, s * 5.4, 0.6 + by, -u * 0.75 - 0.1);
+      eSoft(g, P, function () { shapePath(g, BIRD_WING, T); });
+      var a = T([2.2, 0.4]), b = T([7.4, 0.6]); innerLine(g, P.enemyShade); g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+    });
+    var sw = lag * 0.6;
+    [[-1.4, -11.2, -2.4], [2.2, -10.2, 0.6]].forEach(function (f) {
+      eBody(g, P, function () { g.beginPath(); g.moveTo(L(-0.6), -5.6 + by); g.quadraticCurveTo(L(f[2]) + sw, -9 + by, L(f[0]) + sw, f[1] + by); g.quadraticCurveTo(L(f[0] + 2.4) + sw * 0.5, -8 + by, L(1.4), -5.6 + by); g.closePath(); }, 0.4);
+    });
+    var bodyP = function () { ell(g, 0, 0.5 + by, 7.3, 7); };
+    eBody(g, P, bodyP);
+    g.save(); bodyP(); g.clip(); g.fillStyle = P.enemyLight; ell(g, L(0.8), 4.6 + by, 4.6, 3.4); g.fill(); g.restore();
+    shine(g, -3.5, -2.6 + by, 1.8, 1, 0.55);
+    enemyEyes(g, P, L(-0.4), -1.4 + by, look, 1, 2.3, blinkAt(t, 1.1));
+    var open = (t % 2.6) < 0.28 ? 1 : 0;
+    eGlow(g, P, function () { g.beginPath(); g.moveTo(L(3.4), 2.8 + by); g.quadraticCurveTo(L(5.6), 3 + by + open, L(6.4), 3.4 + by + open * 1.2); g.quadraticCurveTo(L(4.8), 4.4 + by + open, L(3.4), 4 + by); g.closePath(); });
+    eGlow(g, P, function () { g.beginPath(); g.moveTo(L(3.2), 1.4 + by); g.quadraticCurveTo(L(6.2), 1.4 + by, L(7.6), 2.8 + by); g.quadraticCurveTo(L(5.6), 3.4 + by, L(3.2), 3.2 + by); g.closePath(); });
+  }
+
+  // 上空：もくもく。丸い雲のかたまり、浮いた小さな手、ちらつく稲妻のしっぽ
+  function cloud(g, P, t, look) {
+    var b = Math.sin(t * 2) * 0.7, fl = (t * 2.6) % 1, L = function (x) { return x * look; };
+    if (fl < 0.78) {
+      var wx = Math.sin(t * 9) * 0.6;
+      eGlow(g, P, function () { g.beginPath(); g.moveTo(-2, 4 + b); g.lineTo(2.4, 4 + b); g.lineTo(0.8, 8.2 + b); g.lineTo(3.2, 8.2 + b); g.lineTo(-1.4 + wx, 15.6 + b); g.lineTo(0, 11 + b); g.lineTo(-2.6, 11 + b); g.closePath(); });
+      if (fl < 0.18) { g.fillStyle = P.glow; g.beginPath(); for (var i = 0; i < 8; i++) { var an = i / 8 * Math.PI * 2, d = i % 2 ? 0.8 : 2.2; g.lineTo(3.8 + Math.cos(an) * d, 13.4 + b + Math.sin(an) * d); } g.closePath(); g.fill(); }
+    }
+    [-1, 1].forEach(function (s) { eBody(g, P, function () { ell(g, s * 10.4, 2.6 + b + Math.sin(t * 2 - 0.8 + s) * 0.9, 2.3, 2.1); }, 0.5); });
+    eBody(g, P, function () {
+      g.beginPath();
+      [[-5.2, 1.4, 4.4], [-1.2, -2.4, 5.4], [3.8, -0.8, 4.6], [6, 2.4, 3.4]].forEach(function (c) { g.moveTo(c[0] + c[2], c[1] + b); g.arc(c[0], c[1] + b, c[2], 0, Math.PI * 2); });
+      g.moveTo(8.1, 3.4 + b); g.ellipse(-0.5, 3.4 + b, 8.6, 3.2, 0, 0, Math.PI * 2);
+    });
+    innerLine(g, P.enemyShade);
+    g.beginPath(); g.arc(-5.2, 1.4 + b, 4.4, -0.42 * Math.PI, -0.12 * Math.PI); g.stroke();
+    g.beginPath(); g.arc(3.8, -0.8 + b, 4.6, -0.95 * Math.PI, -0.7 * Math.PI); g.stroke();
+    shine(g, -3.4, -4.6 + b, 1.8, 1, 0.55);
+    enemyEyes(g, P, L(0.3), 0.4 + b, look, 1, 2.5, blinkAt(t, 2.2));
+    g.fillStyle = P.ink; g.beginPath(); g.ellipse(L(0.5), 3.6 + b, 1.3, 0.9, 0, 0, Math.PI); g.fill();
+  }
+
+  // 宇宙：かさクラゲ。かさが脈打ち、ふちのひらひらと、細い触手4本・太い腕2本が遅れてゆれる
+  function jelly(g, P, t, look) {
+    var q = t * 3, sq = Math.sin(q), sx = 1 + sq * 0.06, sy = 1 - sq * 0.06, top = -7.6 * sy, rim = 3.2, st = 1 + Math.sin(q - 1) * 0.1;
+    var line = function (x, len, ph, w0, w1) {
+      var path = function () { g.beginPath(); g.moveTo(x, rim + 1); g.quadraticCurveTo(x + Math.sin(t * 3 + ph) * 1.8, rim + len * 0.5 * st, x + Math.sin(t * 3 + ph + 1.2) * 2.4, rim + len * st); };
+      g.lineCap = 'round'; path(); g.strokeStyle = P.ink; g.lineWidth = w0; g.stroke(); path(); g.strokeStyle = P.enemyLight; g.lineWidth = w1; g.stroke();
+    };
+    [-5.4, -1.8, 1.8, 5.4].forEach(function (x, i) { line(x * sx, 8, i * 1.3, 2.4, 1); });
+    [-1.3, 1.3].forEach(function (x, i) { line(x, 10.5, 0.6 + i * 2, 4, 2.4); });
+    eSoft(g, P, function () { g.beginPath(); g.moveTo(-8.4 * sx, rim - 0.4); for (var i = 0; i < 5; i++) { var a = -8.4 + i * 3.36, b2 = a + 3.36; g.quadraticCurveTo((a + b2) / 2 * sx, rim + 3.6, b2 * sx, rim - 0.4); } g.closePath(); }, 0.5);
+    eBody(g, P, function () { g.beginPath(); g.moveTo(-8.8 * sx, rim); g.bezierCurveTo(-9.2 * sx, top * 1.3, 9.2 * sx, top * 1.3, 8.8 * sx, rim); g.quadraticCurveTo(0, rim + 1.6, -8.8 * sx, rim); g.closePath(); });
+    innerLine(g, P.enemyLight); g.beginPath(); g.moveTo(-6.6 * sx, rim - 1); g.bezierCurveTo(-7 * sx, top * 0.95, 7 * sx, top * 0.95, 6.6 * sx, rim - 1); g.stroke();
+    g.fillStyle = P.enemyLight; [[1.6, -5.4, 1.1], [4.4, -3.4, 0.9], [-0.8, -6.4, 0.7]].forEach(function (d) { ell(g, d[0] * sx, d[1] * sy, d[2], d[2]); g.fill(); });
+    shine(g, -4, -3.6 * sy, 1.9, 1, 0.6);
+    enemyEyes(g, P, 0, -0.4, look, 0.95, 2.4, blinkAt(t, 0.7));
+  }
+  var ENEMIES = { bat: bat, bird: bird, thunder: cloud, jelly: jelly };
   function enemy(g, P, x, y, t, s, look) {
     s = s || 1; look = look == null ? 1 : look;
-    var m = MOTIF[P.id] || MOTIF.underground, f = Math.sin(t * 13);
-    g.save(); g.translate(x, y); g.scale(s, s);
-    if (m.enemy === 'bat' || m.enemy === 'bird') {
-      [-1, 1].forEach(function (side) {
-        g.save(); g.scale(side, 1); var wy = f * 5;
-        if (m.enemy === 'bat') {
-          solid(g, function () { g.beginPath(); g.moveTo(3, -2); g.quadraticCurveTo(9, -7 + wy, 16, -5 + wy * 1.1); g.quadraticCurveTo(15, -1 + wy * 0.6, 13, wy * 0.5); g.quadraticCurveTo(11.5, -1 + wy * 0.4, 10, 1.5 + wy * 0.4); g.quadraticCurveTo(8, wy * 0.3, 6.5, 2.5 + wy * 0.2); g.quadraticCurveTo(5, 1.5, 3, 3); g.closePath(); }, P.enemyLight, P.enemyShade, P.ink, 0.8, 0.9);
-        } else {
-          solid(g, function () { g.beginPath(); g.moveTo(3, -1); g.quadraticCurveTo(10, -6 + wy, 14, -2 + wy); g.quadraticCurveTo(10, 1 + wy * 0.5, 4, 3); g.closePath(); }, P.enemyLight, P.enemyShade, P.ink, 0.8, 0.9);
-        }
-        g.restore();
-      });
-    }
-    if (m.enemy === 'bat') [-1, 1].forEach(function (sx) { solid(g, function () { g.beginPath(); g.moveTo(sx * 2, -5); g.lineTo(sx * 4.6, -10.5); g.lineTo(sx * 5.4, -4); g.closePath(); }, P.enemy, P.enemyShade, P.ink, 0.5, 0.9); });
-    if (m.enemy === 'thunder') {
-      solid(g, function () { g.beginPath(); for (var i = 0; i < 10; i++) { var a = i / 10 * Math.PI * 2, rad = 7 + (i % 2 ? 0 : 2.2); g.lineTo(Math.cos(a) * rad * 1.15, Math.sin(a) * rad * 0.85); } g.closePath(); }, P.enemy, P.enemyShade, P.ink, 1.4, 1.0);
-      g.fillStyle = P.glow; g.beginPath(); g.moveTo(-1, 6); g.lineTo(2, 6); g.lineTo(0, 9); g.lineTo(2.5, 9); g.lineTo(-1.5, 15 + f); g.lineTo(0, 10.5); g.lineTo(-2.5, 10.5); g.closePath(); g.fill();
-      enemyEyes(g, P, 0, -1, look);
-      g.strokeStyle = P.ink; g.lineWidth = 1; [-1, 1].forEach(function (sx) { g.beginPath(); g.moveTo(sx * 4.6, -4.4); g.lineTo(sx * 1.2, -3.2); g.stroke(); });
-      g.restore(); return;
-    }
-    if (m.enemy === 'jelly') {
-      for (var i2 = 0; i2 < 4; i2++) { var tx = -4.5 + i2 * 3; g.strokeStyle = P.ink; g.lineWidth = 2.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(tx, 3); g.quadraticCurveTo(tx + Math.sin(t * 4 + i2) * 2, 7, tx, 10); g.stroke(); g.strokeStyle = P.enemyLight; g.lineWidth = 1.2; g.stroke(); }
-      solid(g, function () { g.beginPath(); g.moveTo(-8, 3.5); g.bezierCurveTo(-8.5, -8, 8.5, -8, 8, 3.5); g.quadraticCurveTo(0, 5.5, -8, 3.5); g.closePath(); }, P.enemy, P.enemyShade, P.ink, 1.3, 1.0);
-      shine(g, -3.5, -3, 1.8, 1, 0.6); enemyEyes(g, P, 0, -0.5, look);
-      g.restore(); return;
-    }
-    // コウモリ・鳥の体
-    solid(g, function () { g.beginPath(); for (var i = 0; i < 14; i++) { var a = i / 14 * Math.PI * 2, rad = m.enemy === 'bat' ? (i % 2 ? 6.4 : 7) : 6.8; g.lineTo(Math.cos(a) * rad, Math.sin(a) * rad * 0.95 + 0.5); } g.closePath(); }, P.enemy, P.enemyShade, P.ink, 1.2, 1.0);
-    g.fillStyle = P.enemyLight; ell(g, 0, 3, 3.4, 2.6); g.fill();
-    enemyEyes(g, P, 0, -1, look);
-    if (m.enemy === 'bird') { g.fillStyle = P.glow; g.beginPath(); g.moveTo(look * 5.5, 0.5); g.lineTo(look * 9, 1.6); g.lineTo(look * 5.5, 2.8); g.closePath(); g.fill(); g.strokeStyle = P.ink; g.lineWidth = 0.7; g.stroke(); }
-    else { g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(0.6, 2.4); g.lineTo(1.4, 2.4); g.lineTo(1, 3.8); g.closePath(); g.fill(); }
+    var m = MOTIF[P.id] || MOTIF.underground;
+    g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
+    (ENEMIES[m.enemy] || bat)(g, P, t, look);
     g.restore();
   }
 

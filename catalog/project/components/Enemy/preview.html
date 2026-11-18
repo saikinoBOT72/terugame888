@@ -1,7 +1,13 @@
-<!-- @dsCard group="危険なもの" height=230 width=760 subtitle="敵：丸い体・縁取り・白目と黒目" -->
+<!-- @dsCard group="危険なもの" height=250 width=760 subtitle="敵：左が拡大、右は実寸でプレイヤーと大きさ比べ" -->
 <div id="root"></div>
 <script>
 (function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
 var root = document.getElementById('root');
-Kabe.zoneRow(root, { w: 108, h: 72, zoom: 2.6, label: '敵', draw: function (g, P, t) { Kabe.enemy(g, P, 54 + Math.sin(t * 1.2) * 12, 36 + Math.sin(t * 2) * 3, t, 1.5, Math.cos(t * 1.2) > 0 ? 1 : -1); } });
+Kabe.zoneRow(root, { w: 112, h: 72, zoom: 2.2, label: '敵', draw: function (g, P, t) {
+  var look = Math.cos(t * 0.7) > 0 ? 1 : -1;
+  Kabe.enemy(g, P, 36, 36 + Math.sin(t * 2) * 1.5, t, 1.8, look);
+  g.fillStyle = Kabe.alpha(P.uiPanel, 0.55); Kabe.rr(g, 72, 14, 36, 46, 6); g.fill();
+  Kabe.ghost(g, P, 'sheet', 'stand', 82, 42, t, 1, 1);
+  Kabe.enemy(g, P, 99, 32 + Math.sin(t * 2), t, 1, look);
+} });
 </script>
