@@ -80,6 +80,9 @@ const MOVE = {
   kickVx: 180, kickVy: 300, gravity: 420, maxFall: 0,
   airJumps: 1, airVy: 300, airMode: 'keep',
   slide: 0, slideAccel: 7, carry: 0.2,
+  // 斜めの壁から蹴るときの倍率（横, 上）。下向きの斜面は横向き多め、上向きの斜面は上向き多め
+  kickDownSlope: { vx: 1.5, vy: 0.85 },   // 上:横 が 1 より小さい（45度より浅い）と、張り付いた斜面にぶつからない
+  kickUpSlope: { vx: 0.7, vy: 1.25 },
   buffer: 0.14, speed: 1,
 };
 
@@ -97,8 +100,9 @@ const LAVA = { delay: 3, base: 14, perM: 0.12, leash: 160, catchup: 0.9 };
    パーツ（ステージの部品）
    1文字 = 1マス。上の行がパーツの上。横は必ず20文字。
      #  壁        .  空間       ^  トゲ（となりの壁から生える）
-     /  \  45度の斜め（まわりの壁から向きを自動で決める）
-     =  板の足場（下から抜けられる）   B  コウモリ
+     /  \  45度の斜め（まわりの壁から向きを自動で決める）。上向きも下向きも張り付ける
+     B  コウモリ
+   床も足場も、すべてマス単位のブロック（#）で作る
    つなぎ目のルール：
      - パーツのいちばん下の行といちばん上の行が「つなぎ口」。
        前のパーツの上のつなぎ口と、次のパーツの下のつなぎ口の形が同じものだけがつながる。
@@ -262,19 +266,19 @@ piece('z1_pillar', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('z1_planks', { diff: 1 }, String.raw`
+piece('z1_blocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-##..........====..##
+##..........###...##
 ##................##
 ##................##
 ##................##
-##..====..........##
+##...###..........##
 ##................##
 ##................##
 ##................##
-##.........====...##
+##.........###....##
 ##................##
 ##................##
 ##................##
@@ -419,7 +423,7 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 
 /* ---------- 高さ100mごとのプール ---------- */
 const POOLS = [
-  { from: 0, name: '0〜100m', pieces: ['z1_open', 'z1_alternate', 'z1_longwall', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_planks', 'z1_sideleft'] },
+  { from: 0, name: '0〜100m', pieces: ['z1_open', 'z1_alternate', 'z1_longwall', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_sideleft'] },
   { from: 100, name: '100〜200m', pieces: ['z2_dense', 'z2_narrow', 'z2_bats', 'z2_pillarspikes', 'z2_shelfspikes', 'z1_longwall', 'z1_sideleft', 'z1_pillar'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
@@ -467,7 +471,6 @@ function buildEdges(w, upto) {
     if (r === 0) for (let c = 0; c < COLS; c++) if (!solidSide(tile(w, c, 0), 'B')) addEdge(w, c * CELL, 0, (c + 1) * CELL, 0, 0, -1, 'wall', 0);
     for (let c = 0; c < COLS; c++) {
       const t = tile(w, c, r), x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL;
-      if (t === '=') { addEdge(w, x0, yT, x1, yT, 0, -1, 'oneway', r); continue; }
       if (!SIDES[t]) continue;
       if (solidSide(t, 'L') && !solidSide(tile(w, c - 1, r), 'R')) addEdge(w, x0, yB, x0, yT, -1, 0, 'wall', r);
       if (solidSide(t, 'R') && !solidSide(tile(w, c + 1, r), 'L')) addEdge(w, x1, yB, x1, yT, 1, 0, 'wall', r);
@@ -518,7 +521,6 @@ function collide(w, b, res) {
     for (const e of list) {
       if (e.maxY < b.y - HB - 1 || e.minY > b.y + HB + 1 || e.maxX < b.x - HB - 1 || e.minX > b.x + HB + 1) continue;
       if ((b.x - e.ax) * e.nx + (b.y - e.ay) * e.ny < -0.5) continue;
-      if (e.kind === 'oneway' && (b.vy < 0 || b.prevY + HB > e.ay + 1)) continue;
       const ex = e.bx - e.ax, ey = e.by - e.ay;
       const tr = ((b.x - e.ax) * ex + (b.y - e.ay) * ey) / (ex * ex + ey * ey);
       if ((tr < 0 && e.smoothA) || (tr > 1 && e.smoothB)) continue;   // となりの線にまかせる
@@ -529,9 +531,9 @@ function collide(w, b, res) {
       b.x = cx + nx * HB; b.y = cy + ny * HB;
       const vn = b.vx * nx + b.vy * ny;
       if (vn < 0) { b.vx -= vn * nx; b.vy -= vn * ny; }
-      // 床＝上向き、天井＝下向き（下を向いた45度も天井。当たると斜面に沿って流される）、それ以外＝壁
+      // 床＝真上向き、天井＝真下向き、それ以外（縦の壁・上向き/下向きの45度）＝壁として張り付ける
       if (ny < -0.8) res.floor = true;
-      else if (ny > 0.3) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
+      else if (ny > 0.8) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
       else res.walls.push({ x: nx, y: ny });
     }
   }
@@ -559,6 +561,9 @@ function physStep(w, b, dt) {
         if (!all.some(o => o !== n && tx * o.x + ty * o.y < -0.2) && ty > best) { pick = n; best = ty; }
       }
       if (pick) b.wn = pick; else { b.wn = same[0]; b.slideV = 0; }
+      // 縦の壁と下向きの斜面の角では、下向きの斜面に張り付いている扱い（横向き多めに蹴って抜けられる）
+      const down = same.find(n => n.y > 0.3);
+      if (down && MOVE.slide === 0) b.wn = down;
     } else if (c.floor) { b.side = 0; b.ground = true; }
     else { b.side = 0; b.vx = -b.wn.x * 90; b.vy = Math.max(0, b.slideV); }
     if (b.side !== 0 && c.floor && Math.abs(b.wn.y) < 0.1) b.slideV = 0;
@@ -567,7 +572,7 @@ function physStep(w, b, dt) {
   } else {
     if (c.floor) { b.ground = true; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'floor'; }
     else if (c.walls.length) {
-      const n = c.walls[c.walls.length - 1];
+      const n = c.walls.find(q => q.y > 0.3) || c.walls[c.walls.length - 1];
       b.side = n.x > 0 ? -1 : 1; b.wn = n; b.slideV = Math.min(0, b.vy) * MOVE.carry; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'wall';
     }
     if (c.ceil && c.ceilV > 60) ev = ev || 'bump';
@@ -584,7 +589,10 @@ function floorDir(w, b) {
 }
 function kick(w, b) {
   const dir = b.side !== 0 ? -b.side : floorDir(w, b);
-  b.vx = dir * MOVE.kickVx; b.vy = -MOVE.kickVy; b.side = 0; b.ground = false; b.air = MOVE.airJumps; b.face = dir;
+  // 斜めの壁からは倍率をかける（下向きの斜面＝横多め、上向きの斜面＝上多め）。斜面に引っかからないように
+  const k = b.side === 0 ? null : b.wn.y > 0.3 ? MOVE.kickDownSlope : b.wn.y < -0.3 ? MOVE.kickUpSlope : null;
+  b.vx = dir * MOVE.kickVx * (k ? k.vx : 1); b.vy = -MOVE.kickVy * (k ? k.vy : 1);
+  b.side = 0; b.ground = false; b.air = MOVE.airJumps; b.face = dir;
 }
 function airJump(b) {
   if (MOVE.airMode === 'flip') b.vx = -b.vx;
@@ -612,7 +620,8 @@ function checkPiece(id) {
   for (let i = 0; i < CHECK.padAbove; i++) rows.push(top);
   appendRows(w, rows);
   const goalY = -(CHECK.padBelow + pc.rows.length + 1) * CELL, fallY = -1 * CELL;
-  const key = b => (b.side ? 'w' + b.side : 'f') + ',' + Math.round(b.x / 3) + ',' + Math.round(b.y / 3);
+  const slope = b => !b.side ? '' : b.wn.y > 0.3 ? 'd' : b.wn.y < -0.3 ? 'u' : 'v';   // 張り付いている面の向きも区別する
+  const key = b => (b.side ? 'w' + b.side + slope(b) : 'f') + ',' + Math.round(b.x / 3) + ',' + Math.round(b.y / 3);
   // 入口：下の足し分の2〜5行目の高さで、左右の壁に張り付いた位置
   const entries = [];
   const cl = bottom.indexOf('.'), cr = bottom.lastIndexOf('.');
@@ -636,7 +645,7 @@ function checkPiece(id) {
         if (spikeHit(w, b.x, b.y)) { result = 'hurt'; break; }
         if (b.y > fallY) { result = 'fall'; break; }
         if (b.y < goalY) { result = 'goal'; break; }
-        if ((ev === 'wall' || ev === 'floor') && t > 0.02) {
+        if (ev === 'wall' || ev === 'floor') {   // 蹴った直後に近くの斜面へ張り付き直すのも着地に数える
           for (let u = 0; u < CHECK.settle; u += DT) physStep(w, b, DT);   // 着地後の小さな滑りを待つ
           result = spikeHit(w, b.x, b.y) ? 'hurt' : 'land';
           break;
@@ -794,7 +803,6 @@ function draw() {
       else if (t === 'BL') tri(x0, yB, x1, yB, x0, yT);
       else if (t === 'TL') tri(x0, yT, x1, yT, x0, yB);
       else if (t === 'TR') tri(x1, yT, x0, yT, x1, yB);
-      else if (t === '=') { ctx.fillStyle = '#7a6a4a'; ctx.fillRect(x0, yT, CELL, 4); }
       else if (t === '^') drawSpike(c, r);
     }
   }
@@ -803,7 +811,7 @@ function draw() {
     ctx.font = '10px system-ui'; ctx.textAlign = 'left';
     for (const p of world.placed) { const y = -p.r0 * CELL; ctx.fillStyle = 'rgba(242,181,68,.5)'; ctx.fillRect(0, y, W, 1); ctx.fillText(p.id, 40, y - 4); }
     for (const list of world.edges) if (list) for (const e of list) {
-      ctx.strokeStyle = e.kind === 'oneway' ? '#ff0' : e.ny < -0.8 ? '#0f0' : e.ny > 0.3 ? '#f44' : '#4af';
+      ctx.strokeStyle = e.ny < -0.8 ? '#0f0' : e.ny > 0.8 ? '#f44' : '#4af';
       ctx.beginPath(); ctx.moveTo(e.ax, e.ay); ctx.lineTo(e.bx, e.by); ctx.stroke();
     }
   }
