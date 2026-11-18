@@ -9,13 +9,16 @@
 
 ## 叩き台（今の index.html）
 - 0〜100m の1ゾーンだけ。100m到達でクリア
-- 罠は壁のトゲだけ。触れるとHP-1、反対側へ弾き飛ばされる（HP3）
+- 罠は壁のトゲとコウモリ（15mから出現）。触れるとHP-1、弾き飛ばされる（HP3）
+- ジャンプはふわっと寄り：重力小さめ・横移動ゆっくり・頂点付近で少し滞空
 - ゾーン内でも高さに応じてトゲが長く・密に・両壁交互が増える
 - D キーで当たり判定を表示（調整用）
 
 ## 調整のしかた
 `index.html` の先頭近く `TUNING` にまとめてある数値を変える。
 - ジャンプ：`KICK_VX` `KICK_VY` `AIR_JUMP_VY` `GRAVITY` `SLIDE_SPEED`
+- 滞空感：`APEX_VY`（頂点とみなす速さ）`APEX_GRAVITY`（頂点付近の重力倍率）`MAX_FALL`
+- コウモリ：`BAT_FROM_M` `BAT_R`、数と速さは `genZone1()` 内
 - 2段ジャンプの向き：`AIR_JUMP_MODE`（`'keep'` 向きそのまま / `'flip'` 反転）
 - 溶岩：`LAVA_SPEED_BASE` `LAVA_SPEED_PER_M` `LAVA_LEASH`
 - 長さ：`PX_PER_M`（1mのピクセル数）

@@ -50,7 +50,7 @@
   .eyebrow { font-size: calc(var(--u) * 11px); letter-spacing: .3em; color: var(--ember); }
   .how { display: grid; gap: calc(var(--u) * 4px); text-align: left; }
   .how div { display: flex; gap: calc(var(--u) * 8px); align-items: baseline; }
-  .how b { font-weight: 400; color: var(--gold); min-width: calc(var(--u) * 72px); }
+  .how b { font-weight: 400; color: var(--gold); min-width: calc(var(--u) * 92px); }
   .btn {
     font: inherit; font-size: calc(var(--u) * 16px);
     color: #1a1208; background: var(--gold); border: 0; border-radius: calc(var(--u) * 3px);
@@ -90,7 +90,7 @@
       <div class="how">
         <div><b>壁でタップ</b><span>反対の壁へ蹴り跳ぶ</span></div>
         <div><b>空中でタップ</b><span>2段ジャンプ（壁に着くと回復）</span></div>
-        <div><b>トゲ</b><span>触れるとHP-1</span></div>
+        <div><b>トゲ・コウモリ</b><span>触れるとHP-1</span></div>
         <div><b>溶岩</b><span>触れたら終わり</span></div>
       </div>
       <button class="btn" id="btnStart" type="button">登りはじめる</button>
@@ -129,11 +129,14 @@ const PR = 11;                       // プレイヤー半径
 const HIT = PR - 3;                  // 当たり判定（見た目より少し小さく）
 const PX_PER_M = 60;                 // 1m = 60px（100m = 6000px）
 
-const GRAVITY = 1150;
-const KICK_VX = 430;                 // 壁キックの横速度
-const KICK_VY = 560;                 // 壁キックの上向き速度
+const GRAVITY = 640;                 // 小さいほどふわっと
+const APEX_VY = 95;                  // 上下の速さがこれ以下＝頂点付近
+const APEX_GRAVITY = 0.5;            // 頂点付近は重力をこの倍率に（滞空感）
+const MAX_FALL = 520;                // 落下の最高速度
+const KICK_VX = 270;                 // 壁キックの横速度
+const KICK_VY = 440;                 // 壁キックの上向き速度
 const AIR_JUMPS = 1;                 // 2段ジャンプの回数（基本1回）
-const AIR_JUMP_VY = 470;             // 2段ジャンプの上向き速度
+const AIR_JUMP_VY = 380;             // 2段ジャンプの上向き速度
 const AIR_JUMP_MODE = 'keep';        // 'keep' = 向きそのまま / 'flip' = 向きを反転
 const SLIDE_SPEED = 74;              // 壁をずり落ちる速さ
 const INPUT_BUFFER = 0.14;           // 着地直前の入力を覚えておく秒数
@@ -146,6 +149,9 @@ const LAVA_SPEED_BASE = 28;          // px/s
 const LAVA_SPEED_PER_M = 0.3;        // 高さ1mごとに足す速さ
 const LAVA_CATCHUP = 0.9;            // 画面外に離れすぎたら追いつく強さ
 const LAVA_LEASH = 160;              // 画面下端からこれ以上離れると追いつき始める（px）
+
+const BAT_FROM_M = 15;               // コウモリが出はじめる高さ
+const BAT_R = 9;                     // コウモリの当たり判定
 
 const PROTO_LIMIT_M = 100;           // 叩き台はここまで
 
@@ -163,13 +169,15 @@ const ZONES = [
 ];
 const zoneAt = m => ZONES.find(z => m >= z.from && m < z.to) || ZONES[ZONES.length - 1];
 
-// 0〜100m：壁のトゲだけ。高さに応じて長く・密に・両壁交互が増える
+// 0〜100m：壁のトゲ＋コウモリ。高さに応じてトゲが長く・密に・両壁交互が増え、コウモリも増える
 function genZone1(g, y) {
-  const m = -y / PX_PER_M;
+  const y0 = y, m = -y / PX_PER_M;
   const d = clamp((m - 5) / 90, 0, 1);            // ゾーン内の難しさ 0→1
   const gap = lerp(210, 115, d) * rand(0.85, 1.15);
   const len = Math.min(160, lerp(50, 140, d) * rand(0.8, 1.2));
   y -= gap;
+  // トゲの手前のすき間にコウモリ（15mから、上ほど多く速く）
+  if (m > BAT_FROM_M && rng() < lerp(0.25, 0.6, d)) g.addBat((y0 + y) / 2, lerp(45, 85, d) * rand(0.85, 1.15));
   const side = rng() < 0.5 ? -1 : 1;
   if (!g.addSpike(side, y - len, y)) g.addSpike(-side, y - len, y);
   // 上の方では反対の壁にも少しずらしてもう1本
@@ -257,7 +265,7 @@ function newGame(seed) {
   rng = mulberry32(seed);
   G = {
     seed, time: 0, hp: MAX_HP, cause: '',
-    spikes: [], genY: -5 * PX_PER_M,     // 最初の5mはトゲなし
+    spikes: [], bats: [], genY: -5 * PX_PER_M,     // 最初の5mはトゲなし
     lavaY: 160, lavaDelay: LAVA_DELAY,
     lastMark: 0, torches: [],
   };
@@ -266,6 +274,9 @@ function newGame(seed) {
     if (clash || top < -PROTO_LIMIT_M * PX_PER_M + 40) return false;
     G.spikes.push({ side, top, bot });
     return true;
+  };
+  G.addBat = (y, speed) => {
+    G.bats.push({ x: rand(IN_L + 40, IN_R - 40), baseY: y, y, vx: rng() < 0.5 ? speed : -speed, t: rng() * 6 });
   };
   P = { x: IN_L + PR, y: -PR, vx: 0, vy: 0, side: -1, air: AIR_JUMPS, inv: 0, squash: 0, face: 1, best: 0, trail: [] };
   cam.y = 60 - H; cam.shake = 0;
@@ -360,7 +371,7 @@ function update(dt) {
     if (p.vy > 20 && Math.random() < dt * 8) particles.push({ x: p.side < 0 ? IN_L + 2 : IN_R - 2, y: p.y + 6, vx: -p.side * 10, vy: 20, life: 0.3, max: 0.3, color: '#cfc6ae', size: 1.5, g: 0 });
     if (p.trail.length) p.trail.shift();
   } else {
-    p.vy = Math.min(900, p.vy + GRAVITY * dt);
+    p.vy = Math.min(MAX_FALL, p.vy + GRAVITY * (Math.abs(p.vy) < APEX_VY ? APEX_GRAVITY : 1) * dt);
     p.x += p.vx * dt; p.y += p.vy * dt;
     if (p.x - PR <= IN_L) land(-1); else if (p.x + PR >= IN_R) land(1);
     p.trail.push({ x: p.x, y: p.y }); if (p.trail.length > 8) p.trail.shift();
@@ -392,10 +403,26 @@ function update(dt) {
   for (const s of G.spikes) {
     if (s.bot < p.y - 40 || s.top > p.y + 40) continue;
     const x0 = s.side < 0 ? IN_L : IN_R - 13;
-    if (circleRect(p.x, p.y, HIT, x0, s.top, x0 + 13, s.bot)) { hurt(s.side); break; }
+    if (circleRect(p.x, p.y, HIT, x0, s.top, x0 + 13, s.bot)) { hurt(-s.side, 'spike'); break; }
   }
+  // bats
+  updateBats(dt);
+  for (const b of G.bats) {
+    if ((p.x - b.x) ** 2 + (p.y - b.y) ** 2 < (HIT + BAT_R) ** 2) { hurt(Math.sign(p.x - b.x) || 1, 'bat'); break; }
+  }
+  if (state !== 'play') return;
 
   if (m >= PROTO_LIMIT_M && state === 'play') clear();
+}
+
+function updateBats(dt) {
+  for (const b of G.bats) {
+    if (!visible(b.baseY, 400)) continue;
+    b.t += dt; b.x += b.vx * dt;
+    if (b.x < IN_L + 14) { b.x = IN_L + 14; b.vx = Math.abs(b.vx); }
+    if (b.x > IN_R - 14) { b.x = IN_R - 14; b.vx = -Math.abs(b.vx); }
+    b.y = b.baseY + Math.sin(b.t * 2.6) * 16;
+  }
 }
 
 function land(side) {
@@ -408,14 +435,14 @@ function land(side) {
   if (inputBuf > 0) tryJump();
 }
 
-function hurt(spikeSide) {
+function hurt(dirX, cause) {
   const p = P;
   if (p.inv > 0) return;
   G.hp--; p.inv = INVINCIBLE; cam.shake = 9; sfx.hurt();
   burst(p.x, p.y, 14, '#ff6f7d', 0, 0.5, 160);
-  // トゲから弾き飛ばす（2段ジャンプは残る）
-  p.side = 0; p.vx = -spikeSide * KICK_VX * 0.75; p.vy = -260;
-  if (G.hp <= 0) { G.cause = 'spike'; die(); }
+  // 当たった物から弾き飛ばす（2段ジャンプは残る）
+  p.side = 0; p.vx = dirX * KICK_VX * 0.75; p.vy = -260;
+  if (G.hp <= 0) { G.cause = cause; die(); }
 }
 function die() {
   state = 'dead'; G.endT = 0; sfx.die(); cam.shake = 14;
@@ -457,6 +484,7 @@ function draw() {
   drawWalls(th);
   drawTorches();
   drawSpikes();
+  drawBats();
   if (state !== 'dead' && state !== 'end') drawPlayer();
   drawParticles();
   drawLava();
@@ -556,6 +584,20 @@ function drawSpikes() {
     }
   }
 }
+function drawBats() {
+  for (const b of G.bats) {
+    if (!visible(b.y)) continue;
+    ctx.save(); ctx.translate(b.x, b.y);
+    const w = Math.sin(b.t * 16) * 6;
+    ctx.fillStyle = '#4b3f73';
+    ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(-15, -6 + w); ctx.lineTo(-11, 2); ctx.lineTo(-6, 1 + w * 0.3); ctx.lineTo(-3, 4); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(3, -2); ctx.lineTo(15, -6 + w); ctx.lineTo(11, 2); ctx.lineTo(6, 1 + w * 0.3); ctx.lineTo(3, 4); ctx.fill();
+    ctx.fillStyle = '#6d5fa3'; ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ff4f6a'; const ex = b.vx > 0 ? 1.5 : -1.5;
+    ctx.fillRect(-3 + ex, -2, 2, 2); ctx.fillRect(1 + ex, -2, 2, 2);
+    ctx.restore();
+  }
+}
 function drawHeart(x, y, s, color) {
   ctx.fillStyle = color;
   const px = [[1,0],[2,0],[4,0],[5,0],[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[1,3],[2,3],[3,3],[4,3],[5,3],[2,4],[3,4],[4,4],[3,5]];
@@ -615,6 +657,7 @@ function drawDebug() {
   ctx.beginPath(); ctx.arc(P.x, P.y, HIT, 0, Math.PI * 2); ctx.stroke();
   ctx.strokeStyle = '#f0f';
   for (const s of G.spikes) { const x0 = s.side < 0 ? IN_L : IN_R - 13; ctx.strokeRect(x0, s.top, 13, s.bot - s.top); }
+  for (const b of G.bats) { ctx.beginPath(); ctx.arc(b.x, b.y, BAT_R, 0, Math.PI * 2); ctx.stroke(); }
 }
 function drawHud(th) {
   const gr = ctx.createLinearGradient(0, 0, 0, 44);
@@ -660,7 +703,7 @@ function showEnd() {
   const newM = m > best.m, newT = cleared && (!best.t || G.time < best.t);
   store.set('kr_proto_best', { m: Math.max(m, best.m), t: newT ? G.time : best.t });
   $('endEyebrow').textContent = cleared ? 'CLEAR' : 'GAME OVER';
-  $('endTitle').textContent = cleared ? '100m 到達！' : G.cause === 'lava' ? '溶岩に呑まれた' : G.cause === 'spike' ? 'トゲで力尽きた' : 'やり直し';
+  $('endTitle').textContent = cleared ? '100m 到達！' : G.cause === 'lava' ? '溶岩に呑まれた' : G.cause === 'spike' ? 'トゲで力尽きた' : G.cause === 'bat' ? 'コウモリにやられた' : 'やり直し';
   $('endNote').hidden = !cleared;
   $('endNote').textContent = 'ここから先はまだ作っていません';
   const st = $('endStats'); st.textContent = '';
@@ -693,6 +736,7 @@ function loop(now) {
     G.time += dt; cam.y -= 30 * dt;
     if (cam.y < -PROTO_LIMIT_M * PX_PER_M) cam.y = 60 - H;
     generateUpTo(cam.y - H);
+    updateBats(dt);
     P.y = cam.y + H * 0.62;
     P.side = Math.floor(G.time / 0.9) % 2 ? 1 : -1; P.x = P.side < 0 ? IN_L + PR : IN_R - PR; P.face = -P.side;
   } else update(dt);
