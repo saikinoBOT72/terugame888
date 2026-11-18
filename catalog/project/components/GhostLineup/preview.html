@@ -4,7 +4,7 @@
 (function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
 var root = document.getElementById('root');
 var c = Kabe.canvas(430, 140, 2, 'キャラ4案'); root.appendChild(c.c); root.style.padding = '10px';
-var names = ['A しずく', 'B すそ', 'C まる', 'D のっぽ'], ids = ['drop', 'sheet', 'mochi', 'tall'];
+var names = ['B1 ふんわり', 'B2 ながすそ', 'B3 ずきん', 'B4 ちびすそ'], ids = ['sheet', 'sheetLong', 'sheetHood', 'sheetChibi'];
 Kabe.animate(function (t) {
   var P = Kabe.pal('underground'), g = c.g; g.setTransform(c.k, 0, 0, c.k, 0, 0); g.clearRect(0, 0, 430, 140);
   g.font = '800 10px "M PLUS Rounded 1c", sans-serif'; g.textAlign = 'center';

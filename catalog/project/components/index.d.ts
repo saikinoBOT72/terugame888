@@ -3,7 +3,7 @@ type ZoneId = 'underground' | 'surface' | 'sky' | 'space';
 /** ゾーンの色。tokens.json の名前をキャメルケースにしたもの（bg-top → bgTop）。 */
 interface Palette { id: ZoneId; [token: string]: string; }
 type Pose = 'stand' | 'cling' | 'jump' | 'air' | 'hurt';
-type GhostVariant = 'drop' | 'sheet' | 'mochi' | 'tall';
+type GhostVariant = 'sheet' | 'sheetLong' | 'sheetHood' | 'sheetChibi';
 interface Grid { rows: number; cols: number; }
 declare const Kabe: {
   CELL: 18;

@@ -300,11 +300,11 @@ window.Kabe = (function () {
 
   /* ---------- プレイヤー：白いおばけ・線の目・薄ピンクの頬・赤いマフラー ---------- */
   var POSES = {
-    stand: { name: '立ち', tilt: 0, sq: 0, hands: [[-8.5, 4], [8.5, 4]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-11, 2], [-15, 8], [-17, 15], [-16, 21]], expr: 'normal', look: [1, 0] },
-    cling: { name: '壁に張り付き', tilt: -0.08, sq: 0, hands: [[-11.5, -5], [-11.5, 3]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, 5], [-10, 12], [-8, 19], [-9, 26]], expr: 'normal', look: [1, -0.5], wall: true },
-    jump: { name: 'ジャンプ', tilt: 0.18, sq: -0.1, hands: [[-9, -7], [9, -8]], feet: [[-6, 12], [2, 13.5]], scarf: [[-4, -1], [-12, 4], [-20, 8], [-28, 15], [-34, 23]], expr: 'brave', look: [1, -0.7] },
-    air: { name: '2段ジャンプ', tilt: 0.5, sq: 0.08, hands: [[-6, 3], [6.5, 2]], feet: [[-3, 10], [5, 9]], scarf: [[-4, -1], [-11, -4], [-19, -4], [-26, 1], [-31, 8]], expr: 'happy', look: [1, 0], ring: true },
-    hurt: { name: 'ダメージ', tilt: -0.32, sq: 0.06, hands: [[-11, -6], [10.5, -7]], feet: [[-7.5, 12], [6.5, 10]], scarf: [[-4, -1], [-8, -8], [-13, -14], [-14, -21], [-12, -28]], expr: 'hurt', look: [-1, 0] }
+    stand: { name: '立ち', tilt: 0, sq: 0, hands: [[-8.5, 4], [8.5, 4]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-11, 2], [-15, 8], [-17, 15], [-16, 21]], expr: 'normal', look: [1, 0], hem: 0 },
+    cling: { name: '壁に張り付き', tilt: -0.08, sq: 0, hands: [[-11.5, -5], [-11.5, 3]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, 5], [-10, 12], [-8, 19], [-9, 26]], expr: 'normal', look: [1, -0.5], wall: true, hem: -0.6 },
+    jump: { name: 'ジャンプ', tilt: 0.18, sq: -0.1, hands: [[-9, -7], [9, -8]], feet: [[-6, 12], [2, 13.5]], scarf: [[-4, -1], [-12, 4], [-20, 8], [-28, 15], [-34, 23]], expr: 'brave', look: [1, -0.7], hem: -1.8 },
+    air: { name: '2段ジャンプ', tilt: 0.5, sq: 0.08, hands: [[-6, 3], [6.5, 2]], feet: [[-3, 10], [5, 9]], scarf: [[-4, -1], [-11, -4], [-19, -4], [-26, 1], [-31, 8]], expr: 'happy', look: [1, 0], ring: true, hem: -0.9 },
+    hurt: { name: 'ダメージ', tilt: -0.32, sq: 0.06, hands: [[-11, -6], [10.5, -7]], feet: [[-7.5, 12], [6.5, 10]], scarf: [[-4, -1], [-8, -8], [-13, -14], [-14, -21], [-12, -28]], expr: 'hurt', look: [-1, 0], hem: 1.2 }
   };
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
   function scarfTail(g, P, pts, t, w0) {
@@ -352,64 +352,61 @@ window.Kabe = (function () {
   function cheeks(g, P, list) { g.fillStyle = P.playerCheek; list.forEach(function (c) { ell(g, c[0], c[1], 1.9, 1.15); g.fill(); }); }
   function ghostLimb(g, P, x, y, r) { solid(g, function () { ell(g, x, y, r, r * 0.9); }, P.playerBody, P.playerShade, P.playerLine, 0.5, 1.0); }
 
-  var GHOSTS = {
-    drop: {
-      letter: 'A', name: 'しずく', note: '頭は丸く、下へいくほど細くなって、先がくるんと巻く。手足は小さな丸。いちばんおばけらしい形。',
-      draw: function (g, P, Q, t) {
-        var curl = Math.sin(t * 3) * 1.2;
-        Q.feet.forEach(function (f, i) { if (i === 0) ghostLimb(g, P, f[0] * 0.6, f[1] - 1, 2); });
-        ghostLimb(g, P, Q.hands[0][0], Q.hands[0][1], 2.3);
-        var body = function () { g.beginPath(); g.moveTo(0, -12); g.bezierCurveTo(8, -12, 10.5, -5, 10, 1); g.bezierCurveTo(9.5, 7, 5, 10, 1.5, 12); g.quadraticCurveTo(-1 + curl, 14.5, -4 + curl, 13.5); g.quadraticCurveTo(-1.5 + curl, 12.5, -2, 11); g.bezierCurveTo(-7, 9, -10, 5, -10, 0); g.bezierCurveTo(-10, -6, -7, -12, 0, -12); g.closePath(); };
-        solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9);
-        shine(g, -5, -7.5, 2.4, 1.3, 0.9);
-        lineEyes(g, P, [[2.4, -3.5], [6.8, -3.8]], Q.expr, Q.look, t); cheeks(g, P, [[0.4, -0.2], [9, -0.6]]);
-        scarfWrap(g, P, 0.5, 2.6, 17, 3.2);
-        ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], 2.3);
-      }
-    },
-    sheet: {
-      letter: 'B', name: 'すそ', note: '布をかぶったような形。すそが3つの山で波打ち、手はすそから少しのぞく。動くとすそが揺れる。',
-      draw: function (g, P, Q, t) {
-        var w = Math.sin(t * 5) * 0.9;
-        ghostLimb(g, P, Q.hands[0][0], Q.hands[0][1], 2.1);
-        var body = function () { g.beginPath(); g.moveTo(0, -12.5); g.bezierCurveTo(8, -12.5, 10.5, -6, 10.5, 0); g.lineTo(10.5, 9.5);
-          g.quadraticCurveTo(9, 13.5 + w, 7, 11); g.quadraticCurveTo(5, 9, 3.5, 11); g.quadraticCurveTo(1.8, 13.5 - w, 0, 11); g.quadraticCurveTo(-1.8, 9, -3.5, 11);
-          g.quadraticCurveTo(-5, 13.5 + w, -7, 11); g.quadraticCurveTo(-9, 9, -10.5, 11); g.lineTo(-10.5, 0); g.bezierCurveTo(-10.5, -6, -8, -12.5, 0, -12.5); g.closePath(); };
-        solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9);
-        // すその内側の影
-        g.save(); body(); g.clip(); g.fillStyle = P.playerShade; g.beginPath(); g.moveTo(-11, 9.5); g.quadraticCurveTo(0, 7.5, 11, 9.5); g.lineTo(11, 15); g.lineTo(-11, 15); g.closePath(); g.fill(); g.restore();
-        shine(g, -5.2, -8, 2.4, 1.3, 0.9);
-        lineEyes(g, P, [[2.2, -4.2], [6.6, -4.4]], Q.expr, Q.look, t); cheeks(g, P, [[0.2, -1], [8.8, -1.3]]);
-        scarfWrap(g, P, 0, 1.6, 19, 3.2);
-        ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], 2.1);
-      }
-    },
-    mochi: {
-      letter: 'C', name: 'まる', note: '丸いおもちのような体に、短い手と足。足がある分、壁や床に「立っている」感じが出る。',
-      draw: function (g, P, Q, t) {
-        Q.feet.forEach(function (f) { solid(g, function () { ell(g, f[0], f[1], 3.2, 2.2); }, P.playerBody, P.playerShade, P.playerLine, 0.5, 1.0); });
-        ghostLimb(g, P, Q.hands[0][0], Q.hands[0][1], 2.4);
-        var body = function () { g.beginPath(); g.moveTo(0, -11.5); g.bezierCurveTo(8.5, -11.5, 11, -4, 10.5, 2); g.bezierCurveTo(10, 8.5, 6, 11, 0, 11); g.bezierCurveTo(-6, 11, -10, 8.5, -10.5, 2); g.bezierCurveTo(-11, -4, -8.5, -11.5, 0, -11.5); g.closePath(); };
-        solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9);
-        shine(g, -5, -6.5, 2.6, 1.4, 0.9);
-        lineEyes(g, P, [[2.4, -2.6], [7, -2.9]], Q.expr, Q.look, t); cheeks(g, P, [[0.2, 0.8], [9.2, 0.4]]);
-        scarfWrap(g, P, 0, 4.2, 18, 3.2);
-        ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], 2.4);
-      }
-    },
-    tall: {
-      letter: 'D', name: 'のっぽ', note: '縦長のカプセル形で、手は体から離れてふわっと浮く。体が細いぶん、マフラーがいちばん長く見える。',
-      draw: function (g, P, Q, t) {
-        var bob = Math.sin(t * 3) * 0.6;
-        ghostLimb(g, P, Q.hands[0][0] * 1.08, Q.hands[0][1] + bob, 2.2);
-        var body = function () { g.beginPath(); g.moveTo(0, -13.5); g.bezierCurveTo(6.5, -13.5, 8.5, -8, 8.5, -3); g.lineTo(8.5, 7); g.bezierCurveTo(8.5, 11.5, 5, 13.5, 0, 13.5); g.bezierCurveTo(-5, 13.5, -8.5, 11.5, -8.5, 7); g.lineTo(-8.5, -3); g.bezierCurveTo(-8.5, -8, -6.5, -13.5, 0, -13.5); g.closePath(); };
-        solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.8);
-        shine(g, -4, -9, 2, 1.3, 0.9);
-        lineEyes(g, P, [[1.8, -5.5], [5.8, -5.8]], Q.expr, Q.look, t); cheeks(g, P, [[-0.4, -2.4], [7.2, -2.7]]);
-        scarfWrap(g, P, 0, -0.4, 15.5, 3);
-        ghostLimb(g, P, Q.hands[1][0] * 1.08, Q.hands[1][1] - bob, 2.2);
-      }
+  // すその形（頭は丸く、横はまっすぐ下りて、すそが丸い山で波打つ）。sw：すその流れ、wv：波のゆらぎ
+  function sheetPath(g, o, sw, wv) {
+    var h = o.half, f = o.flare, y = o.hemY, top = o.top, sh = top + o.shoulder;
+    g.beginPath(); g.moveTo(0, top);
+    g.bezierCurveTo(h * 0.8, top, h, sh - 5, h, sh);
+    g.quadraticCurveTo(h + sw * 0.2, y - 3, h + f + sw * 0.7, y);
+    var x0 = h + f + sw * 0.7, x1 = -(h + f) + sw * 0.25, n = o.waves;
+    for (var i = 0; i < n; i++) {
+      var a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n, d = o.amp * 1.5 + (i % 2 ? -wv : wv) * 0.7, sx = sw * 0.3;
+      // 丸い山（半円に近い形）。山と山のつなぎ目も少し丸める
+      g.bezierCurveTo(a + (b - a) * 0.02 + sx, y + d, b - (b - a) * 0.02 + sx, y + d, b, y + (i < n - 1 ? 0.2 : 0));
     }
+    g.quadraticCurveTo(-h + sw * 0.1, y - 3, -h, sh);
+    g.bezierCurveTo(-h, sh - 5, -h * 0.8, top, 0, top); g.closePath();
+  }
+  function sleeve(g, P, x0, y0, x1, y1, w) {   // そで：肩から手先までの丸い筒
+    var dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) || 1, nx = -dy / d * w, ny = dx / d * w, a = Math.atan2(ny, nx);
+    solid(g, function () { g.beginPath(); g.moveTo(x0 + nx, y0 + ny); g.lineTo(x1 + nx, y1 + ny); g.arc(x1, y1, w, a, a + Math.PI); g.lineTo(x0 - nx, y0 - ny); g.arc(x0, y0, w, a + Math.PI, a + Math.PI * 2); g.closePath(); }, P.playerBody, P.playerShade, P.playerLine, 0.5, 1.0);
+  }
+  function sheetGhost(o) {
+    return function (g, P, Q, t) {
+      var sw = (Q.hem || 0) * o.swing, wv = Math.sin(t * 5) * o.wobble;
+      if (o.hood) {   // 頭の先：丸い先が後ろへ垂れて揺れる
+        var sway = Math.sin(t * 2.6) * 1.2 + (Q.hem || 0) * 1.4;
+        solid(g, function () { g.beginPath(); g.moveTo(-7, o.top + 4); g.quadraticCurveTo(-7.5 + sway * 0.4, o.top - 2.5, -10.5 + sway, o.top - 5.5); g.quadraticCurveTo(-5 + sway * 0.4, o.top - 4.5, 4, o.top + 2); g.closePath(); }, P.playerBody, P.playerShade, P.playerLine, 0.8, 1.15);
+        solid(g, function () { ell(g, -11 + sway, o.top - 5.4, 2.3, 2.3); }, P.playerBody, P.playerShade, P.playerLine, 0.5, 1.0);
+      }
+      var shoulder = function (hx) { return hx < 0 ? -o.half + 3 : o.half - 3; };   // そでは手と同じ側の肩から出す
+      if (o.sleeves) sleeve(g, P, shoulder(Q.hands[0][0]), 0.5, Q.hands[0][0], Q.hands[0][1], 2.1);
+      else ghostLimb(g, P, Q.hands[0][0], Q.hands[0][1], o.hand);
+      var body = function () { sheetPath(g, o, sw, wv); };
+      solid(g, body, P.playerBody, P.playerShade, P.playerLine, 1.9);
+      // すその内側の影
+      g.save(); body(); g.clip(); g.fillStyle = P.playerShade;
+      g.beginPath(); g.moveTo(-20, o.hemY - 1.2); g.quadraticCurveTo(0, o.hemY - 3, 20, o.hemY - 1.2); g.lineTo(20, 30); g.lineTo(-20, 30); g.closePath(); g.fill(); g.restore();
+      shine(g, -o.half * 0.5, o.top + 4.5, 2.4, 1.3, 0.9);
+      lineEyes(g, P, o.eyes, Q.expr, Q.look, t); cheeks(g, P, o.cheeks);
+      scarfWrap(g, P, 0, o.scarfY, o.scarfW, 3.2);
+      if (o.sleeves) sleeve(g, P, shoulder(Q.hands[1][0]), 0.5, Q.hands[1][0], Q.hands[1][1], 2.1);
+      else ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], o.hand);
+    };
+  }
+  var GHOSTS = {
+    sheet: { letter: 'B1', name: 'ふんわり', note: '今の「すそ」を整えた形。すそが少し広がり、大きな丸い山が3つ。手は小さな丸。',
+      draw: sheetGhost({ top: -12.5, half: 10, shoulder: 11.5, flare: 1.6, hemY: 10, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1,
+        eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]], scarfY: 1.6, scarfW: 19 }) },
+    sheetLong: { letter: 'B2', name: 'ながすそ', note: '縦に長く、すそは小さな山が4つ。跳ぶとすそが後ろへ大きくなびき、スピード感が出る。',
+      draw: sheetGhost({ top: -14, half: 9, shoulder: 11, flare: 2.2, hemY: 12, waves: 4, amp: 1.7, swing: 2.8, wobble: 0.7, hand: 1.9,
+        eyes: [[2, -6], [6, -6.2]], cheeks: [[0, -2.8], [8, -3.1]], scarfY: 0.2, scarfW: 17 }) },
+    sheetHood: { letter: 'B3', name: 'ずきん', note: '頭のてっぺんが丸い先になって後ろへ垂れる。手はそでのような筒。布をかぶった感じがいちばん強い。',
+      draw: sheetGhost({ top: -11.5, half: 10, shoulder: 11, flare: 1.2, hemY: 10.5, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1, hood: true, sleeves: true,
+        eyes: [[2.4, -3.4], [6.8, -3.6]], cheeks: [[0.4, -0.4], [9, -0.7]], scarfY: 2.2, scarfW: 19 }) },
+    sheetChibi: { letter: 'B4', name: 'ちびすそ', note: '背が低くて横に広い。顔の場所が大きく、目と頬も大きめ。いちばん小さくてかわいい。',
+      draw: sheetGhost({ top: -10.5, half: 11.5, shoulder: 10, flare: 0.8, hemY: 9, waves: 3, amp: 3, swing: 1.2, wobble: 1.1, hand: 1.8,
+        eyes: [[2.6, -2.6], [7.8, -2.9]], cheeks: [[0, 0.6], [10.4, 0.2]], scarfY: 3.4, scarfW: 21 }) }
   };
   function ghost(g, P, variant, poseId, x, y, t, face, scale) {
     var Q = POSES[poseId], G = GHOSTS[variant]; face = face || 1; scale = scale || 1;
@@ -501,6 +498,7 @@ window.Kabe = (function () {
 
   return {
     CELL: CELL, ZONES: ZONES, MOTIF: MOTIF, POSES: POSES, POSE_ORDER: POSE_ORDER, GHOSTS: GHOSTS,
+    sheetPath: sheetPath,
     pal: pal, mix: mix, alpha: alpha, hash: hash,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
