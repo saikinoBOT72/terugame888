@@ -6,7 +6,7 @@
 ## ファイル
 | ファイル | 中身 |
 |---|---|
-| `index.html` | 本編（約1300行・1ファイル）。地下モチーフ、仮の見た目のキャラ |
+| `index.html` | 本編（約1150行）。絵は `catalog/project/components/bundle.js`（`Kabe`）と `tokens.css` を読み込んで描く（カタログを変えると本編も変わる） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `catalog/project/` | 統一カタログ（Design System 型の公開ページ）の元ファイル。`components/bundle.js` が全素材の描画ライブラリ `Kabe` |
 | `tools/` | 確認用スクリプト（下の「確かめ方」） |
@@ -25,7 +25,7 @@
 | シミュレーター | https://claude.ai/artifact/U5ZPbS8p3TFK4EzUXYnmLP | `simulator.html` |
 | 統一カタログ | https://claude.ai/artifact/Wsug5KamAvvHNbWAuxyc7e | `catalog/project/` |
 
-- 本編・シミュレーターの更新：`python3 tools/build_artifact.py index.html <スクラッチ>/kabegeri-game.html` で外枠を外したコピーを作り、`url` を付けて publish。会話の最初の publish の前に、その URL を一度 `read` する（読まずに出すと断られる）。
+- 本編・シミュレーターの更新：`python3 tools/build_artifact.py index.html <スクラッチ>/kabegeri-game.html` で外枠を外し、読み込んでいる bundle.js・tokens.css を埋め込んだコピーを作り、`url` を付けて publish。会話の最初の publish の前に、その URL を一度 `read` する（読まずに出すと断られる）。
 - カタログの更新：変えたファイルだけを `root: catalog`、`url` 付きで1回の publish に入れる。消すファイルは `null`。`index.d.ts` は `{"from": ..., "contentType": "text/plain"}`。`project/design-system.json` は直前に `read` して、`lastChange` だけ書き換えて同じ呼び出しに入れる。型の説明書（SKILL.md・format.md など）は読み直さない。要点：トークンは一覧形式、`tokens.css` は自分で書いた（`tokens.json` を変えたら作り直す）、見本は `<!-- @dsCard group=… height=… -->` で始める。
 
 ## 確かめ方（自分でテスト用スクリプトを書かない）
@@ -45,5 +45,5 @@
 
 ## いまの状態と次にやること
 - 決まり：見た目はC「フラット」、音は「やわらか」、最初のゾーンは地下。プレイヤーは B1「ふんわり」（白いおばけ・線の目・薄ピンクの頬・赤いマフラー）。
-- 本編はまだ古い見た目（仮のキャラ・ピンクのマフラー）。次は本編の描画を `catalog/project/components/bundle.js` の決まりと関数に合わせて作り直す（キャラB1、地形・トゲ・敵・溶岩・画面の表示）。
+- 本編の描画はカタログ通り（キャラB1・地形・トゲ・コウモリ・溶岩・画面の表示・メニューの色）。ポーズは `Kabe.POSES` の5つへ少しずつ寄せて、マフラーとすそを遅らせている。ランタンと画面の上下の暗がりはカタログに無いので外した。ボタンは赤を使えないので `ui-ink`。
 - 未決：パーツのつなぎ口の種類、100mの切り替わりのゲート、難しさの上がり方、入れる障害物（候補は `IDEAS.md`）、地上・上空・宇宙の「下から迫るもの」。
