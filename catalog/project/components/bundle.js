@@ -282,6 +282,75 @@ window.Kabe = (function () {
     g.restore();
   }
 
+  /* ---------- 光線：壁の発射口から向かいの壁へ。消える→予告の点滅→点く をくり返す ---------- */
+  // いまの状態。s: 'off' | 'warn' | 'on'、k: その状態の中の進み（0〜1）
+  function beamState(t, o) {
+    o = o || {}; var on = o.on || 1.2, off = o.off || 1.4, warn = o.warn || 0.7, cyc = on + off + warn;
+    var p = ((t + (o.offset || 0)) % cyc + cyc) % cyc;
+    return p < off ? { s: 'off', k: p / off } : p < off + warn ? { s: 'warn', k: (p - off) / warn } : { s: 'on', k: (p - off - warn) / on };
+  }
+  function emitter(g, P, x, y, dir, lit, glowA) {   // 壁に付いた発射口（小さな部品。縁取りなし）
+    var x0 = dir > 0 ? x : x - 6;
+    solid(g, function () { rr(g, x0, y - 5.5, 6, 11, dir > 0 ? [0, 2, 2, 0] : [2, 0, 0, 2]); }, P.terrainShade, P.terrainDeep, null, 0.5);
+    var lx = x + dir * 4.2;
+    if (glowA > 0) { var gl = g.createRadialGradient(lx, y, 0.5, lx, y, 10); gl.addColorStop(0, alpha(P.hazard, 0.45 * glowA)); gl.addColorStop(1, alpha(P.hazard, 0)); g.fillStyle = gl; ell(g, lx, y, 10, 10); g.fill(); }
+    g.fillStyle = lit ? P.hazard : mix(P.hazardShade, P.ink, 0.55); ell(g, lx, y, 2.1, 2.4); g.fill();
+    if (lit) { g.fillStyle = P.hazardLight; ell(g, lx - 0.6, y - 0.8, 0.8, 0.8); g.fill(); }
+  }
+  // x0：左の壁の面、x1：右の壁の面、y：高さ。いまの状態を返す（当たるのは 'on' のときだけ）
+  function beam(g, P, x0, x1, y, t, o) {
+    var st = beamState(t, o), a = x0 + 6, b = x1 - 6;
+    if (st.s === 'warn') {   // 予告：細い点線が点滅（終わりに近いほど速く）
+      var vis = Math.floor(st.k * (3 + st.k * 7) * 2) % 2 === 0;
+      if (vis) { g.strokeStyle = alpha(P.hazard, 0.85); g.lineWidth = 1; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(a, y); g.lineTo(b, y); g.stroke(); g.setLineDash([]); }
+      emitter(g, P, x0, y, 1, vis, 0); emitter(g, P, x1, y, -1, vis, 0);
+      return st.s;
+    }
+    if (st.s === 'on') {
+      var grow = Math.min(1, st.k * 10), hh = 2.6 * grow, sh = (t * 40) % 6;
+      g.fillStyle = alpha(P.hazard, 0.22); g.fillRect(a, y - 6 * grow, b - a, 12 * grow);
+      // 光線の縁はギザギザ（危険なものはとがらせる）
+      var path = function () {
+        g.beginPath(); g.moveTo(a, y - hh);
+        for (var xx = a + 3 - sh; xx < b; xx += 6) { if (xx > a) g.lineTo(xx, y - hh - 1.3 * grow); if (xx + 3 < b) g.lineTo(xx + 3, y - hh); }
+        g.lineTo(b, y - hh); g.lineTo(b, y + hh);
+        for (var x2 = b - 3 + sh; x2 > a; x2 -= 6) { if (x2 < b) g.lineTo(x2, y + hh + 1.3 * grow); if (x2 - 3 > a) g.lineTo(x2 - 3, y + hh); }
+        g.lineTo(a, y + hh); g.closePath();
+      };
+      solid(g, path, P.hazard, P.hazardShade, P.ink, 0.6, 0.85);
+      g.fillStyle = P.hazardLight; g.fillRect(a, y - 0.7, b - a, 1.2);
+    }
+    emitter(g, P, x0, y, 1, st.s === 'on', st.s === 'on' ? 1 : 0); emitter(g, P, x1, y, -1, st.s === 'on', st.s === 'on' ? 1 : 0);
+    return st.s;
+  }
+
+  /* ---------- 動く壁：壁のすき間から、地形のブロックがゆっくり出入りする ---------- */
+  // 出ている割合（0〜1）。端で少し止まる
+  function wallOut(t, period, offset) {
+    var p = ((t + (offset || 0)) / (period || 4)) % 1, s = 0.5 - 0.5 * Math.cos(p * Math.PI * 2);
+    return Math.max(0, Math.min(1, s * 1.3 - 0.15));
+  }
+  // x：動かない壁の面、y：上端、rows：高さ（マス）、reach：出る長さ（マス）、dir：1 右へ出る / -1 左へ出る。
+  // 先に描き、あとから動かない壁を上に描くと、壁から出てくるように見える。出ている長さ（px）を返す
+  function movingWall(g, P, x, y, rows, reach, dir, t, period, offset) {
+    var e = wallOut(t, period, offset) * reach * CELL, cols = reach + 1, map = [], r, c;
+    for (r = 0; r < rows; r++) map.push(new Array(cols + 1).join('#'));
+    var left = dir > 0 ? x - cols * CELL + e : x - e;
+    // 出る先の目印：丸い点の列（どこまで出るか）
+    var tip = x + dir * reach * CELL;
+    g.fillStyle = alpha(P.terrainShade, 0.55);
+    for (r = 0; r < rows * 2; r++) { ell(g, tip, y + 4.5 + r * CELL / 2, 1, 1); g.fill(); }
+    terrain(g, P, grid(map, '.'), t, left, y);
+    // 先の面にボルト（1マスおき、上の段は飾りがあるので除く）
+    var bx = dir > 0 ? left + cols * CELL - 5 : left + 5;
+    for (r = 1; r < rows - 1; r += 2) {
+      var by = y + r * CELL + CELL / 2;
+      g.fillStyle = P.terrainShade; ell(g, bx + 0.4, by + 0.5, 1.9, 1.9); g.fill();
+      g.fillStyle = P.terrainLight; ell(g, bx - 0.2, by - 0.2, 1.4, 1.4); g.fill();
+    }
+    return e;
+  }
+
   /* ---------- 迫ってくるもの（地下は溶岩。ほかのゾーンは仮） ---------- */
   function rise(g, P, x, y, w, h, t) {
     var m = MOTIF[P.id] || MOTIF.underground;
@@ -494,6 +563,7 @@ window.Kabe = (function () {
     pal: pal, mix: mix, alpha: alpha, hash: hash,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
+    beamState: beamState, beam: beam, wallOut: wallOut, movingWall: movingWall,
     enemy: enemy, rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet

@@ -79,6 +79,7 @@
 - `Kabe.pal('underground')` でそのゾーンの色をまとめて取る（`tokens.css` の変数を読む）。
 - `Kabe.terrain(g, P, Kabe.grid(地図), t)` で地形を描く。地図は1文字1マス（`#` 壁、`.` 空間、`^` トゲ、`/` `\` 45度の斜め）。
 - `Kabe.ghost(g, P, 'sheet', 'cling', x, y, t, 向き, 倍率)` でプレイヤー、`Kabe.enemy(...)` で敵、`Kabe.rise(...)` で迫ってくるもの。
+- `Kabe.beam(g, P, 左の壁の面, 右の壁の面, y, t, {on, off, warn, offset})` で光線（戻り値が `'on'` のときだけ当たる）。`Kabe.movingWall(g, P, 壁の面, 上端, 行数, 出る長さ, 向き, t, 周期)` で動く壁（先に描いて、動かない壁を上に重ねる）。
 - 見本ページは `Kabe.zoneRow(要素, {w, h, draw})` で4ゾーンを並べて描く。
 
 ## キャラ

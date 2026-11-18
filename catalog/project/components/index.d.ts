@@ -16,6 +16,14 @@ declare const Kabe: {
   terrain(g: CanvasRenderingContext2D, P: Palette, G: Grid, t: number, ox?: number, oy?: number): void;
   spike(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, dir: 'L' | 'R' | 'T' | 'B'): void;
   decor(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, scale: number, t: number, seed: number): void;
+  /** 光線のいまの状態（消える→予告の点滅→点く）。k はその状態の中の進み 0〜1 */
+  beamState(t: number, opt?: { on?: number; off?: number; warn?: number; offset?: number }): { s: 'off' | 'warn' | 'on'; k: number };
+  /** 光線。x0 左の壁の面、x1 右の壁の面。当たるのは戻り値が 'on' のときだけ */
+  beam(g: CanvasRenderingContext2D, P: Palette, x0: number, x1: number, y: number, t: number, opt?: { on?: number; off?: number; warn?: number; offset?: number }): 'off' | 'warn' | 'on';
+  /** 動く壁の出ている割合 0〜1（端で少し止まる） */
+  wallOut(t: number, period?: number, offset?: number): number;
+  /** 動く壁。x 動かない壁の面、y 上端、rows 高さ（マス）、reach 出る長さ（マス）、dir 1 右へ / -1 左へ。先に描いて、動かない壁を上に重ねる。出ている長さ（px）を返す */
+  movingWall(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, rows: number, reach: number, dir: 1 | -1, t: number, period?: number, offset?: number): number;
   enemy(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, scale?: number, look?: 1 | -1): void;
   rise(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, w: number, h: number, t: number): void;
   /** プレイヤー（白いおばけ）。face: 1 右向き / -1 左向き */
