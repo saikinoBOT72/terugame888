@@ -395,18 +395,9 @@ window.Kabe = (function () {
     };
   }
   var GHOSTS = {
-    sheet: { letter: 'B1', name: 'ふんわり', note: '今の「すそ」を整えた形。すそが少し広がり、大きな丸い山が3つ。手は小さな丸。',
+    sheet: { letter: 'B1', name: 'ふんわり', note: 'プレイヤーに決定。すそが少し広がり、大きな丸い山が3つ。手は小さな丸。',
       draw: sheetGhost({ top: -12.5, half: 10, shoulder: 11.5, flare: 1.6, hemY: 10, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1,
-        eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]], scarfY: 1.6, scarfW: 19 }) },
-    sheetLong: { letter: 'B2', name: 'ながすそ', note: '縦に長く、すそは小さな山が4つ。跳ぶとすそが後ろへ大きくなびき、スピード感が出る。',
-      draw: sheetGhost({ top: -14, half: 9, shoulder: 11, flare: 2.2, hemY: 12, waves: 4, amp: 1.7, swing: 2.8, wobble: 0.7, hand: 1.9,
-        eyes: [[2, -6], [6, -6.2]], cheeks: [[0, -2.8], [8, -3.1]], scarfY: 0.2, scarfW: 17 }) },
-    sheetHood: { letter: 'B3', name: 'ずきん', note: '頭のてっぺんが丸い先になって後ろへ垂れる。手はそでのような筒。布をかぶった感じがいちばん強い。',
-      draw: sheetGhost({ top: -11.5, half: 10, shoulder: 11, flare: 1.2, hemY: 10.5, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1, hood: true, sleeves: true,
-        eyes: [[2.4, -3.4], [6.8, -3.6]], cheeks: [[0.4, -0.4], [9, -0.7]], scarfY: 2.2, scarfW: 19 }) },
-    sheetChibi: { letter: 'B4', name: 'ちびすそ', note: '背が低くて横に広い。顔の場所が大きく、目と頬も大きめ。いちばん小さくてかわいい。',
-      draw: sheetGhost({ top: -10.5, half: 11.5, shoulder: 10, flare: 0.8, hemY: 9, waves: 3, amp: 3, swing: 1.2, wobble: 1.1, hand: 1.8,
-        eyes: [[2.6, -2.6], [7.8, -2.9]], cheeks: [[0, 0.6], [10.4, 0.2]], scarfY: 3.4, scarfW: 21 }) }
+        eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]], scarfY: 1.6, scarfW: 19 }) }
   };
   function ghost(g, P, variant, poseId, x, y, t, face, scale) {
     var Q = POSES[poseId], G = GHOSTS[variant]; face = face || 1; scale = scale || 1;
