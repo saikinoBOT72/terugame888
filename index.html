@@ -1,0 +1,899 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<!--BODY-START-->
+<title>壁蹴りタワー</title>
+<style>
+  /* Layout: one fixed 360x640 game frame, centered and scaled; menus overlay it. Visuals are placeholders on purpose. */
+  :root { --bg: #15171c; --ink: #e6e4de; --dim: #8d94a1; --accent: #f2b544; color-scheme: dark; }
+  [hidden] { display: none !important; }
+  html, body { height: 100%; margin: 0; }
+  html { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--ink); overflow: hidden;
+    font: 13px/1.5 system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+    -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  #app { width: 100%; height: 100%; display: grid; place-items: center; }
+  #frame { position: relative; --u: 1; }
+  #cv { display: block; touch-action: none; cursor: pointer; }
+  .ov {
+    position: absolute; inset: 0; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--u) * 10px);
+    padding: calc(var(--u) * 20px); background: rgba(10, 11, 14, .78); text-align: center;
+    font-size: calc(var(--u) * 13px);
+  }
+  .ov h1 { margin: 0; font-size: calc(var(--u) * 30px); }
+  .ov h2 { margin: 0; font-size: calc(var(--u) * 22px); }
+  .ov p { margin: 0; color: var(--dim); }
+  .btn {
+    font: inherit; font-size: calc(var(--u) * 15px); color: #1a1408; background: var(--accent);
+    border: 0; border-radius: 4px; padding: calc(var(--u) * 8px) calc(var(--u) * 22px); cursor: pointer;
+  }
+  .sub { font: inherit; color: var(--ink); background: #262a33; border: 1px solid #2d313b; border-radius: 4px; padding: calc(var(--u) * 5px) calc(var(--u) * 12px); cursor: pointer; }
+  .btn:focus-visible, .sub:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .stats { display: grid; grid-template-columns: auto auto; gap: 2px 16px; margin: 0; font-variant-numeric: tabular-nums; text-align: left; }
+  .stats dt { color: var(--dim); } .stats dd { margin: 0; text-align: right; }
+  #pauseBtn {
+    position: absolute; right: calc(var(--u) * 6px); bottom: calc(var(--u) * 6px);
+    width: calc(var(--u) * 30px); height: calc(var(--u) * 30px); font: inherit; color: var(--ink);
+    background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.2); border-radius: 4px; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="frame">
+    <canvas id="cv" aria-label="ゲーム画面"></canvas>
+    <button id="pauseBtn" type="button" aria-label="一時停止" hidden>II</button>
+    <section id="ovTitle" class="ov">
+      <h1>壁蹴りタワー</h1>
+      <p>壁でタップ：反対の壁へ蹴る<br>空中でタップ：2段ジャンプ（押す時間で着地点が変わる）<br>壁はずり落ちない。着地点を選んで登れ。</p>
+      <button class="btn" id="btnStart" type="button">はじめる</button>
+      <p id="bestTitle"></p>
+      <p>D：地形の線　V：パーツの到達チェック</p>
+    </section>
+    <section id="ovPause" class="ov" hidden>
+      <h2>一時停止</h2>
+      <button class="btn" id="btnResume" type="button">つづける</button>
+      <button class="sub" id="btnQuit" type="button">やり直す</button>
+    </section>
+    <section id="ovEnd" class="ov" hidden>
+      <h2 id="endTitle">溶岩に呑まれた</h2>
+      <dl class="stats" id="endStats"></dl>
+      <button class="btn" id="btnRetry" type="button">もう一度</button>
+      <button class="sub" id="btnToTitle" type="button">タイトルへ</button>
+    </section>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   動きの数値（simulator.html で決めた値）
+   ===================================================================== */
+const MOVE = {
+  kickVx: 180, kickVy: 300, gravity: 420, maxFall: 0,
+  airJumps: 1, airVy: 300, airMode: 'keep',
+  slide: 0, slideAccel: 7, carry: 0.2,
+  buffer: 0.14, speed: 1,
+};
+
+/* ---------- 画面と単位 ---------- */
+const CELL = 18, COLS = 20;          // 1マス18px、横20マス
+const W = CELL * COLS, H = 640;
+const R = 11, HB = 10, HIT = 8;      // 見た目の半径 / 地形との当たり / トゲ・敵との当たり
+const PX_PER_M = 60;
+const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
+
+const MAX_HP = 3, INVINCIBLE = 1.1;
+const LAVA = { delay: 3, base: 14, perM: 0.12, leash: 160, catchup: 0.9 };
+
+/* =====================================================================
+   パーツ（ステージの部品）
+   1文字 = 1マス。上の行がパーツの上。横は必ず20文字。
+     #  壁        .  空間       ^  トゲ（となりの壁から生える）
+     /  \  45度の斜め（まわりの壁から向きを自動で決める）
+     =  板の足場（下から抜けられる）   B  コウモリ
+   つなぎ目のルール：
+     - パーツのいちばん下の行といちばん上の行が「つなぎ口」。
+       前のパーツの上のつなぎ口と、次のパーツの下のつなぎ口の形が同じものだけがつながる。
+     - 上下それぞれ2行はトゲなし（どの高さで入ってきても立て直せるように）。
+   ===================================================================== */
+const PIECES = {};
+function piece(id, opt, art) {
+  const rows = art.split('\n').map(s => s.trimEnd()).filter(s => s.length);
+  for (const r of rows) if (r.length !== COLS) throw new Error(`${id}: 行の長さが${r.length}文字（20文字にする）: "${r}"`);
+  PIECES[id] = { id, diff: opt.diff || 1, rows: rows.slice().reverse() };   // 内部では下の行から
+}
+
+// ===== 0〜100m のプール =====
+piece('z1_start', {}, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('z1_open', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##^...............##
+##^...............##
+##^...............##
+##................##
+##................##
+##................##
+##...............^##
+##...............^##
+##...............^##
+##................##
+##................##
+##................##
+##................##
+##................##
+##^...............##
+##^...............##
+##^...............##
+##................##
+##................##
+##................##
+`);
+piece('z1_alternate', { diff: 1 }, String.raw`
+##................##
+##................##
+##...............^##
+##...............^##
+##................##
+##................##
+##^...............##
+##^...............##
+##^...............##
+##................##
+##................##
+##...............^##
+##...............^##
+##...............^##
+##................##
+##................##
+##^...............##
+##^...............##
+##^...............##
+##................##
+##................##
+##................##
+`);
+piece('z1_longwall', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^...............##
+##^...............##
+##^...............##
+##^...............##
+##^...............##
+##^...............##
+##^...............##
+##^...............##
+##................##
+##................##
+##................##
+##...............^##
+##...............^##
+##...............^##
+##...............^##
+##...............^##
+##...............^##
+##................##
+##................##
+##................##
+`);
+piece('z1_funnel', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######........######
+######^.......######
+######^.......######
+######........######
+######.......^######
+######.......^######
+######........######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('z1_shelves', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##..........########
+##................##
+##................##
+##................##
+##................##
+########..........##
+##................##
+##................##
+##................##
+##................##
+##..........########
+##................##
+##................##
+##................##
+##................##
+`);
+piece('z1_pillar', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##......./\.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......\/.......##
+##................##
+##................##
+##................##
+`);
+piece('z1_planks', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##..........====..##
+##................##
+##................##
+##................##
+##..====..........##
+##................##
+##................##
+##................##
+##.........====...##
+##................##
+##................##
+##................##
+`);
+piece('z1_sideleft', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##........\.......##
+##........#\......##
+##........##\.....##
+##........###\....##
+##........####\...##
+##........#####\..##
+##........######\.##
+##........#######\##
+##........##########
+##^.......##########
+##^.......##########
+##........##########
+##........##########
+##.......^##########
+##.......^##########
+##........##########
+##........##########
+##........\#########
+##.........\########
+##..........\#######
+##...........\######
+##............\#####
+##.............\####
+##..............\###
+##...............\##
+##................##
+##................##
+##................##
+`);
+
+// ===== 100〜200m のプール =====
+piece('z2_dense', { diff: 2 }, String.raw`
+##................##
+##................##
+##...............^##
+##...............^##
+##^...............##
+##^...............##
+##^..............^##
+##...............^##
+##...............^##
+##^...............##
+##^...............##
+##^...............##
+##...............^##
+##...............^##
+##^..............^##
+##^...............##
+##................##
+##................##
+`);
+piece('z2_narrow', { diff: 2 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######^.......######
+######^.......######
+######.......^######
+######.......^######
+######^.......######
+######^.......######
+######.......^######
+######.......^######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('z2_bats', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.......B........##
+##................##
+##................##
+##^...............##
+##^...............##
+##................##
+##..........B.....##
+##................##
+##...............^##
+##...............^##
+##................##
+##....B...........##
+##................##
+##................##
+##................##
+`);
+piece('z2_pillarspikes', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##......./\.......##
+##.......##.......##
+##......^##.......##
+##......^##.......##
+##.......##.......##
+##.......##^......##
+##.......##^......##
+##.......##.......##
+##.......##......^##
+##.......##......^##
+##.......##.......##
+##.......\/.......##
+##................##
+##................##
+##................##
+`);
+piece('z2_shelfspikes', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##..........########
+##..........^^^^^^##
+##................##
+##................##
+##................##
+########..........##
+##^^^^^^..........##
+##................##
+##................##
+##................##
+##..........########
+##................##
+##................##
+##................##
+`);
+
+/* ---------- 高さ100mごとのプール ---------- */
+const POOLS = [
+  { from: 0, name: '0〜100m', pieces: ['z1_open', 'z1_alternate', 'z1_longwall', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_planks', 'z1_sideleft'] },
+  { from: 100, name: '100〜200m', pieces: ['z2_dense', 'z2_narrow', 'z2_bats', 'z2_pillarspikes', 'z2_shelfspikes', 'z1_longwall', 'z1_sideleft', 'z1_pillar'] },
+];
+const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
+
+/* =====================================================================
+   地形（マス目 → 当たり判定の線分）
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+};
+
+function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], bats: [], ends: new Map() }; }
+// 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
+function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
+const isWall = t => t === '#';
+function tile(w, c, r) {
+  const t = raw(w, c, r);
+  if (t === '/') {   // ◢（右下が壁）か ◤（左上が壁）
+    const br = isWall(raw(w, c + 1, r)) + isWall(raw(w, c, r - 1)), tl = isWall(raw(w, c - 1, r)) + isWall(raw(w, c, r + 1));
+    return br >= tl ? 'BR' : 'TL';
+  }
+  if (t === '\\') {  // ◣（左下が壁）か ◥（右上が壁）
+    const bl = isWall(raw(w, c - 1, r)) + isWall(raw(w, c, r - 1)), tr = isWall(raw(w, c + 1, r)) + isWall(raw(w, c, r + 1));
+    return bl >= tr ? 'BL' : 'TR';
+  }
+  return t;
+}
+const SIDES = { '#': 'LRTB', BR: 'RB', BL: 'LB', TL: 'LT', TR: 'RT' };
+const solidSide = (t, s) => (SIDES[t] || '').includes(s);
+function addEdge(w, ax, ay, bx, by, nx, ny, kind, r) {
+  const e = { ax, ay, bx, by, nx, ny, kind, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by), smoothA: false, smoothB: false };
+  (w.edges[r] || (w.edges[r] = [])).push(e);
+  // まっすぐつながる線同士のつなぎ目は「角」として当たらないようにする（マスの境目で引っかからない）
+  for (const [px, py, end] of [[ax, ay, 'A'], [bx, by, 'B']]) {
+    const k = `${px},${py},${nx.toFixed(3)},${ny.toFixed(3)},${kind}`, other = w.ends.get(k);
+    if (other) { e['smooth' + end] = true; other.e['smooth' + other.end] = true; } else w.ends.set(k, { e, end });
+  }
+}
+function buildEdges(w, upto) {
+  const S = Math.SQRT1_2;
+  for (let r = w.edgeRow + 1; r <= upto; r++) {
+    if (r === 0) for (let c = 0; c < COLS; c++) if (!solidSide(tile(w, c, 0), 'B')) addEdge(w, c * CELL, 0, (c + 1) * CELL, 0, 0, -1, 'wall', 0);
+    for (let c = 0; c < COLS; c++) {
+      const t = tile(w, c, r), x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL;
+      if (t === '=') { addEdge(w, x0, yT, x1, yT, 0, -1, 'oneway', r); continue; }
+      if (!SIDES[t]) continue;
+      if (solidSide(t, 'L') && !solidSide(tile(w, c - 1, r), 'R')) addEdge(w, x0, yB, x0, yT, -1, 0, 'wall', r);
+      if (solidSide(t, 'R') && !solidSide(tile(w, c + 1, r), 'L')) addEdge(w, x1, yB, x1, yT, 1, 0, 'wall', r);
+      if (solidSide(t, 'T') && !solidSide(tile(w, c, r + 1), 'B')) addEdge(w, x0, yT, x1, yT, 0, -1, 'wall', r);
+      if (solidSide(t, 'B') && !solidSide(tile(w, c, r - 1), 'T')) addEdge(w, x0, yB, x1, yB, 0, 1, 'wall', r);
+      if (t === 'BR') addEdge(w, x0, yB, x1, yT, -S, -S, 'wall', r);
+      if (t === 'BL') addEdge(w, x0, yT, x1, yB, S, -S, 'wall', r);
+      if (t === 'TL') addEdge(w, x1, yT, x0, yB, S, S, 'wall', r);
+      if (t === 'TR') addEdge(w, x0, yT, x1, yB, -S, S, 'wall', r);
+    }
+  }
+  w.edgeRow = Math.max(w.edgeRow, upto);
+}
+function appendRows(w, rows) {
+  const r0 = w.rows.length;
+  for (const row of rows) w.rows.push(row);
+  buildEdges(w, w.rows.length - 2);   // いちばん上の行は、上が決まってから
+  return r0;
+}
+// トゲのマス → 当たる四角（となりの壁にくっついた側）
+function spikeRect(w, c, r) {
+  const x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL, d = 11;
+  if (isWall(raw(w, c - 1, r))) return [x0, yT + 2, x0 + d, yB - 2, 'L'];
+  if (isWall(raw(w, c + 1, r))) return [x1 - d, yT + 2, x1, yB - 2, 'R'];
+  if (isWall(raw(w, c, r - 1))) return [x0 + 2, yB - d, x1 - 2, yB, 'B'];
+  if (isWall(raw(w, c, r + 1))) return [x0 + 2, yT, x1 - 2, yT + d, 'T'];
+  return [x0 + 3, yT + 3, x1 - 3, yB - 3, ''];
+}
+function spikeHit(w, x, y) {
+  const r0 = Math.floor(-(y + HIT) / CELL), r1 = Math.floor(-(y - HIT) / CELL), c0 = Math.floor((x - HIT) / CELL), c1 = Math.floor((x + HIT) / CELL);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    if (raw(w, c, r) !== '^') continue;
+    const [a, b, cc, d, side] = spikeRect(w, c, r);
+    const nx = clamp(x, a, cc), ny = clamp(y, b, d);
+    if ((x - nx) ** 2 + (y - ny) ** 2 < HIT * HIT) return side || 'X';
+  }
+  return null;
+}
+
+/* =====================================================================
+   動き（ゲームとチェックで共通）
+   ===================================================================== */
+function newBody(x, y, side) { return { x, y, vx: 0, vy: 0, side, wn: { x: -side || 1, y: 0 }, slideV: 0, ground: false, prevY: y, air: MOVE.airJumps, face: -side || 1 }; }
+function collide(w, b, res) {
+  const r0 = Math.floor(-(b.y + HB + 2) / CELL), r1 = Math.floor(-(b.y - HB - 2) / CELL);
+  for (let r = Math.max(0, r0 - 1); r <= r1 + 1; r++) {
+    const list = w.edges[r]; if (!list) continue;
+    for (const e of list) {
+      if (e.maxY < b.y - HB - 1 || e.minY > b.y + HB + 1 || e.maxX < b.x - HB - 1 || e.minX > b.x + HB + 1) continue;
+      if ((b.x - e.ax) * e.nx + (b.y - e.ay) * e.ny < -0.5) continue;
+      if (e.kind === 'oneway' && (b.vy < 0 || b.prevY + HB > e.ay + 1)) continue;
+      const ex = e.bx - e.ax, ey = e.by - e.ay;
+      const tr = ((b.x - e.ax) * ex + (b.y - e.ay) * ey) / (ex * ex + ey * ey);
+      if ((tr < 0 && e.smoothA) || (tr > 1 && e.smoothB)) continue;   // となりの線にまかせる
+      const t = clamp(tr, 0, 1);
+      const cx = e.ax + ex * t, cy = e.ay + ey * t, vx = b.x - cx, vy = b.y - cy, dist = Math.hypot(vx, vy);
+      if (dist >= HB) continue;
+      const nx = dist > 1e-4 ? vx / dist : e.nx, ny = dist > 1e-4 ? vy / dist : e.ny;
+      b.x = cx + nx * HB; b.y = cy + ny * HB;
+      const vn = b.vx * nx + b.vy * ny;
+      if (vn < 0) { b.vx -= vn * nx; b.vy -= vn * ny; }
+      // 床＝上向き、天井＝下向き（下を向いた45度も天井。当たると斜面に沿って流される）、それ以外＝壁
+      if (ny < -0.8) res.floor = true;
+      else if (ny > 0.3) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
+      else res.walls.push({ x: nx, y: ny });
+    }
+  }
+}
+// 1ステップ進める。着地などのできごとを返す
+function physStep(w, b, dt) {
+  b.prevY = b.y;
+  if (b.side !== 0) {
+    b.slideV += (MOVE.slide - b.slideV) * Math.min(1, dt * MOVE.slideAccel);
+    let tx = -b.wn.y, ty = b.wn.x; if (ty < 0) { tx = -tx; ty = -ty; }
+    b.vx = tx * b.slideV - b.wn.x * 40; b.vy = ty * b.slideV - b.wn.y * 40;
+  } else if (b.ground) { b.vx = 0; b.vy = 40; }
+  else { b.vy += MOVE.gravity * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall); }
+  b.x += b.vx * dt; b.y += b.vy * dt;
+  const c = { floor: false, ceil: false, ceilV: 0, walls: [] };
+  collide(w, b, c); collide(w, b, c);
+  let ev = null;
+  if (b.side !== 0) {
+    const same = c.walls.filter(n => (n.x > 0 ? -1 : 1) === b.side);
+    if (same.length) {
+      const all = c.floor ? c.walls.concat([{ x: 0, y: -1 }]) : c.walls;
+      let pick = null, best = -1;
+      for (const n of same) {
+        let tx = -n.y, ty = n.x; if (ty < 0) { tx = -tx; ty = -ty; }
+        if (!all.some(o => o !== n && tx * o.x + ty * o.y < -0.2) && ty > best) { pick = n; best = ty; }
+      }
+      if (pick) b.wn = pick; else { b.wn = same[0]; b.slideV = 0; }
+    } else if (c.floor) { b.side = 0; b.ground = true; }
+    else { b.side = 0; b.vx = -b.wn.x * 90; b.vy = Math.max(0, b.slideV); }
+    if (b.side !== 0 && c.floor && Math.abs(b.wn.y) < 0.1) b.slideV = 0;
+  } else if (b.ground) {
+    if (!c.floor) { b.ground = false; b.vy = 0; } else { b.vx = 0; b.vy = 0; }
+  } else {
+    if (c.floor) { b.ground = true; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'floor'; }
+    else if (c.walls.length) {
+      const n = c.walls[c.walls.length - 1];
+      b.side = n.x > 0 ? -1 : 1; b.wn = n; b.slideV = Math.min(0, b.vy) * MOVE.carry; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'wall';
+    }
+    if (c.ceil && c.ceilV > 60) ev = ev || 'bump';
+  }
+  return ev;
+}
+// 床に立っているときに蹴る向き：広く空いている方
+function floorDir(w, b) {
+  const r = Math.floor(-b.y / CELL), c = Math.floor(b.x / CELL);
+  let l = 0, rr = 0;
+  while (l < COLS && !isWall(raw(w, c - l - 1, r))) l++;
+  while (rr < COLS && !isWall(raw(w, c + rr + 1, r))) rr++;
+  return rr > l ? 1 : l > rr ? -1 : (b.x < W / 2 ? 1 : -1);
+}
+function kick(w, b) {
+  const dir = b.side !== 0 ? -b.side : floorDir(w, b);
+  b.vx = dir * MOVE.kickVx; b.vy = -MOVE.kickVy; b.side = 0; b.ground = false; b.air = MOVE.airJumps; b.face = dir;
+}
+function airJump(b) {
+  if (MOVE.airMode === 'flip') b.vx = -b.vx;
+  else if (MOVE.airMode === 'up') b.vx = 0;
+  else if (Math.abs(b.vx) < MOVE.kickVx * 0.5) b.vx = (b.vx ? Math.sign(b.vx) : b.face) * MOVE.kickVx * 0.7;
+  b.vy = -MOVE.airVy; b.air--;
+}
+const canAct = b => b.side !== 0 || b.ground;
+
+/* =====================================================================
+   到達チェック（詰まないかを調べる）
+   パーツの上下につなぎ口と同じ形を足した小さな世界を作り、
+   入口の全部の位置から「蹴る＋2段ジャンプを押す時間」を総当たりで試す。
+     ok        = 入口のどこから入っても、ダメージなしで出口まで行ける（必須）
+     hurtSpots = そこに着地すると、ダメージを受けないと先へ進めない場所の数（「着地点を誤ると痛い」場所。あってよい）
+     softlocks = ダメージを受けても抜け出せない場所の数（本当の詰み。0でないとだめ）
+   ===================================================================== */
+const CHECK = { padBelow: 6, padAbove: 10, djStep: 1 / 12, djMax: 1.8, maxT: 3.5, settle: 0.4 };
+function checkPiece(id) {
+  const pc = PIECES[id], w = newWorld();
+  const bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1];
+  const rows = [];
+  for (let i = 0; i < CHECK.padBelow; i++) rows.push(bottom);
+  for (const r of pc.rows) rows.push(r);
+  for (let i = 0; i < CHECK.padAbove; i++) rows.push(top);
+  appendRows(w, rows);
+  const goalY = -(CHECK.padBelow + pc.rows.length + 1) * CELL, fallY = -1 * CELL;
+  const key = b => (b.side ? 'w' + b.side : 'f') + ',' + Math.round(b.x / 3) + ',' + Math.round(b.y / 3);
+  // 入口：下の足し分の2〜5行目の高さで、左右の壁に張り付いた位置
+  const entries = [];
+  const cl = bottom.indexOf('.'), cr = bottom.lastIndexOf('.');
+  for (let y = -2 * CELL - HB; y > -(CHECK.padBelow) * CELL + HB; y -= 6) {
+    entries.push(newBody(cl * CELL + HB, y, -1), newBody((cr + 1) * CELL - HB, y, 1));
+  }
+  const states = new Map(), edges = new Map(), flags = new Map(), queue = [];
+  const addState = b => { const k = key(b); if (!states.has(k)) { states.set(k, b); edges.set(k, []); flags.set(k, { goal: false, exit: false }); queue.push(k); } return k; };
+  const entryKeys = entries.map(addState);
+  const djTimes = [null]; for (let t = CHECK.djStep; t <= CHECK.djMax; t += CHECK.djStep) djTimes.push(t);
+  let sims = 0;
+  while (queue.length && states.size < 4000) {
+    const k = queue.shift(), s = states.get(k), f = flags.get(k);
+    for (const dj of djTimes) {
+      const b = JSON.parse(JSON.stringify(s));
+      kick(w, b); sims++;
+      let t = 0, result = null;
+      while (t < CHECK.maxT) {
+        if (dj !== null && b.air > 0 && t >= dj && !canAct(b)) airJump(b);
+        const ev = physStep(w, b, DT); t += DT;
+        if (spikeHit(w, b.x, b.y)) { result = 'hurt'; break; }
+        if (b.y > fallY) { result = 'fall'; break; }
+        if (b.y < goalY) { result = 'goal'; break; }
+        if ((ev === 'wall' || ev === 'floor') && t > 0.02) {
+          for (let u = 0; u < CHECK.settle; u += DT) physStep(w, b, DT);   // 着地後の小さな滑りを待つ
+          result = spikeHit(w, b.x, b.y) ? 'hurt' : 'land';
+          break;
+        }
+      }
+      if (result === 'goal') { f.goal = true; f.exit = true; }
+      else if (result === 'hurt' || result === 'fall') f.exit = true;   // ダメージを受ける／下へ落ちる＝少なくともその場からは動ける
+      else if (result === 'land') { const nk = addState(b); if (nk !== k) edges.get(k).push(nk); }
+      if (dj !== null && t < dj) break;   // 2段ジャンプを押す前に着いた＝これ以上遅らせても同じ
+    }
+  }
+  const rev = new Map(); for (const k of states.keys()) rev.set(k, []);
+  for (const [k, list] of edges) for (const n of list) rev.get(n).push(k);
+  const spread = seed => { const set = new Set(seed), q = [...seed]; while (q.length) { const k = q.pop(); for (const p of rev.get(k)) if (!set.has(p)) { set.add(p); q.push(p); } } return set; };
+  const all = [...states.keys()];
+  const good = spread(all.filter(k => flags.get(k).goal));
+  const escapable = spread(all.filter(k => flags.get(k).exit));
+  const entryOk = entryKeys.filter(k => good.has(k)).length;
+  const offset = -CHECK.padBelow * CELL;
+  return {
+    id, ok: entryOk === entryKeys.length, entryOk, entries: entryKeys.length, states: states.size, sims,
+    hurtSpots: all.filter(k => !good.has(k) && escapable.has(k)).length,
+    softlocks: all.filter(k => !escapable.has(k)).length,
+    badEntries: entryKeys.filter(k => !good.has(k)).map(k => { const b = states.get(k); return [b.side, Math.round(b.y - offset)]; }),
+    points: [...states.entries()].map(([k, b]) => ({ x: b.x, y: b.y - offset, kind: good.has(k) ? 'good' : escapable.has(k) ? 'hurt' : 'lock' })),
+  };
+}
+function checkAll() { return Object.keys(PIECES).map(id => { const t0 = performance.now(); const r = checkPiece(id); r.ms = Math.round(performance.now() - t0); delete r.points; return r; }); }
+
+/* =====================================================================
+   ゲーム
+   ===================================================================== */
+const cv = $('cv'), ctx = cv.getContext('2d'), frameEl = $('frame');
+let scale = 1, dpr = 1;
+function resize() {
+  const box = $('app').getBoundingClientRect();
+  scale = Math.min((box.width || innerWidth) / W, (box.height || innerHeight) / H);
+  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
+  cv.style.width = frameEl.style.width = cw + 'px'; cv.style.height = frameEl.style.height = ch + 'px';
+  frameEl.style.setProperty('--u', scale.toFixed(4));
+  cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+}
+addEventListener('resize', resize); resize();
+
+let state = 'title', world = null, P = null, G = null, inputBuf = 0, debug = false, showCheck = false;
+const cam = { y: 0 };
+const checkCache = {};
+
+function placePiece(id) {
+  const pc = PIECES[id], r0 = appendRows(world, pc.rows);
+  world.placed.push({ id, r0, r1: r0 + pc.rows.length - 1 });
+  pc.rows.forEach((row, i) => { for (let c = 0; c < COLS; c++) if (row[c] === 'B') world.bats.push({ x: (c + 0.5) * CELL, baseY: -(r0 + i + 0.5) * CELL, y: 0, vx: (c < COLS / 2 ? 1 : -1) * 40, t: c }); });
+}
+const connector = row => row.replace(/[^#]/g, '.');
+function nextPiece() {
+  const lastP = world.placed[world.placed.length - 1], topRow = PIECES[lastP.id].rows[PIECES[lastP.id].rows.length - 1];
+  const m = world.rows.length * CELL / PX_PER_M, pool = poolAt(m);
+  const recent = world.placed.slice(-2).map(p => p.id);
+  let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
+  if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));
+  const within = (m - pool.from) / 100;   // プールの中で上に行くほど難しいパーツが出やすい
+  const wt = id => { const d = PIECES[id].diff; return d <= 1 + within * 2.5 ? 1 : 0.25; };
+  let r = Math.random() * cands.reduce((s, id) => s + wt(id), 0);
+  for (const id of cands) if ((r -= wt(id)) < 0) return id;
+  return cands[0];
+}
+function ensureAhead() {
+  while (-world.rows.length * CELL > cam.y - H) placePiece(nextPiece());
+}
+
+function newGame() {
+  world = newWorld();
+  placePiece('z1_start');
+  P = newBody(2 * CELL + HB, -HB, -1);
+  G = { time: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay };
+  cam.y = 60 - H; inputBuf = 0;
+  ensureAhead();
+}
+function heightM() { return Math.max(0, -P.y - HB) / PX_PER_M; }
+
+function press() {
+  if (state !== 'play') return;
+  inputBuf = MOVE.buffer; tryAct();
+}
+function tryAct() {
+  if (canAct(P)) { kick(world, P); inputBuf = 0; return; }
+  if (P.air > 0) {
+    // 壁のすぐ手前なら2段ジャンプを使わず、着いた瞬間に蹴る
+    const r = Math.floor(-P.y / CELL), c = Math.floor(P.x / CELL), dir = Math.sign(P.vx);
+    if (dir) { let k = 0; while (k < COLS && !isWall(raw(world, c + dir * (k + 1), r))) k++; const dist = dir > 0 ? (c + k + 1) * CELL - HB - P.x : P.x - (c - k) * CELL - HB; if (dist / Math.abs(P.vx) < 0.08) return; }
+    airJump(P); inputBuf = 0;
+  }
+}
+
+function hurt(dirX, cause) {
+  if (G.inv > 0) return;
+  G.hp--; G.inv = INVINCIBLE;
+  P.side = 0; P.ground = false; P.vx = dirX * MOVE.kickVx * 0.8; P.vy = -220;
+  if (G.hp <= 0) { G.cause = cause; end(); }
+}
+function end() { state = 'end'; $('pauseBtn').hidden = true; showEnd(); }
+
+function update(dt) {
+  G.time += dt; G.inv = Math.max(0, G.inv - dt);
+  if (inputBuf > 0) { inputBuf -= dt; if (!canAct(P) && P.air <= 0) { /* 着地を待つ */ } }
+  const ev = physStep(world, P, dt);
+  if ((ev === 'wall' || ev === 'floor') && inputBuf > 0) tryAct();
+  G.best = Math.max(G.best, heightM());
+
+  cam.y += (P.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
+  cam.y = Math.min(cam.y, 60 - H);
+  ensureAhead();
+
+  const sp = spikeHit(world, P.x, P.y);
+  if (sp) hurt(sp === 'L' ? 1 : sp === 'R' ? -1 : (P.x < W / 2 ? 1 : -1), 'spike');
+  for (const b of world.bats) {
+    if (Math.abs(b.baseY - P.y) > H) continue;
+    b.t += dt; b.x += b.vx * dt;
+    const r = Math.floor(-b.baseY / CELL);
+    if (isWall(raw(world, Math.floor((b.x - 10) / CELL), r))) b.vx = Math.abs(b.vx);
+    if (isWall(raw(world, Math.floor((b.x + 10) / CELL), r))) b.vx = -Math.abs(b.vx);
+    b.y = b.baseY + Math.sin(b.t * 2) * 8;
+    if ((P.x - b.x) ** 2 + (P.y - b.y) ** 2 < (HIT + 8) ** 2) hurt(Math.sign(P.x - b.x) || 1, 'bat');
+  }
+  if (state !== 'play') return;
+
+  if (G.lavaDelay > 0) G.lavaDelay -= dt;
+  else {
+    let s = LAVA.base + G.best * LAVA.perM;
+    const gap = G.lavaY - (cam.y + H + LAVA.leash);
+    if (gap > 0) s += gap * LAVA.catchup;
+    G.lavaY -= s * dt;
+  }
+  if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; end(); }
+}
+
+/* ---------- draw（仮の見た目） ---------- */
+function draw() {
+  const k = scale * dpr;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.fillStyle = '#101216'; ctx.fillRect(0, 0, W, H);
+  if (!world) return;
+  ctx.save(); ctx.translate(0, -cam.y);
+  const rTop = Math.floor(-cam.y / CELL) + 1, rBot = Math.max(-1, Math.floor(-(cam.y + H) / CELL));
+  // 1mごとの目盛り
+  ctx.fillStyle = '#1a1d23';
+  for (let m = Math.max(0, Math.floor(-(cam.y + H) / PX_PER_M)); m <= -cam.y / PX_PER_M; m++) ctx.fillRect(0, -m * PX_PER_M, W, 1);
+  for (let r = rBot; r <= rTop; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = tile(world, c, r), x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL;
+      ctx.fillStyle = '#3a3f4b';
+      if (t === '#') ctx.fillRect(x0, yT, CELL, CELL);
+      else if (t === 'BR') tri(x1, yB, x0, yB, x1, yT);
+      else if (t === 'BL') tri(x0, yB, x1, yB, x0, yT);
+      else if (t === 'TL') tri(x0, yT, x1, yT, x0, yB);
+      else if (t === 'TR') tri(x1, yT, x0, yT, x1, yB);
+      else if (t === '=') { ctx.fillStyle = '#7a6a4a'; ctx.fillRect(x0, yT, CELL, 4); }
+      else if (t === '^') drawSpike(c, r);
+    }
+  }
+  // パーツの境目
+  if (debug) {
+    ctx.font = '10px system-ui'; ctx.textAlign = 'left';
+    for (const p of world.placed) { const y = -p.r0 * CELL; ctx.fillStyle = 'rgba(242,181,68,.5)'; ctx.fillRect(0, y, W, 1); ctx.fillText(p.id, 40, y - 4); }
+    for (const list of world.edges) if (list) for (const e of list) {
+      ctx.strokeStyle = e.kind === 'oneway' ? '#ff0' : e.ny < -0.8 ? '#0f0' : e.ny > 0.3 ? '#f44' : '#4af';
+      ctx.beginPath(); ctx.moveTo(e.ax, e.ay); ctx.lineTo(e.bx, e.by); ctx.stroke();
+    }
+  }
+  if (showCheck) drawCheck();
+  // コウモリ
+  for (const b of world.bats) {
+    if (Math.abs(b.y - P.y) > H) continue;
+    ctx.fillStyle = '#8a6fd1'; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, Math.PI * 2); ctx.fill();
+    const f = Math.sin(b.t * 14) * 4; ctx.fillRect(b.x - 15, b.y - 2 + f, 8, 3); ctx.fillRect(b.x + 7, b.y - 2 + f, 8, 3);
+  }
+  // プレイヤー
+  ctx.globalAlpha = G.inv > 0 && Math.floor(G.inv * 16) % 2 ? 0.35 : 1;
+  ctx.fillStyle = '#7fd3ff'; ctx.beginPath(); ctx.arc(P.x, P.y, R, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+  if (!canAct(P) && P.air > 0) { ctx.fillStyle = '#fff'; ctx.fillRect(P.x - 2, P.y + R + 3, 4, 4); }
+  // 溶岩
+  if (G.lavaY < cam.y + H + 20) { ctx.fillStyle = '#d2452b'; ctx.fillRect(0, G.lavaY, W, cam.y + H + 40 - G.lavaY); ctx.fillStyle = '#ff8a4a'; ctx.fillRect(0, G.lavaY, W, 3); }
+  ctx.restore();
+  // HUD
+  ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(0, 0, W, 26);
+  ctx.font = '12px system-ui, sans-serif'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#ff6f7d'; ctx.fillText('♥'.repeat(Math.max(0, G.hp)) + '♡'.repeat(MAX_HP - Math.max(0, G.hp)), 8, 13);
+  ctx.fillStyle = '#e6e4de'; ctx.textAlign = 'center'; ctx.fillText(`${Math.floor(G.best)}m　${poolAt(G.best).name}`, W / 2, 13);
+  ctx.textAlign = 'right'; ctx.fillStyle = '#8d94a1'; ctx.fillText(G.time.toFixed(1) + 's', W - 8, 13);
+  if (G.lavaY > cam.y + H) { ctx.textAlign = 'center'; ctx.fillStyle = '#ff8a4a'; ctx.fillText(`▼ 溶岩まで ${Math.round((G.lavaY - P.y) / PX_PER_M)}m`, W / 2, H - 12); }
+  if (showCheck) { ctx.textAlign = 'left'; ctx.fillStyle = '#0f0'; ctx.fillText(checkLabel, 8, 40); }
+}
+function tri(ax, ay, bx, by, cx, cy) { ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx, cy); ctx.closePath(); ctx.fill(); }
+function drawSpike(c, r) {
+  const [a, b, cc, d, side] = spikeRect(world, c, r);
+  ctx.fillStyle = '#d8dbe3';
+  if (side === 'L') tri(a, b, a, d, cc + 3, (b + d) / 2);
+  else if (side === 'R') tri(cc, b, cc, d, a - 3, (b + d) / 2);
+  else if (side === 'B') tri(a, d, cc, d, (a + cc) / 2, b - 3);
+  else if (side === 'T') tri(a, b, cc, b, (a + cc) / 2, d + 3);
+  else { ctx.beginPath(); ctx.arc((a + cc) / 2, (b + d) / 2, 6, 0, Math.PI * 2); ctx.fill(); }
+}
+// V：今いるパーツの到達チェック結果を重ねる（緑＝安全に出口へ行ける着地点、橙＝ダメージを受けないと進めない、赤＝詰み）
+let checkLabel = '';
+function drawCheck() {
+  const pl = world.placed.find(p => -P.y / CELL >= p.r0 - 0.5 && -P.y / CELL <= p.r1 + 1) || world.placed[world.placed.length - 1];
+  if (!checkCache[pl.id]) { checkCache[pl.id] = checkPiece(pl.id); }
+  const res = checkCache[pl.id], base = -pl.r0 * CELL;
+  checkLabel = `${pl.id}: ${res.ok ? 'OK' : 'NG'}  入口 ${res.entryOk}/${res.entries}  痛い場所 ${res.hurtSpots}  詰み ${res.softlocks}`;
+  const col = { good: 'rgba(80,255,120,.8)', hurt: 'rgba(255,170,40,.9)', lock: 'rgba(255,40,40,1)' };
+  for (const p of res.points) { ctx.fillStyle = col[p.kind]; ctx.fillRect(p.x - 2, base + p.y - 2, 4, 4); }
+}
+
+/* ---------- menus & loop ---------- */
+const ov = { title: $('ovTitle'), pause: $('ovPause'), end: $('ovEnd') };
+function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
+function renderBest() { const b = store.get('kabe_best', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
+function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); }
+function showEnd() {
+  const m = Math.floor(G.best), best = store.get('kabe_best', 0);
+  if (m > best) store.set('kabe_best', m);
+  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', bat: 'コウモリにやられた' }[G.cause] || 'おしまい';
+  const st = $('endStats'); st.textContent = '';
+  for (const [a, b] of [['高さ', m + 'm'], ['タイム', G.time.toFixed(1) + '秒'], ['最高', Math.max(m, best) + 'm' + (m > best ? '（更新）' : '')]]) {
+    const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b; st.append(dt, dd);
+  }
+  showOnly('end');
+}
+$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnQuit').onclick = startGame;
+$('btnToTitle').onclick = () => { state = 'title'; renderBest(); showOnly('title'); };
+$('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
+$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; showOnly('pause'); } };
+cv.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
+addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowUp') {
+    if (e.target.tagName === 'BUTTON' && state !== 'play') return;
+    e.preventDefault(); if (e.repeat) return;
+    if (state === 'title') startGame(); else press();
+  } else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play') $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
+  else if (e.key === 'd' || e.key === 'D') debug = !debug;
+  else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;
+});
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') $('pauseBtn').onclick(); });
+
+let last = performance.now(), acc = 0;
+function loop(now) {
+  const frame = Math.min(0.1, (now - last) / 1000) * MOVE.speed; last = now;
+  if (state === 'play') { acc += frame; while (acc >= DT && state === 'play') { update(DT); acc -= DT; } }
+  draw();
+  requestAnimationFrame(loop);
+}
+renderBest(); newGame();
+requestAnimationFrame(loop);
+window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, startGame };
+})();
+</script>
+</body>
+</html>

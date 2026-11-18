@@ -125,15 +125,15 @@
 const PARAMS = [
   { g: 'キック（壁を蹴った瞬間）' },
   { k: 'kickVx', label: '横の速さ', min: 50, max: 700, step: 5, def: 180, unit: 'px/s', help: '小さいほど弧が縦長になる' },
-  { k: 'kickVy', label: '上向きの速さ', min: 100, max: 1200, step: 5, def: 460, unit: 'px/s', help: '大きいほど高く上がる' },
+  { k: 'kickVy', label: '上向きの速さ', min: 100, max: 1200, step: 5, def: 300, unit: 'px/s', help: '大きいほど高く上がる' },
   { g: '空中' },
   { k: 'gravity', label: '重力', min: 100, max: 2500, step: 10, def: 420, unit: 'px/s²', help: '小さいほどふわっと、ゆっくり落ちる' },
   { k: 'maxFall', label: '落下速度の上限', min: 0, max: 1500, step: 10, def: 0, unit: 'px/s', help: '0 = 上限なし（素直な放物線）' },
   { g: '2段ジャンプ' },
   { k: 'airJumps', label: '回数', min: 0, max: 3, step: 1, def: 1, unit: '回', help: '壁に着くと回復' },
-  { k: 'airVy', label: '上向きの速さ', min: 0, max: 1000, step: 5, def: 340, unit: 'px/s' },
+  { k: 'airVy', label: '上向きの速さ', min: 0, max: 1000, step: 5, def: 300, unit: 'px/s' },
   { g: '壁' },
-  { k: 'slide', label: 'ずり落ちる速さ', min: 0, max: 400, step: 2, def: 50, unit: 'px/s', help: '0 = 張り付いたまま止まる' },
+  { k: 'slide', label: 'ずり落ちる速さ', min: 0, max: 400, step: 2, def: 0, unit: 'px/s', help: '0 = 張り付いたまま止まる' },
   { k: 'slideAccel', label: 'ずり落ちの効き', min: 0.5, max: 30, step: 0.5, def: 7, unit: '', help: '大きいほど張り付いてすぐ最高速になる' },
   { k: 'carry', label: '着いたときに残す上向きの勢い', min: 0, max: 1, step: 0.05, def: 0.2, unit: '倍', help: '上昇中に壁に着いたとき、少し上へ滑る' },
   { k: 'width', label: '縦穴の幅', min: 80, max: 340, step: 2, def: 292, unit: 'px' },
@@ -144,7 +144,7 @@ const PARAMS = [
 const DEFAULTS = Object.fromEntries(PARAMS.filter(p => p.k).map(p => [p.k, p.def]));
 DEFAULTS.airMode = 'keep';
 const PRESETS = {
-  '初期値': {},
+  '決定値（本編）': {},
   '前回（ゆっくり縦長）': { gravity: 420, kickVx: 180, kickVy: 460, airVy: 340, slide: 50 },
   'ふわっと（その前）': { gravity: 640, kickVx: 270, kickVy: 440, airVy: 380, slide: 74 },
   'キビキビ（最初）': { gravity: 1150, kickVx: 430, kickVy: 560, airVy: 470, slide: 74 },
@@ -157,7 +157,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
-const V = Object.assign({}, DEFAULTS, store.get('kerisim_params', {}));
+const V = Object.assign({}, DEFAULTS, store.get('kerisim_params2', {}));
 const show = { arc: true, trail: true };
 
 /* ---------- panel ---------- */
@@ -202,7 +202,7 @@ function setParam(k, v) {
   V[k] = v; save(); syncPanel();
   if (k === 'width' && P.side) P.x = P.side < 0 ? wallL() + R : wallR() - R;
 }
-function save() { store.set('kerisim_params', V); }
+function save() { store.set('kerisim_params2', V); }
 function syncPanel() {
   for (const k in inputs) { inputs[k].rg.value = V[k]; inputs[k].nm.value = V[k]; }
   for (const b of $('airMode').children) b.setAttribute('aria-pressed', b.dataset.v === V.airMode);
