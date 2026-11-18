@@ -147,7 +147,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.18d';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.18e';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -170,6 +170,9 @@ const PX_PER_M = 60;
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
 
 const MAX_HP = 3, INVINCIBLE = 1.1;
+// 敵：v 横の速さ、bob 上下のゆれ、hit 当たりの半径、half 壁で折り返す距離
+const ENEMY = { ball: { v: 40, bob: 8, hit: 9, half: 11 }, saw: { v: 55, bob: 0, hit: 9, half: 10 }, drill: { v: 70, bob: 0, hit: 8, half: 13 }, fire: { v: 35, bob: 14, hit: 7, half: 9 } };
+const ENEMY_CH = { O: 'ball', S: 'saw', D: 'drill', F: 'fire' };
 const LAVA = { delay: 3, base: 14, perM: 0.12, leash: 160, catchup: 0.9 };
 
 /* =====================================================================
@@ -177,7 +180,7 @@ const LAVA = { delay: 3, base: 14, perM: 0.12, leash: 160, catchup: 0.9 };
    1文字 = 1マス。上の行がパーツの上。横は必ず20文字。
      #  壁        .  空間       ^  トゲ（となりの壁から生える）
      /  \  45度の斜め（まわりの壁から向きを自動で決める）。上向きも下向きも張り付ける
-     B  コウモリ
+     O  トゲ鉄球（ゆれながら往復）  S  回転ノコ（レールの上を往復）  D  掘削ドリル（速く往復）  F  火の玉（大きくゆれる）
    床も足場も、すべてマス単位のブロック（#）で作る
    つなぎ目のルール：
      - パーツのいちばん下の行といちばん上の行が「つなぎ口」。
@@ -437,22 +440,41 @@ piece('z2_narrow', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('z2_bats', { diff: 2 }, String.raw`
+piece('z2_iron', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.......B........##
+##.......O........##
 ##................##
 ##................##
 ##^...............##
 ##^...............##
 ##................##
-##..........B.....##
+##..........O.....##
 ##................##
 ##...............^##
 ##...............^##
 ##................##
-##....B...........##
+##....F...........##
+##................##
+##................##
+##................##
+`);
+piece('z2_saws', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.......S........##
+##................##
+##................##
+##^...............##
+##^...............##
+##................##
+##................##
+##.........D......##
+##................##
+##...............^##
+##...............^##
 ##................##
 ##................##
 ##................##
@@ -502,7 +524,7 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 /* ---------- 高さ100mごとのプール ---------- */
 const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_longwall', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_sideleft'] },
-  { from: 100, name: '根っこの坑道', pieces: ['z2_dense', 'z2_narrow', 'z2_bats', 'z2_pillarspikes', 'z2_shelfspikes', 'z1_longwall', 'z1_sideleft', 'z1_pillar'] },
+  { from: 100, name: '根っこの坑道', pieces: ['z2_dense', 'z2_narrow', 'z2_iron', 'z2_saws', 'z2_pillarspikes', 'z2_shelfspikes', 'z1_longwall', 'z1_sideleft', 'z1_pillar'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
@@ -771,7 +793,12 @@ let particles = [], floaters = [];
 function placePiece(id) {
   const pc = PIECES[id], r0 = appendRows(world, pc.rows);
   world.placed.push({ id, r0, r1: r0 + pc.rows.length - 1 });
-  pc.rows.forEach((row, i) => { for (let c = 0; c < COLS; c++) if (row[c] === 'B') world.bats.push({ x: (c + 0.5) * CELL, baseY: -(r0 + i + 0.5) * CELL, y: -(r0 + i + 0.5) * CELL, vx: (c < COLS / 2 ? 1 : -1) * 40, t: c }); });
+  pc.rows.forEach((row, i) => { for (let c = 0; c < COLS; c++) {
+    const kind = ENEMY_CH[row[c]]; if (!kind) continue;
+    const k = ENEMY[kind], y = -(r0 + i + 0.5) * CELL;
+    let cl = c, cr = c; while (cl > 0 && row[cl - 1] !== '#') cl--; while (cr < COLS - 1 && row[cr + 1] !== '#') cr++;
+    world.bats.push({ kind, x: (c + 0.5) * CELL, baseY: y, y, vx: (c < COLS / 2 ? 1 : -1) * k.v, t: c, x0: cl * CELL, x1: (cr + 1) * CELL });
+  } });
 }
 const connector = row => row.replace(/[^#]/g, '.');
 function nextPiece() {
@@ -859,10 +886,11 @@ function update(dt) {
     if (Math.abs(b.baseY - P.y) > H) continue;
     b.t += dt; b.x += b.vx * dt;
     const r = Math.floor(-b.baseY / CELL);
-    if (isWall(raw(world, Math.floor((b.x - 10) / CELL), r))) b.vx = Math.abs(b.vx);
-    if (isWall(raw(world, Math.floor((b.x + 10) / CELL), r))) b.vx = -Math.abs(b.vx);
-    b.y = b.baseY + Math.sin(b.t * 2) * 8;
-    if (state === 'play' && (P.x - b.x) ** 2 + (P.y - b.y) ** 2 < (HIT + 8) ** 2) hurt(Math.sign(P.x - b.x) || 1, 'bat');
+    const k = ENEMY[b.kind];
+    if (isWall(raw(world, Math.floor((b.x - k.half) / CELL), r))) b.vx = Math.abs(b.vx);
+    if (isWall(raw(world, Math.floor((b.x + k.half) / CELL), r))) b.vx = -Math.abs(b.vx);
+    b.y = b.baseY + Math.sin(b.t * 2) * k.bob;
+    if (state === 'play' && (P.x - b.x) ** 2 + (P.y - b.y) ** 2 < (HIT + k.hit) ** 2) hurt(Math.sign(P.x - b.x) || 1, b.kind);
   }
   if (state !== 'play') return;
 
@@ -969,7 +997,7 @@ function drawPlayer() {
 }
 
 /* ---------- 敵・溶岩・エフェクト ---------- */
-function drawBat(b) { Kabe.enemy(ctx, PAL, b.x, b.y, b.t, 1, b.vx < 0 ? -1 : 1); }
+function drawBat(b) { Kabe.enemy(ctx, PAL, b.x, b.y, b.t, 1, b.vx < 0 ? -1 : 1, b.kind); }
 function drawLava() {
   const y = G.lavaY, bottom = cam.y + H + 20;
   if (y > bottom) return;
@@ -1032,6 +1060,7 @@ function draw() {
     }
   }
   if (showCheck) drawCheck();
+  for (const b of world.bats) if (b.kind === 'saw' && Math.abs(b.y - P.y) < H) Kabe.rail(ctx, PAL, b.x0, b.x1, b.baseY);
   for (const b of world.bats) if (Math.abs(b.y - P.y) < H) drawBat(b);
   if (state !== 'dying' && state !== 'end') drawPlayer();
   drawParticles();
@@ -1097,7 +1126,7 @@ function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').
 function showEnd() {
   const m = Math.floor(G.best), best = store.get('kabe_best', 0);
   if (m > best) store.set('kabe_best', m);
-  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', bat: 'コウモリにやられた' }[G.cause] || 'おしまい';
+  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', ball: 'トゲ鉄球にやられた', saw: '回転ノコにやられた', drill: 'ドリルにやられた', fire: '火の玉にやられた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['最高', Math.max(m, best) + 'm']]) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);

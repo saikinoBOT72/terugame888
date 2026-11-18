@@ -89,7 +89,7 @@ window.Kabe = (function () {
 
   /* ---------- ゾーンの「しるし」：形は同じ決まり、モチーフだけ変える ---------- */
   var MOTIF = {
-    underground: { grain: 'pebble', lip: 'moss', under: 'root', decor: 'mushroom', far: 'stalactite', enemy: 'bat', rise: 'lava' },
+    underground: { grain: 'pebble', lip: 'moss', under: 'root', decor: 'mushroom', far: 'stalactite', enemy: 'machine', rise: 'lava' },
     surface: { grain: 'stone', lip: 'grass', under: 'root', decor: 'flower', far: 'hill', enemy: 'bird', rise: 'mud' },
     sky: { grain: 'puff', lip: 'cloud', under: 'mist', decor: 'sprout', far: 'cloud', enemy: 'thunder', rise: 'storm' },
     space: { grain: 'crater', lip: 'dust', under: 'crystal', decor: 'crystal', far: 'planet', enemy: 'jelly', rise: 'void' }
@@ -241,8 +241,8 @@ window.Kabe = (function () {
   }
 
   /* ---------- 敵：丸い体・縁取り・2段の影・白目と黒目（プレイヤーの線の目と区別） ----------
-     地下＝おおつばさ（コウモリ）、地上＝ころ鳥、上空＝もくもく（雷雲）、宇宙＝かさクラゲ。
-     羽は肩から回り、体は羽ばたきに合わせて上下する。耳・足・尾・触手は少し遅れてついてくる。 */
+     地下＝顔のない4種類（トゲ鉄球・回転ノコ・掘削ドリル・火の玉）、地上＝ころ鳥、上空＝もくもく（雷雲）、宇宙＝かさクラゲ。
+     生き物は羽が肩から回り、体は羽ばたきに合わせて上下する。尾・触手は少し遅れてついてくる。 */
   // 白目と黒目。目のふちは ink。blink 1 で閉じる
   function enemyEyes(g, P, x, y, look, s, gap, blink) {
     s = s || 1; gap = gap == null ? 2.4 : gap;
@@ -268,32 +268,65 @@ window.Kabe = (function () {
     if (!open) g.closePath();
   }
 
-  // 地下：おおつばさ。小さな体に大きな羽（骨2本）、耳の内側、胸のふさふさ、小さな牙
-  var BAT_WING = [['M', [0, -1]], ['Q', [4.5, -6.5], [8, -5.4]], ['Q', [13, -6.2], [17.5, -3.4]], ['L', [16.2, 3.4]], ['Q', [14, 1.8], [11.6, 5]], ['Q', [9.2, 2.8], [6.8, 5.4]], ['Q', [4.4, 3.2], [1.6, 3.4]]];
-  var BAT_EDGE = [['M', [0, -1]], ['Q', [4.5, -6.5], [8, -5.4]], ['Q', [13, -6.2], [17.5, -3.4]]];
-  function bat(g, P, t, look) {
-    var p = t * 11, u = Math.sin(p), by = Math.cos(p) * 0.9, a = -u * 0.6, k = 0.9 + 0.1 * Math.max(0, -u), lag = Math.sin(p - 1.2);
-    [-1, 1].forEach(function (s) { eBody(g, P, function () { ell(g, s * 2.2, 7.3 + by + lag * 0.5, 1.3, 1.6); }, 0.4); });
-    [-1, 1].forEach(function (s) {
-      var T = xf(s, s * 4.2, -1.2 + by, a, k);
-      eSoft(g, P, function () { shapePath(g, BAT_WING, T); });
-      g.save(); shapePath(g, BAT_WING, T); g.clip(); shapePath(g, BAT_EDGE, T, true); g.strokeStyle = P.enemy; g.lineWidth = 2.6; g.stroke(); g.restore();
-      var e = T([8, -5.4]), f1 = T([16.2, 3.4]), f2 = T([11.6, 5]);
-      innerLine(g, P.enemyShade); g.beginPath(); g.moveTo(e[0], e[1]); g.lineTo(f1[0], f1[1]); g.moveTo(e[0], e[1]); g.lineTo(f2[0], f2[1]); g.stroke();
-    });
-    var ey = by + lag * 0.4;
-    [-1, 1].forEach(function (s) {
-      eBody(g, P, function () { g.beginPath(); g.moveTo(s * 1.4, -4.6 + by); g.quadraticCurveTo(s * 2.6, -10 + ey, s * 5, -11.6 + ey); g.quadraticCurveTo(s * 6.6, -8 + ey, s * 6, -3.2 + by); g.closePath(); }, 0.5);
-      g.fillStyle = P.enemyLight; g.beginPath(); g.moveTo(s * 2.8, -5 + by); g.quadraticCurveTo(s * 3.6, -8.6 + ey, s * 4.9, -9.6 + ey); g.quadraticCurveTo(s * 5.4, -7 + ey, s * 5, -4.4 + by); g.closePath(); g.fill();
-    });
-    var bodyP = function () { ell(g, 0, 0.6 + by, 6.4, 6.1); };
-    eBody(g, P, bodyP);
-    g.save(); bodyP(); g.clip(); g.fillStyle = P.enemyLight;
-    [-2.7, 0, 2.7].forEach(function (x, i) { ell(g, x, 3 + by - (i === 1 ? 0.5 : 0), 2, 1.9); g.fill(); }); ell(g, 0, 5.6 + by, 3.8, 2.4); g.fill(); g.restore();
-    shine(g, -2.9, -2.4 + by, 1.6, 0.95, 0.55);
-    enemyEyes(g, P, 0, -1.2 + by, look, 0.95, 2.3, blinkAt(t, 0.3));
-    innerLine(g, P.ink); g.beginPath(); g.arc(0, 1 + by, 1.1, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
-    g.fillStyle = '#ffffff'; g.beginPath(); g.moveTo(look * 0.5 - 0.6, 2 + by); g.lineTo(look * 0.5 + 0.6, 2 + by); g.lineTo(look * 0.5, 3.4 + by); g.closePath(); g.fill();
+  // 地下：顔のない4種類。本体は鉄（enemy の色）、触れると痛い所（トゲ・刃・ドリルの先）は hazard。火の玉は溶岩（rise）の色
+  function metal(g, P, path, off) { solid(g, path, P.enemy, P.enemyShade, P.ink, off == null ? 1.1 : off, 1.0); }
+  function hzPart(g, P, path, off) { solid(g, path, P.hazard, P.hazardShade, P.ink, off == null ? 0.6 : off, 0.9); }
+  var UNDER = {
+    ball: function (g, P, t, dir) {   // トゲ鉄球：転がりながら飛ぶ。トゲ8本が回る
+      var rot = t * dir * 2.4, i, PI = Math.PI;
+      for (i = 0; i < 8; i++) (function (a) {
+        var cx = Math.cos(a), cy = Math.sin(a);
+        hzPart(g, P, function () { g.beginPath(); g.moveTo(cx * 5.4 - cy * 1.8, cy * 5.4 + cx * 1.8); g.lineTo(cx * 10.2, cy * 10.2); g.lineTo(cx * 5.4 + cy * 1.8, cy * 5.4 - cx * 1.8); g.closePath(); }, 0.4);
+      })(rot + i * PI / 4);
+      var ball = function () { ell(g, 0, 0, 6.8, 6.8); };
+      metal(g, P, ball, 1.3);
+      g.save(); ball(); g.clip(); innerLine(g, P.enemyShade); g.beginPath(); g.ellipse(0, 0, 6.8, 2.4, rot, 0, PI * 2); g.stroke(); g.restore();
+      [0, PI].forEach(function (o) {
+        var x = Math.cos(rot + o) * 6.8, y = Math.sin(rot + o) * 2.4, c = Math.cos(rot), s = Math.sin(rot), px = x * c - y * s, py = x * s + y * c;
+        if (Math.hypot(px, py) < 6) { g.fillStyle = P.enemyShade; ell(g, px + 0.3, py + 0.3, 1.1, 1.1); g.fill(); g.fillStyle = P.enemyLight; ell(g, px, py, 0.8, 0.8); g.fill(); }
+      });
+      shine(g, -2.8, -3, 2, 1.1, 0.6);
+    },
+    saw: function (g, P, t, dir) {   // 回転ノコ：レールに沿って行き来する。刃のふちが危険の色
+      var rot = t * dir * 9, n = 12, st = Math.PI * 2 / n;
+      hzPart(g, P, function () { g.beginPath(); for (var i = 0; i < n; i++) { var a = rot + i * st; g.lineTo(Math.cos(a) * 7.2, Math.sin(a) * 7.2); g.lineTo(Math.cos(a + st * 0.7) * 9.8, Math.sin(a + st * 0.7) * 9.8); } g.closePath(); }, 0.5);
+      innerLine(g, P.hazardLight); g.beginPath(); g.arc(0, 0, 7.6, Math.PI * 1.05, Math.PI * 1.6); g.stroke();
+      metal(g, P, function () { ell(g, 0, 0, 5.6, 5.6); }, 0.9);
+      for (var j = 0; j < 3; j++) { var a2 = rot + j * Math.PI * 2 / 3; g.fillStyle = P.enemyShade; ell(g, Math.cos(a2) * 3.4, Math.sin(a2) * 3.4, 1.1, 1.1); g.fill(); }
+      solid(g, function () { ell(g, 0, 0, 1.7, 1.7); }, P.enemyLight, P.enemyShade, P.ink, 0.4, 0.8);
+      shine(g, -2.4, -2.6, 1.5, 0.8, 0.6);
+    },
+    drill: function (g, P, t, dir) {   // 掘削ドリル：進む向きにドリルの先が回る。上に小さなランプ
+      var L = function (x) { return x * dir; }, sp = (t * 10) % 3;
+      [-1, 1].forEach(function (s) { metal(g, P, function () { g.beginPath(); g.moveTo(L(-6), s * 3.6); g.quadraticCurveTo(L(-9.6), s * 5.4, L(-10.4), s * 7.2); g.quadraticCurveTo(L(-7), s * 6.6, L(-3.6), s * 3.6); g.closePath(); }, 0.4); });
+      metal(g, P, function () { rr(g, dir > 0 ? -9 : -2, -5, 11, 10, 4.5); }, 1.1);
+      innerLine(g, P.enemyShade); g.beginPath(); g.moveTo(L(-5.6), -4.6); g.lineTo(L(-5.6), 4.6); g.stroke();
+      shine(g, L(-5) - 1, -2.6, 1.8, 0.9, 0.6);
+      var bit = function () { g.beginPath(); g.moveTo(L(3), -4.6); g.quadraticCurveTo(L(9), -2.4, L(12.6), 0); g.quadraticCurveTo(L(9), 2.4, L(3), 4.6); g.closePath(); };
+      hzPart(g, P, bit, 0.6);
+      g.save(); bit(); g.clip(); g.strokeStyle = P.hazardShade; g.lineWidth = 1.1;
+      for (var x = -3; x < 12; x += 3) { var xx = x + sp; g.beginPath(); g.moveTo(L(xx), -5); g.lineTo(L(xx + 2.2), 5); g.stroke(); } g.restore();
+      solid(g, function () { rr(g, dir > 0 ? 1.4 : -3.4, -5.4, 2, 10.8, 1); }, P.enemyLight, P.enemyShade, P.ink, 0.4, 0.8);
+      var lx = L(-4), ly = -6.2, gl = g.createRadialGradient(lx, ly, 0.5, lx, ly, 6); gl.addColorStop(0, alpha(P.glow, 0.45 * (0.85 + Math.sin(t * 2) * 0.15))); gl.addColorStop(1, alpha(P.glow, 0));
+      g.fillStyle = gl; ell(g, lx, ly, 6, 6); g.fill();
+      solid(g, function () { g.beginPath(); g.arc(lx, ly + 0.8, 1.8, Math.PI, 0); g.closePath(); }, P.glow, mix(P.glow, '#000000', 0.25), P.ink, 0.3, 0.8);
+    },
+    fire: function (g, P, t, dir) {   // 火の玉：溶岩から飛び出した火のかたまり。炎のしっぽがゆらぐ
+      var L = function (x) { return x * dir; }, f = function (k) { return Math.sin(t * 9 + k) * 1.2; }, PI = Math.PI;
+      var gl = g.createRadialGradient(0, 0, 1, 0, 0, 15); gl.addColorStop(0, alpha(P.riseLight, 0.4)); gl.addColorStop(1, alpha(P.riseLight, 0)); g.fillStyle = gl; ell(g, 0, 0, 15, 15); g.fill();
+      for (var i = 0; i < 3; i++) { var k = (t * 1.8 + i / 3) % 1; g.fillStyle = alpha(P.riseTop, 1 - k); ell(g, L(-8 - k * 12), (i - 1) * 3 + Math.sin(t * 5 + i) * 1.5, 1.2 * (1 - k * 0.5), 1.2 * (1 - k * 0.5)); g.fill(); }
+      var flame = function () { g.beginPath(); g.moveTo(L(2), -6.4); g.quadraticCurveTo(L(-4), -7.8, L(-12) + f(0), -7.4 + f(1)); g.quadraticCurveTo(L(-8.4), -4.2, L(-6.6), -2.6); g.quadraticCurveTo(L(-11), -2.4, L(-16.5) + f(2), f(3) * 0.6); g.quadraticCurveTo(L(-11), 2.4, L(-6.6), 2.6); g.quadraticCurveTo(L(-8.4), 4.2, L(-12) + f(4), 7.4 + f(5)); g.quadraticCurveTo(L(-4), 7.8, L(2), 6.4); g.arc(L(1), 0, 6.5, PI / 2, -PI / 2, dir > 0); g.closePath(); };
+      solid(g, flame, P.rise, mix(P.rise, '#000000', 0.22), P.ink, 1.1, 1.0);
+      g.save(); g.translate(L(1.5), 0); g.scale(0.62, 0.62); g.fillStyle = P.riseLight; flame(); g.fill(); g.restore();
+      g.fillStyle = P.riseTop; ell(g, L(1.6), 0.4, 2.8, 2.6); g.fill();
+      shine(g, L(1) - 2.4, -3.2, 1.5, 0.8, 0.6);
+    }
+  };
+  var UNDER_KINDS = ['ball', 'saw', 'drill', 'fire'];
+  // 回転ノコのレール（x0〜x1 は壁の面）
+  function rail(g, P, x0, x1, y) {
+    g.fillStyle = alpha(P.terrainShade, 0.75); rr(g, x0, y - 0.8, x1 - x0, 1.6, 0.8); g.fill();
+    [x0, x1].forEach(function (x, i) { solid(g, function () { rr(g, i ? x - 3 : x, y - 2.5, 3, 5, i ? [2, 0, 0, 2] : [0, 2, 2, 0]); }, P.terrainShade, P.terrainDeep, null, 0.4); });
   }
 
   // 地上：ころ鳥。ひよこのような丸い体、羽の先は丸い山3つ、頭の毛2本、ときどき鳴くくちばし、扇の尾
@@ -360,12 +393,13 @@ window.Kabe = (function () {
     shine(g, -4, -3.6 * sy, 1.9, 1, 0.6);
     enemyEyes(g, P, 0, -0.4, look, 0.95, 2.4, blinkAt(t, 0.7));
   }
-  var ENEMIES = { bat: bat, bird: bird, thunder: cloud, jelly: jelly };
-  function enemy(g, P, x, y, t, s, look) {
+  var ENEMIES = { bird: bird, thunder: cloud, jelly: jelly };
+  // kind：地下では 'ball' | 'saw' | 'drill' | 'fire'（ほかのゾーンは1種類なので無視）
+  function enemy(g, P, x, y, t, s, look, kind) {
     s = s || 1; look = look == null ? 1 : look;
     var m = MOTIF[P.id] || MOTIF.underground;
     g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
-    (ENEMIES[m.enemy] || bat)(g, P, t, look);
+    if (m.enemy === 'machine') (UNDER[kind] || UNDER.ball)(g, P, t, look); else ENEMIES[m.enemy](g, P, t, look);
     g.restore();
   }
 
@@ -651,7 +685,7 @@ window.Kabe = (function () {
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     beamState: beamState, beam: beam, wallOut: wallOut, movingWall: movingWall,
-    enemy: enemy, rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
+    enemy: enemy, UNDER_KINDS: UNDER_KINDS, rail: rail, rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
