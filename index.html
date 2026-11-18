@@ -147,7 +147,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.18f';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.18g';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -845,15 +845,16 @@ function tryAct() {
     const r = Math.floor(-P.y / CELL), c = Math.floor(P.x / CELL), dir = Math.sign(P.vx);
     if (dir) { let k = 0; while (k < COLS && !isWall(raw(world, c + dir * (k + 1), r))) k++; const dist = dir > 0 ? (c + k + 1) * CELL - HB - P.x : P.x - (c - k) * CELL - HB; if (dist / Math.abs(P.vx) < 0.08) return; }
     airJump(P); inputBuf = 0; P.squash = -0.3; sfx.air();
-    G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ（点線の輪つき）
+    G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
   }
 }
 
-function hurt(dirX, cause) {
+function hurt(dirX, cause, wallSpike = false) {
   if (G.inv > 0) return;
   G.hp--; G.inv = INVINCIBLE; cam.shake = 7; sfx.hurt();
   for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'spark', x: P.x, y: P.y, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, life: 0.5, max: 0.5 }); }
   P.side = 0; P.ground = false; P.vx = dirX * MOVE.kickVx * 0.8; P.vy = -220;
+  if (cause === 'spike' && wallSpike) P.air = MOVE.airJumps;   // 壁のトゲ＝壁に一回ついたとみなし、2段ジャンプを回復
   if (G.hp <= 0) { G.cause = cause; die(); }
 }
 function die() {
@@ -881,7 +882,7 @@ function update(dt) {
   ensureAhead();
 
   const sp = spikeHit(world, P.x, P.y);
-  if (sp) hurt(sp === 'L' ? 1 : sp === 'R' ? -1 : (P.x < W / 2 ? 1 : -1), 'spike');
+  if (sp) hurt(sp === 'L' ? 1 : sp === 'R' ? -1 : (P.x < W / 2 ? 1 : -1), 'spike', sp === 'L' || sp === 'R');
   for (const b of world.bats) {
     if (Math.abs(b.baseY - P.y) > H) continue;
     b.t += dt; b.x += b.vx * dt;

@@ -494,7 +494,7 @@ window.Kabe = (function () {
     stand: { name: '立ち', tilt: 0, sq: 0, hands: [[-8.5, 4], [8.5, 4]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-11, 2], [-15, 8], [-17, 15], [-16, 21]], expr: 'normal', look: [1, 0], hem: 0 },
     cling: { name: '壁に張り付き', tilt: -0.08, sq: 0, hands: [[-11.5, -5], [-11.5, 3]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, 5], [-10, 12], [-8, 19], [-9, 26]], expr: 'normal', look: [1, -0.5], wall: true, hem: -0.6 },
     jump: { name: 'ジャンプ', tilt: 0.18, sq: -0.1, hands: [[-9, -7], [9, -8]], feet: [[-6, 12], [2, 13.5]], scarf: [[-4, -1], [-12, 4], [-20, 8], [-28, 15], [-34, 23]], expr: 'brave', look: [1, -0.7], hem: -1.8 },
-    air: { name: '2段ジャンプ', tilt: 0.5, sq: 0.08, hands: [[-6, 3], [6.5, 2]], feet: [[-3, 10], [5, 9]], scarf: [[-4, -1], [-11, -4], [-19, -4], [-26, 1], [-31, 8]], expr: 'happy', look: [1, 0], ring: true, hem: -0.9 },
+    air: { name: '2段ジャンプ', tilt: 0.5, sq: 0.08, hands: [[-6, 3], [6.5, 2]], feet: [[-3, 10], [5, 9]], scarf: [[-4, -1], [-11, -4], [-19, -4], [-26, 1], [-31, 8]], expr: 'happy', look: [1, 0], hem: -0.9 },
     hurt: { name: 'ダメージ', tilt: -0.32, sq: 0.06, hands: [[-11, -6], [10.5, -7]], feet: [[-7.5, 12], [6.5, 10]], scarf: [[-4, -1], [-8, -8], [-13, -14], [-14, -21], [-12, -28]], expr: 'hurt', look: [-1, 0], hem: 1.2 }
   };
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
@@ -593,8 +593,7 @@ window.Kabe = (function () {
   function ghost(g, P, variant, poseId, x, y, t, face, scale) {
     var Q = POSES[poseId], G = GHOSTS[variant]; face = face || 1; scale = scale || 1;
     g.save(); g.translate(x, y); g.scale(face * scale, scale);
-    if (Q.ring) { g.strokeStyle = alpha(P.playerShade, 0.95); g.lineWidth = 1.4; g.setLineDash([2.5, 2.5]); g.beginPath(); g.arc(0, 1, 18 + Math.sin(t * 6) * 1.5, 0, Math.PI * 2); g.stroke(); g.setLineDash([]); }
-    g.rotate(Q.tilt + (Q.ring ? Math.sin(t * 3) * 0.15 : 0)); g.scale(1 - Q.sq * 0.6, 1 + Q.sq);
+    g.rotate(Q.tilt + (poseId === 'air' ? Math.sin(t * 3) * 0.15 : 0)); g.scale(1 - Q.sq * 0.6, 1 + Q.sq);
     scarfTail(g, P, Q.scarf, t);
     G.draw(g, P, Q, t);
     g.restore();
@@ -604,7 +603,7 @@ window.Kabe = (function () {
   function effects(g, P, x, y, t) {
     var p = (t % 1.6) / 1.6, i;
     for (i = 0; i < 6; i++) { var a = (1 - p); g.fillStyle = alpha(P.terrainLight, a * 0.85); ell(g, x - 34 - p * (10 + i * 4), y + (i - 3) * 3 - p * 8, (2 + hash(i, 1) * 2) * (1 + p), (2 + hash(i, 1) * 2) * (1 + p)); g.fill(); }
-    g.strokeStyle = alpha(P.playerShade, 1 - p); g.lineWidth = 2; g.setLineDash([3, 3]); g.beginPath(); g.arc(x, y, 12 + p * 16, 0, Math.PI * 2); g.stroke(); g.setLineDash([]);
+    // 2段ジャンプの輪は使わない
     for (i = 0; i < 8; i++) { var an = i / 8 * Math.PI * 2; g.fillStyle = alpha(P.hazard, 1 - p); ell(g, x + 40 + Math.cos(an) * p * 18, y + Math.sin(an) * p * 18, 2, 2); g.fill(); }
   }
 
