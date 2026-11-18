@@ -147,7 +147,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.18e';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.18f';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -1036,7 +1036,7 @@ function drawHud() {
   if (state === 'play' && G.lavaY > cam.y + H) {
     const m = Math.max(0, Math.round((G.lavaY - P.y) / PX_PER_M)), txt = `▼ 溶岩まで ${m}m`, near = m < 6;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
-    pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.hazard : null);
+    pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.rise : null);
     ctx.fillStyle = near ? PAL.ink : PAL.uiInk; ctx.fillText(txt, W / 2, H - HUD_GAP - 10.5);
   }
   if (showCheck) { ctx.textAlign = 'left'; ctx.font = '11px system-ui'; ctx.fillStyle = '#0f0'; ctx.fillText(checkLabel, 8, 58); }

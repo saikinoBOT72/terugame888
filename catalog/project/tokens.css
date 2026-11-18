@@ -31,9 +31,9 @@
   --scarf: #e5463f;
   --scarf-shade: #b3302b;
   --scarf-stripe: #ffe3df;
-  --hazard: #ff8a80;
-  --hazard-shade: #e0645d;
-  --hazard-light: #ffc7bf;
+  --hazard: #a3a1ae;
+  --hazard-shade: #767483;
+  --hazard-light: #dddbe4;
 }
 [data-theme="surface"] {
   --bg-top: #8fcbe6;
