@@ -70,6 +70,19 @@
   .stats { display: grid; grid-template-columns: auto auto; gap: calc(var(--u) * 2px) calc(var(--u) * 20px); margin: 0; font-variant-numeric: tabular-nums; text-align: left; font-size: calc(var(--u) * 14px); }
   .stats dt { color: var(--dim); } .stats dd { margin: 0; text-align: right; font-weight: 800; }
   .stats .new { color: var(--pink); }
+  /* タイトル（仮）：絵を見せるため板は使わず、上にロゴ・下にボタン */
+  #ovTitle {
+    flex-direction: column; justify-content: space-between; padding-top: calc(var(--u) * 70px); padding-bottom: calc(var(--u) * 40px);
+    background: linear-gradient(rgba(30,24,38,.8), rgba(30,24,38,.1) 42%, rgba(30,24,38,.1) 58%, rgba(30,24,38,.8));
+  }
+  .logo { display: grid; justify-items: center; gap: calc(var(--u) * 8px); text-align: center; }
+  .logo h1 { font-size: calc(var(--u) * 44px); text-shadow: 0 calc(var(--u) * 4px) 0 rgba(0,0,0,.35); }
+  .logo .kari { font-size: calc(var(--u) * 10px); color: var(--dim); border: 1px solid rgba(255,244,230,.3); border-radius: 999px; padding: 0 calc(var(--u) * 8px); }
+  .titleBottom { display: grid; justify-items: center; gap: calc(var(--u) * 12px); }
+  .blink { animation: blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .35; } }
+  .ver { position: absolute; left: calc(var(--u) * 10px); bottom: calc(var(--u) * 8px); font-size: calc(var(--u) * 10px); color: var(--dim); opacity: .8; }
+  .sub:disabled { opacity: .6; cursor: default; }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px);
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
@@ -83,18 +96,33 @@
     <canvas id="cv" aria-label="ゲーム画面"></canvas>
     <button id="pauseBtn" type="button" aria-label="一時停止" hidden>II</button>
     <section id="ovTitle" class="ov">
-      <div class="card">
-        <h1>壁蹴り<span>タワー</span></h1>
+      <div class="logo">
+        <span class="kari">仮タイトル</span>
+        <h1>壁蹴り<br><span>タワー</span></h1>
         <p class="tagline">地の底から、壁を蹴って地上をめざせ</p>
+      </div>
+      <div class="titleBottom">
+        <p class="blink">タップでスタート</p>
+        <button class="btn" id="btnStart" type="button">はじめる</button>
+        <p id="bestTitle"></p>
+        <div class="row">
+          <button class="sub" id="btnHow" type="button">遊び方</button>
+          <button class="sub" id="btnMute" type="button">音：オン</button>
+          <button class="sub" id="btnUpdate" type="button">アプデ</button>
+        </div>
+      </div>
+      <span class="ver" id="ver"></span>
+    </section>
+    <section id="ovHow" class="ov" hidden>
+      <div class="card">
+        <h2>遊び方</h2>
         <div class="how">
           <div><b>壁でタップ</b><span>反対の壁へ蹴る</span></div>
           <div><b>空中でタップ</b><span>2段ジャンプ。押す時間で着地点が変わる</span></div>
           <div><b>壁は滑らない</b><span>着地点を選んで登ろう</span></div>
         </div>
-        <button class="btn" id="btnStart" type="button">はじめる</button>
-        <p id="bestTitle"></p>
-        <div class="row"><button class="sub" id="btnMute" type="button">音：オン</button></div>
         <p class="small">D：地形の線　V：パーツの到達チェック</p>
+        <button class="btn" id="btnHowBack" type="button">もどる</button>
       </div>
     </section>
     <section id="ovPause" class="ov" hidden>
@@ -118,6 +146,7 @@
 <script>
 (() => {
 'use strict';
+const VERSION = '2026.11.18a';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -1248,7 +1277,7 @@ const sfx = {
 };
 
 /* ---------- menus & loop ---------- */
-const ov = { title: $('ovTitle'), pause: $('ovPause'), end: $('ovEnd') };
+const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
 function renderBest() { const b = store.get('kabe_best', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
 function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
@@ -1265,6 +1294,20 @@ function showEnd() {
 const muteLabel = () => { $('btnMute').textContent = muted ? '音：オフ' : '音：オン'; };
 $('btnMute').onclick = () => { muted = !muted; store.set('kabe_muted', muted); muteLabel(); if (!muted) sfx.tick(); };
 muteLabel();
+$('btnHow').onclick = () => showOnly('how');
+$('btnHowBack').onclick = () => showOnly('title');
+$('ovTitle').addEventListener('pointerdown', e => { if (!e.target.closest('button')) startGame(); });
+// アプデ：置き場所の最新版を取りにいき、版が違えば読み直す（取れないときはそのまま読み直す）
+$('ver').textContent = 'v' + VERSION;
+$('btnUpdate').onclick = async () => {
+  const b = $('btnUpdate'); b.disabled = true; b.textContent = '確認中…';
+  try {
+    const r = await fetch(location.pathname + '?t=' + Date.now(), { cache: 'no-store' });
+    const m = r.ok && (await r.text()).match(/VERSION = '(\d[^']*)'/);
+    if (m && m[1] === VERSION) { b.textContent = '最新です'; setTimeout(() => { b.textContent = 'アプデ'; b.disabled = false; }, 1500); return; }
+  } catch (e) {}
+  location.replace(location.pathname + '?v=' + Date.now());
+};
 $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnQuit').onclick = startGame;
 $('btnToTitle').onclick = () => { state = 'title'; newGame(); renderBest(); showOnly('title'); };
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
@@ -1274,7 +1317,7 @@ addEventListener('keydown', e => {
   if (e.key === ' ' || e.key === 'ArrowUp') {
     if (e.target.tagName === 'BUTTON' && state !== 'play') return;
     e.preventDefault(); if (e.repeat) return;
-    if (state === 'title') startGame(); else press();
+    if (state === 'title') { if (!ov.title.hidden) startGame(); } else press();
   } else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play') $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
   else if (e.key === 'd' || e.key === 'D') debug = !debug;
   else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;

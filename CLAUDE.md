@@ -14,6 +14,10 @@
 `index.html` の中の区切り（`grep -n "^/\* ===" index.html` で行番号を出す）：
 動きの数値 `MOVE` → パーツ `piece(...)` と `POOLS` → 地形（マス目→線分） → 動き（`physStep`、ゲームとチェックで共通） → 到達チェック `checkPiece` → ゲーム（状態・更新） → 見た目（`ART`・描画） → 効果音。
 
+## GitHub Pages（だれでも遊べる）
+- URL：https://saikinobot72.github.io/terugame888/ （本編）、`/simulator.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
+- **作業のたびに必ずコミットして push する**（ユーザーの指示）。`index.html` を変えたら先頭の `VERSION` を上げてから push（タイトルの「アプデ」ボタンがこれで新旧を見分ける）。
+
 ## 公開ページ（private。ユーザーが共有メニューで共有しない限り本人だけ）
 | ページ | URL | 元ファイル |
 |---|---|---|
