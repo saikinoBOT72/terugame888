@@ -1,0 +1,54 @@
+<!-- @dsCard group="危険なもの" height=640 width=760 subtitle="トゲ以外の障害物6つ（機械・無機物）" -->
+<style>
+.ob-bar { display: flex; gap: 6px; justify-content: center; padding: 10px 10px 0; }
+.ob-bar button { font: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--ui-muted); cursor: pointer; }
+.ob-bar button[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); }
+.ob-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+@media (max-width: 520px) { .ob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<div class="ob-bar" id="bar"></div>
+<div class="ob-grid" id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var zone = 'underground', S = 126, L = 18, R = 108, M = 63;
+var G = Kabe.grid(['#.....#', '#.....#', '#.....#', '#.....#', '#.....#', '#.....#', '#.....#'], '#');
+var bar = document.getElementById('bar');
+Kabe.ZONES.forEach(function (z) {
+  var b = document.createElement('button'); b.textContent = z.name; b.setAttribute('aria-pressed', z.id === zone);
+  b.onclick = function () { zone = z.id; [].forEach.call(bar.children, function (x) { x.setAttribute('aria-pressed', x === b); }); };
+  bar.appendChild(b);
+});
+var scenes = [
+  ['出入りトゲ', function (g, P, t) {
+    Kabe.popSpike(g, P, L, 18, 'L', t, { offset: 1.2 }); Kabe.popSpike(g, P, L, 36, 'L', t, { offset: 1.2 });
+    Kabe.popSpike(g, P, R - 18, 72, 'R', t, { offset: 0.4 }); Kabe.popSpike(g, P, R - 18, 90, 'R', t, { offset: 0.4 });
+  }],
+  ['往復ブロック', function (g, P, t) {
+    Kabe.track(g, P, L, M, R, M);
+    Kabe.ironBox(g, P, L + 6 + Kabe.slide(t, 3) * (R - L - 12 - 26), M - 9, 26, 18, 'x');
+  }],
+  ['上下ブロック', function (g, P, t) {
+    Kabe.track(g, P, M, 6, M, S - 6);
+    Kabe.ironBox(g, P, M - 10, 10 + Kabe.slide(t, 3.4) * (S - 20 - 24), 20, 24, 'y');
+  }],
+  ['回る棒', function (g, P, t) { Kabe.spinner(g, P, M, M, 34, Kabe.spinAngle(t, 1.6)); }],
+  ['シャッター', function (g, P, t) {
+    Kabe.shutter(g, P, L, R, 50, t, { offset: 1.6 });
+    Kabe.ghost(g, P, 'sheet', 'cling', L + 11, 92, t, 1, 1);
+  }],
+  ['扇風機', function (g, P, t) {
+    Kabe.fan(g, P, L, M, 'R', R - L, t);
+    Kabe.ghost(g, P, 'sheet', 'jump', 44 + (t * 26) % 48, M + Math.sin(t * 3) * 2, t, 1, 1);
+  }]
+];
+var root = document.getElementById('root');
+scenes.forEach(function (sc) {
+  var fig = document.createElement('figure'); fig.className = 'kabe-fig';
+  var cv = Kabe.canvas(S, S, 2, sc[0]), cap = document.createElement('figcaption'); cap.textContent = sc[0];
+  fig.appendChild(cv.c); fig.appendChild(cap); root.appendChild(fig);
+  Kabe.animate(function (t) {
+    var P = Kabe.pal(zone), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, S, S);
+    Kabe.background(g, P, 0, 0, S, S, t, t * 8); Kabe.terrain(g, P, G, t); sc[1](g, P, t);
+  });
+});
+</script>

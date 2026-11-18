@@ -11,7 +11,7 @@ window.Kabe = (function () {
     { id: 'space', name: '宇宙' }
   ];
   var KEYS = ['bg-top', 'bg-bottom', 'far', 'strata-a', 'strata-b', 'terrain', 'terrain-light', 'terrain-shade', 'terrain-deep',
-    'terrain-line', 'terrain-grain', 'accent', 'accent-shade', 'glow', 'ink', 'enemy', 'enemy-shade', 'enemy-light',
+    'terrain-line', 'terrain-grain', 'accent', 'accent-shade', 'glow', 'ink', 'metal', 'metal-shade', 'metal-light',
     'rise', 'rise-light', 'rise-top', 'ui-ink', 'ui-muted', 'ui-panel', 'player-body', 'player-shade', 'player-line',
     'player-cheek', 'scarf', 'scarf-shade', 'scarf-stripe', 'hazard', 'hazard-shade', 'hazard-light'];
   var cache = {};
@@ -223,11 +223,12 @@ window.Kabe = (function () {
   function spike(g, P, x, y, dir) {
     g.save(); g.translate(x + CELL / 2, y + CELL / 2); g.rotate({ L: 0, R: Math.PI, T: Math.PI / 2, B: -Math.PI / 2 }[dir] || 0); g.translate(-CELL / 2, -CELL / 2);
     solid(g, function () { rr(g, -1, 0.5, 4.5, 17, 2); }, P.terrainShade, mix(P.terrainShade, '#000000', 0.2), null, 0.4);
-    [1, 9].forEach(function (ty) {
-      solid(g, function () { g.beginPath(); g.moveTo(2.5, ty); g.lineTo(14, ty + 3.6); g.quadraticCurveTo(15.2, ty + 4, 14, ty + 4.4); g.lineTo(2.5, ty + 8); g.closePath(); }, P.hazard, P.hazardShade, P.ink, 0.9, 0.85);
-      g.fillStyle = P.hazardLight; g.beginPath(); g.moveTo(3.5, ty + 1.2); g.lineTo(12, ty + 3.6); g.lineTo(3.5, ty + 3.4); g.closePath(); g.fill();
-    });
+    [1, 9].forEach(function (ty) { spikeTooth(g, P, ty); });
     g.restore();
+  }
+  function spikeTooth(g, P, ty) {
+    solid(g, function () { g.beginPath(); g.moveTo(2.5, ty); g.lineTo(14, ty + 3.6); g.quadraticCurveTo(15.2, ty + 4, 14, ty + 4.4); g.lineTo(2.5, ty + 8); g.closePath(); }, P.hazard, P.hazardShade, P.ink, 0.9, 0.85);
+    g.fillStyle = P.hazardLight; g.beginPath(); g.moveTo(3.5, ty + 1.2); g.lineTo(12, ty + 3.6); g.lineTo(3.5, ty + 3.4); g.closePath(); g.fill();
   }
   function terrain(g, P, G, t, ox, oy) {
     ox = ox || 0; oy = oy || 0; var r, c, k;
@@ -238,6 +239,123 @@ window.Kabe = (function () {
       if (e.b && hash(c, r, 17) < 0.45) hang(g, P, x + 4 + hash(c, r, 18) * 10, y + CELL - 1, 7 + hash(c, r, 19) * 12, c * 31 + r);
     }
     for (r = 0; r < G.rows; r++) for (c = 0; c < G.cols; c++) if (G.raw(c, r) === '^') spike(g, P, ox + c * CELL, oy + r * CELL, G.spikeDir(c, r));
+  }
+
+  /* ---------- 動く障害物：本体は鉄（metal）、痛い所は hazard、縁取りは ink。
+     動きは時間 t だけで決まる（同じ t なら本編も到達チェックも同じ位置になる） ---------- */
+  function phase(t, period, offset) { var p = ((t + (offset || 0)) % period + period) % period; return p / period; }
+  function smooth(k) { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); }
+  // 行って戻る 0→1→0。端で hold の割合だけ止まる
+  function slide(t, period, offset, hold) {
+    period = period || 3; hold = hold == null ? 0.12 : hold;
+    var p = phase(t, period, offset) * 2, k = p < 1 ? p : 2 - p;
+    return smooth((k - hold) / (1 - 2 * hold));
+  }
+  // 段階をくり返す。steps = [['名前', 秒], ...]。s いまの段階、k その中の進み 0〜1、e 経過秒、d その段階の長さ
+  function cycleState(t, steps, offset) {
+    var tot = 0, i; for (i = 0; i < steps.length; i++) tot += steps[i][1];
+    var p = phase(t, tot, offset) * tot;
+    for (i = 0; i < steps.length; i++) { if (p < steps[i][1] || i === steps.length - 1) return { s: steps[i][0], k: Math.min(1, p / steps[i][1]), e: p, d: steps[i][1] }; p -= steps[i][1]; }
+  }
+  function metalSolid(g, P, path, off) { solid(g, path, P.metal, P.metalShade, P.ink, off == null ? 1.1 : off, 1.0); }
+  function bolt(g, P, x, y, r) { g.fillStyle = P.metalShade; ell(g, x + 0.3, y + 0.3, r, r); g.fill(); g.fillStyle = P.metalLight; ell(g, x, y, r * 0.7, r * 0.7); g.fill(); }
+  function blade(g, P, path) { solid(g, path, P.hazard, P.hazardShade, P.ink, 0.8, 0.85); }
+
+  // 出入りトゲ：引っ込む → 予告（先が少しのぞき、すき間が点滅）→ 出る。痛いのは hurt のときだけ
+  function popState(t, o) {
+    o = o || {}; var st = cycleState(t, [['in', o.in || 1.4], ['warn', o.warn || 0.6], ['out', o.out || 1.2]], o.offset), a = 0;
+    if (st.s === 'warn') a = 0.3 + Math.sin(st.e * 40) * 0.04;
+    if (st.s === 'out') a = Math.min(1, st.e / 0.08) * Math.min(1, (st.d - st.e) / 0.18);
+    st.amount = a; st.hurt = st.s === 'out' && a > 0.5; return st;
+  }
+  // (x, y) はトゲのマスの左上。dir は spike と同じ（生える壁の側）
+  function popSpike(g, P, x, y, dir, t, o) {
+    var st = popState(t, o);
+    g.save(); g.translate(x + CELL / 2, y + CELL / 2); g.rotate({ L: 0, R: Math.PI, T: Math.PI / 2, B: -Math.PI / 2 }[dir] || 0); g.translate(-CELL / 2, -CELL / 2);
+    g.save(); g.beginPath(); g.rect(3.2, -4, 20, 26); g.clip(); g.translate(-(1 - st.amount) * 12, 0);
+    spikeTooth(g, P, 1); spikeTooth(g, P, 9);
+    g.restore();
+    solid(g, function () { rr(g, -1, 0.5, 4.7, 17, 2); }, P.metal, P.metalShade, P.ink, 0.4, 0.9);
+    var lit = st.s === 'warn' && st.e % 0.24 < 0.12;
+    [5, 13].forEach(function (sy) { g.fillStyle = lit ? P.hazardLight : P.ink; rr(g, 2.3, sy - 1.2, 1.7, 2.4, 0.6); g.fill(); });
+    g.restore(); return st;
+  }
+
+  // 鉄の箱：レールに沿って往復する。axis 'x' なら左右の面に、'y' なら上下の面にトゲ。(x, y) は左上
+  function teethRow(g, P, len) {
+    var k = Math.max(2, Math.round((len - 4) / 6)), step = (len - 4) / k;
+    for (var i = 0; i < k; i++) (function (a) { blade(g, P, function () { g.beginPath(); g.moveTo(a, 1); g.lineTo(a + step / 2, -4.2); g.lineTo(a + step, 1); g.closePath(); }); })(2 + i * step);
+  }
+  function ironBox(g, P, x, y, w, h, axis) {
+    var sides = axis === 'y' ? [[0, 0, 0, w], [w, h, Math.PI, w]] : [[0, h, -Math.PI / 2, h], [w, 0, Math.PI / 2, h]];
+    sides.forEach(function (sd) { g.save(); g.translate(x + sd[0], y + sd[1]); g.rotate(sd[2]); teethRow(g, P, sd[3]); g.restore(); });
+    metalSolid(g, P, function () { rr(g, x, y, w, h, 3); }, 1.6);
+    shine(g, x + 4.5, y + 3.5, 2.6, 1.3, 0.35);
+    [[3.4, 3.4], [w - 3.4, 3.4], [3.4, h - 3.4], [w - 3.4, h - 3.4]].forEach(function (b) { bolt(g, P, x + b[0], y + b[1], 1.2); });
+  }
+  // 箱の通り道（両端に留め金）
+  function track(g, P, x0, y0, x1, y1) {
+    g.strokeStyle = P.metalShade; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    [[x0, y0], [x1, y1]].forEach(function (p) { solid(g, function () { ell(g, p[0], p[1], 2.4, 2.4); }, P.metalShade, mix(P.metalShade, '#000000', 0.3), null, 0.5); });
+  }
+
+  // 回る棒：軸のまわりを刃の棒が回る。len は軸から先までの長さ。a は角度（spinAngle で出す）
+  function spinAngle(t, speed, offset) { return (t + (offset || 0)) * (speed == null ? 1.6 : speed); }
+  function spinner(g, P, x, y, len, a) {
+    var c = Math.cos(a), s = Math.sin(a), T = function (u, v) { return [x + u * c - v * s, y + u * s + v * c]; };
+    var pts = [[-len, 0], [-len + 6, -2.8], [len - 6, -2.8], [len, 0], [len - 6, 2.8], [-len + 6, 2.8]].map(function (p) { return T(p[0], p[1]); });
+    blade(g, P, function () { g.beginPath(); pts.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.closePath(); });
+    var a1 = T(-len + 6, -1.2), b1 = T(len - 6, -1.2); g.strokeStyle = P.hazardLight; g.lineWidth = 0.7; g.beginPath(); g.moveTo(a1[0], a1[1]); g.lineTo(b1[0], b1[1]); g.stroke();
+    metalSolid(g, P, function () { ell(g, x, y, 5, 5); }, 1);
+    bolt(g, P, x - 0.4, y - 0.4, 1.7);
+  }
+
+  // シャッター：開く → 予告（ランプが点滅）→ 両側から閉じる → 開く。close 0〜1（1 で真ん中まで閉じる）
+  function shutterState(t, o) {
+    o = o || {}; var st = cycleState(t, [['open', o.open || 1.8], ['warn', o.warn || 0.8], ['closed', o.closed || 1.6]], o.offset), c = 0;
+    if (st.s === 'closed') c = smooth(st.e / 0.3) * smooth((st.d - st.e) / 0.3);
+    st.close = c; return st;
+  }
+  // x0, x1 は左右の壁の面、y は板の真ん中の高さ
+  function shutter(g, P, x0, x1, y, t, o) {
+    var st = shutterState(t, o), h = 9, len = ((x1 - x0) / 2 - 3) * st.close, lit = st.s === 'warn' && st.e % 0.3 < 0.15;
+    [[x0, 1], [x1, -1]].forEach(function (sd) {
+      var bx = sd[0], d = sd[1], px = d > 0 ? bx + 3 : bx - 3 - len;
+      if (len > 0.5) {
+        metalSolid(g, P, function () { rr(g, px, y - h / 2, len, h, d > 0 ? [0, 2.5, 2.5, 0] : [2.5, 0, 0, 2.5]); }, 1.2);
+        g.strokeStyle = P.metalLight; g.lineWidth = 0.7; g.beginPath(); g.moveTo(px + 1, y - 1.5); g.lineTo(px + len - 1, y - 1.5); g.stroke();
+      }
+      metalSolid(g, P, function () { rr(g, d > 0 ? bx - 1 : bx - 4, y - 8, 5, 16, d > 0 ? [0, 2, 2, 0] : [2, 0, 0, 2]); }, 0.6);
+      var lx = bx + d * 1.5, ly = y - 11;
+      if (lit) { var gl = g.createRadialGradient(lx, ly, 0, lx, ly, 7); gl.addColorStop(0, alpha(P.hazardLight, 0.6)); gl.addColorStop(1, alpha(P.hazardLight, 0)); g.fillStyle = gl; g.fillRect(lx - 7, ly - 7, 14, 14); }
+      solid(g, function () { ell(g, lx, ly, 1.8, 1.8); }, lit ? P.hazardLight : P.metalShade, lit ? P.hazard : mix(P.metalShade, '#000000', 0.3), P.ink, 0.4, 0.8);
+    });
+    return st;
+  }
+
+  // 扇風機：壁の面 (x, y) から dir（'R' 右へ・'L' 左へ・'T' 上へ・'B' 下へ）に風を出す。痛くない、押すだけ。reach 風の届く長さ
+  var FAN_BAND = 12;   // 風の幅の半分
+  function fan(g, P, x, y, dir, reach, t, on) {
+    on = on !== false;
+    var rot = { R: 0, L: Math.PI, B: Math.PI / 2, T: -Math.PI / 2 }[dir] || 0, c = Math.cos(rot), s = Math.sin(rot);
+    if (on) {
+      g.save(); g.translate(x, y); g.rotate(rot); g.lineCap = 'round'; g.lineWidth = 1.4;
+      for (var i = 0; i < 7; i++) {
+        var q = (t * (0.9 + hash(i, 3, 1) * 0.5) + hash(i, 1, 2)) % 1, sx = 9 + q * (reach - 24), sy = (hash(i, 2, 3) * 2 - 1) * (FAN_BAND - 2), len = 8 + hash(i, 5, 4) * 8;
+        g.strokeStyle = 'rgba(255,255,255,' + (Math.sin(q * Math.PI) * 0.6).toFixed(3) + ')'; g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + len, sy); g.stroke();
+      }
+      g.restore();
+    }
+    // 箱は回さずに描く（影はいつも右下）
+    var hx = x + c * 3 - Math.abs(s) * 11 - Math.abs(c) * 4, hy = y + s * 3 - Math.abs(c) * 11 - Math.abs(s) * 4, hw = Math.abs(c) * 8 + Math.abs(s) * 22, hh = Math.abs(s) * 8 + Math.abs(c) * 22;
+    metalSolid(g, P, function () { rr(g, hx, hy, hw, hh, 2.5); }, 1.2);
+    var fx = x + c * 7.6, fy = y + s * 7.6;   // 吹き出し口の面
+    g.strokeStyle = P.ink; g.lineWidth = 0.9; g.lineCap = 'round';
+    [-5.5, 5.5].forEach(function (k) { g.beginPath(); g.moveTo(fx - s * k - c * 1.6, fy + c * k - s * 1.6); g.lineTo(fx - s * k, fy + c * k); g.stroke(); });
+    var sp = Math.sin(t * (on ? 26 : 0)) * 6.5;
+    g.strokeStyle = P.metalLight; g.lineWidth = 1.5;
+    g.beginPath(); g.moveTo(fx + c * 1.2 - s * sp, fy + s * 1.2 + c * sp); g.lineTo(fx + c * 1.2 + s * sp, fy + s * 1.2 - c * sp); g.stroke();
+    bolt(g, P, fx + c * 1.2, fy + s * 1.2, 1.5);
   }
 
   /* ---------- 迫ってくるもの（地下は溶岩。ほかのゾーンは仮） ---------- */
@@ -451,6 +569,8 @@ window.Kabe = (function () {
     pal: pal, mix: mix, alpha: alpha, hash: hash,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
+    slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
+    spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, FAN_BAND: FAN_BAND,
     rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
