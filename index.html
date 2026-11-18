@@ -147,7 +147,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.18b';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.18c';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -946,9 +946,9 @@ function poseId() {
 }
 function updatePose(dt) {
   const id = poseId(), Q = Kabe.POSES[id];
-  if (!live) live = Kabe.POSES.live = Object.assign({}, Q, { scarf: Q.scarf.map(p => p.slice()) });
-  const sc = live.scarf, hem = live.hem;
-  Object.assign(live, Q, { scarf: sc, hem, id });
+  // 毎回作り直す（前のポーズの ring などが残らないように）。マフラーとすそだけ引き継ぐ
+  const sc = live ? live.scarf : Q.scarf.map(p => p.slice()), hem = live ? live.hem : (Q.hem || 0);
+  live = Kabe.POSES.live = Object.assign({}, Q, { scarf: sc, hem, id });
   const k = Math.min(1, dt * 10);
   sc.forEach((p, i) => { const kk = k * (1 - i * 0.14); p[0] += (Q.scarf[i][0] - p[0]) * kk; p[1] += (Q.scarf[i][1] - p[1]) * kk; });
   live.hem += ((Q.hem || 0) - live.hem) * k * 0.7;

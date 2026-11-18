@@ -100,9 +100,10 @@ window.Kabe = (function () {
     scroll = scroll || 0;
     var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, P.bgTop); gr.addColorStop(1, P.bgBottom);
     g.fillStyle = gr; g.fillRect(x, y, w, h);
-    var m = MOTIF[P.id] || MOTIF.underground, bh = 46;
-    for (var i = -1; i * bh < h + bh; i++) {
-      var yy = y + i * bh - (scroll * 0.5) % bh; g.fillStyle = (i & 1) ? P.strataA : P.strataB;
+    var m = MOTIF[P.id] || MOTIF.underground, bh = 46, off = scroll * 0.5;
+    // 帯の番号は画面ではなく世界で数える（スクロールしても色と形が入れ替わらない）
+    for (var i = Math.floor(off / bh) - 1; i * bh - off < h + bh; i++) {
+      var yy = y + i * bh - off; g.fillStyle = (i & 1) ? P.strataA : P.strataB;
       g.beginPath(); g.moveTo(x, yy + bh + 6);
       for (var xx = 0; xx <= w; xx += 24) g.lineTo(x + xx, yy + Math.sin(xx * 0.04 + i * 1.7) * (m.far === 'cloud' ? 6 : 4));
       g.lineTo(x + w, yy + bh + 6); g.closePath(); g.fill();
