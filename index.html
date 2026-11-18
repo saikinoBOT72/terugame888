@@ -128,21 +128,22 @@ const HB = 10;                       // 壁・床との当たり判定の半径
 const HIT = PR - 3;                  // トゲ・敵との当たり判定（見た目より少し小さく）
 const PX_PER_M = 60;                 // 1m = 60px（100m = 6000px）
 
-const GRAVITY = 640;                 // 小さいほどふわっと（落下速度の上限なし＝素直な放物線）
-const KICK_VX = 270;                 // 壁キックの横速度
-const KICK_VY = 440;                 // 壁キックの上向き速度
+const GAME_SPEED = 1.0;              // 全体の速さ（0.8 にすると何もかも2割ゆっくり）
+const GRAVITY = 420;                 // 小さいほどふわっと（落下速度の上限なし＝素直な放物線）
+const KICK_VX = 180;                 // 壁キックの横速度（小さいほど弧が縦長に）
+const KICK_VY = 460;                 // 壁キックの上向き速度（大きいほど高く上がる）
 const AIR_JUMPS = 1;                 // 2段ジャンプの回数（基本1回）
-const AIR_JUMP_VY = 380;             // 2段ジャンプの上向き速度
+const AIR_JUMP_VY = 340;             // 2段ジャンプの上向き速度
 const AIR_JUMP_MODE = 'keep';        // 'keep' = 向きそのまま / 'flip' = 向きを反転
-const SLIDE_SPEED = 74;              // 壁をずり落ちる速さ
+const SLIDE_SPEED = 50;              // 壁をずり落ちる速さ
 const INPUT_BUFFER = 0.14;           // 着地直前の入力を覚えておく秒数
 
 const MAX_HP = 3;
 const INVINCIBLE = 1.1;              // 被弾後の無敵時間
 
 const LAVA_DELAY = 2.0;              // スタートから溶岩が動き出すまで
-const LAVA_SPEED_BASE = 28;          // px/s
-const LAVA_SPEED_PER_M = 0.3;        // 高さ1mごとに足す速さ
+const LAVA_SPEED_BASE = 18;          // px/s
+const LAVA_SPEED_PER_M = 0.22;       // 高さ1mごとに足す速さ
 const LAVA_CATCHUP = 0.9;            // 画面外に離れすぎたら追いつく強さ
 const LAVA_LEASH = 160;              // 画面下端からこれ以上離れると追いつき始める（px）
 
@@ -202,11 +203,13 @@ const CHUNKS = {
     const w = rand(150, 250), cx = pickCenter(w, d);
     y = goTo(g, y, cx - w / 2, cx + w / 2);
     const lo = MIN_WALL, hi = W - MIN_WALL - w;
-    let dx = rand(70, 160) * (rng() < 0.5 ? -1 : 1);
+    let dx = rand(90, 180) * (rng() < 0.5 ? -1 : 1);
     if (g.L + dx < lo || g.L + dx > hi) dx = -dx;
     dx = clamp(g.L + dx, lo, hi) - g.L;
-    const top = y - Math.max(rand(300, 500), Math.abs(dx) / 0.45);
-    g.pt(-1, g.L + dx, top); g.pt(1, g.R + dx, top);
+    const ys = y - Math.abs(dx);                  // 45度で斜めに
+    g.pt(-1, g.L + dx, ys); g.pt(1, g.R + dx, ys);
+    const top = ys - rand(120, 260);
+    up(g, top);
     hazards(g, y, top, d, m, { bats: w >= 170, narrow: w < 170 });
     return top;
   },
@@ -216,8 +219,9 @@ const CHUNKS = {
     let w1 = pickWidth(d);
     if (Math.abs(w1 - w0) < 80) w1 = w0 > 200 ? rand(115, 150) : rand(270, MAX_INNER);
     const cx1 = pickCenter(w1, d), L1 = cx1 - w1 / 2, R1 = cx1 + w1 / 2;
-    const top = y - Math.max(rand(280, 440), Math.abs(L1 - g.L) / 0.6, Math.abs(R1 - g.R) / 0.6);
-    g.pt(-1, L1, top); g.pt(1, R1, top);
+    g.pt(-1, L1, y - Math.abs(L1 - g.L)); g.pt(1, R1, y - Math.abs(R1 - g.R));   // 左右それぞれ45度
+    const top = y - Math.max(Math.abs(L1 - g.L), Math.abs(R1 - g.R)) - rand(120, 260);
+    up(g, top);
     hazards(g, y, top, d, m, { bats: Math.min(w0, w1) >= 170, narrow: Math.min(w0, w1) < 170 });
     return top;
   },
@@ -232,7 +236,7 @@ const CHUNKS = {
       let shift = rand(40, 85) * dir;
       shift = clamp(g.L + shift, MIN_WALL, W - MIN_WALL - w) - g.L;
       dir = -dir;
-      if (rng() < 0.6) { y -= rand(30, 60); g.pt(-1, g.L + shift, y); g.pt(1, g.R + shift, y); }
+      if (rng() < 0.6) { y -= Math.abs(shift); g.pt(-1, g.L + shift, y); g.pt(1, g.R + shift, y); }
       else { g.pt(-1, g.L + shift, y); g.pt(1, g.R + shift, y); }
     }
     y -= 100; up(g, y);
@@ -263,7 +267,7 @@ const CHUNKS = {
     while (sy > top + 80) {
       const pw = rand(60, 100), x0 = rand(g.L + 30, g.R - 30 - pw);
       g.plank(x0, x0 + pw, sy);
-      if (m > BAT_FROM_M && rng() < lerp(0.15, 0.4, d)) g.addBat(sy - rand(50, 80), lerp(45, 80, d));
+      if (m > BAT_FROM_M && rng() < lerp(0.15, 0.4, d)) g.addBat(sy - rand(50, 80), lerp(30, 55, d));
       sy -= rand(130, 190);
     }
     return top;
@@ -276,7 +280,7 @@ const CHUNKS = {
     up(g, top);
     const pw = rand(44, Math.min(90, w - 180));
     const pcx = (g.L + g.R) / 2 + rand(-1, 1) * Math.max(0, (w - 180 - pw) / 2) * 0.6;
-    const pt = top + 70, pb = y - 70, k = pw * 0.45;
+    const pt = top + 70, pb = y - 70, k = pw / 2;   // 上下の先は45度
     g.poly([[pcx, pt], [pcx + pw / 2, pt + k], [pcx + pw / 2, pb - k], [pcx, pb], [pcx - pw / 2, pb - k], [pcx - pw / 2, pt + k]]);
     return top;
   },
@@ -291,7 +295,7 @@ function hazards(g, yBot, yTop, d, m, o) {
     const gapBottom = sy;
     sy -= gap;
     if (sy - len < yTop + 40) break;
-    if (o.bats && m > BAT_FROM_M && rng() < lerp(0.25, 0.6, d)) g.addBat((gapBottom + sy) / 2, lerp(45, 85, d) * rand(0.85, 1.15));
+    if (o.bats && m > BAT_FROM_M && rng() < lerp(0.25, 0.6, d)) g.addBat((gapBottom + sy) / 2, lerp(30, 60, d) * rand(0.85, 1.15));
     const side = rng() < 0.5 ? -1 : 1;
     if (!g.addSpike(side, sy - len, sy)) g.addSpike(-side, sy - len, sy);
     if (rng() < lerp(0, 0.5, d)) {   // 上の方では反対の壁にも少しずらしてもう1本
@@ -311,10 +315,14 @@ function pickCenter(w, d) {
 }
 // 今の壁から新しい壁の位置へ：段差か斜めでつなぐ
 function goTo(g, y, L, R) {
-  if (Math.abs(L - g.L) < 2 && Math.abs(R - g.R) < 2) return y;
+  const dL = Math.abs(L - g.L), dR = Math.abs(R - g.R);
+  if (dL < 2 && dR < 2) return y;
   if (rng() < 0.5) { g.pt(-1, L, y); g.pt(1, R, y); return y; }
-  const h = clamp(Math.max(Math.abs(L - g.L), Math.abs(R - g.R)) * rand(0.5, 1.0), 40, 140);
-  g.pt(-1, L, y - h); g.pt(1, R, y - h);
+  // 左右それぞれ45度の斜めでつなぐ（動く量が違えば、少ない方は先にまっすぐになる）
+  if (dL >= 2) g.pt(-1, L, y - dL); else g.pt(-1, L, y);
+  if (dR >= 2) g.pt(1, R, y - dR); else g.pt(1, R, y);
+  const h = Math.max(dL, dR);
+  up(g, y - h);
   return y - h;
 }
 const up = (g, y) => { g.pt(-1, g.L, y); g.pt(1, g.R, y); };
@@ -546,9 +554,11 @@ function collide(p, res) {
     p.x = cx + nx * r; p.y = cy + ny * r;
     const vn = p.vx * nx + p.vy * ny;
     if (vn < 0) { p.vx -= vn * nx; p.vy -= vn * ny; }
-    if (ny < -0.6) res.floor = true;
-    else if (ny > 0.6) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
-    else res.wall = { x: nx, y: ny };
+    // 床＝真上向き。上を向いた45度の斜面は「壁」（張り付いて斜めに滑る）。
+    // 下を向いた45度の斜面（張り出し）は「天井」（張り付けない。当たると斜面に沿って流される）
+    if (ny < -0.8) res.floor = true;
+    else if (ny > 0.3) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
+    else { res.wall = { x: nx, y: ny }; res.walls.push(res.wall); }
   }
   return res;
 }
@@ -566,15 +576,24 @@ function movePlayer(dt) {
     p.vy += GRAVITY * dt;
   }
   p.x += p.vx * dt; p.y += p.vy * dt;
-  const c = { floor: false, ceil: false, ceilV: 0, wall: null };
+  const c = { floor: false, ceil: false, ceilV: 0, wall: null, walls: [] };
   collide(p, c); collide(p, c);
 
   if (p.side !== 0) {
-    const sameWall = c.wall && (c.wall.x > 0 ? -1 : 1) === p.side;
-    if (sameWall) p.wn = c.wall;
+    const same = c.walls.filter(n => (n.x > 0 ? -1 : 1) === p.side);
+    if (same.length) {
+      // 角では、下へ滑っていける面を選ぶ（どれも塞がっていたらそこで止まる）
+      const all = c.floor ? c.walls.concat([{ x: 0, y: -1 }]) : c.walls;
+      let pick = null, bestTy = -1;
+      for (const n of same) {
+        let tx = -n.y, ty = n.x; if (ty < 0) { tx = -tx; ty = -ty; }
+        if (!all.some(o => o !== n && tx * o.x + ty * o.y < -0.2) && ty > bestTy) { pick = n; bestTy = ty; }
+      }
+      if (pick) p.wn = pick; else { p.wn = same[0]; p.slideV = 0; }
+    }
     else if (c.floor) { p.side = 0; p.ground = true; }
     else { p.side = 0; p.vx = -p.wn.x * 90; p.vy = Math.max(0, p.slideV); }   // 壁がなくなった→壁の方へ落ちる
-    if (p.side !== 0 && c.floor) p.slideV = 0;
+    if (p.side !== 0 && c.floor && Math.abs(p.wn.y) < 0.1) p.slideV = 0;
   } else if (p.ground) {
     if (!c.floor) { p.ground = false; p.vy = 0; }
     else { p.vx = 0; p.vy = 0; }
@@ -668,7 +687,7 @@ function updateBats(dt) {
     const lo = wallX(-1, b.y) + 14, hi = wallX(1, b.y) - 14;
     if (b.x < lo) { b.x = lo; b.vx = Math.abs(b.vx); }
     if (b.x > hi) { b.x = hi; b.vx = -Math.abs(b.vx); }
-    b.y = b.baseY + Math.sin(b.t * 2.6) * 16;
+    b.y = b.baseY + Math.sin(b.t * 2.0) * 16;
   }
 }
 
@@ -678,7 +697,7 @@ function hurt(dirX, cause) {
   G.hp--; p.inv = INVINCIBLE; cam.shake = 9; sfx.hurt();
   burst(p.x, p.y, 14, '#ff6f7d', 0, 0.5, 160);
   // 当たった物から弾き飛ばす（2段ジャンプは残る）
-  p.side = 0; p.ground = false; p.vx = dirX * KICK_VX * 0.75; p.vy = -260;
+  p.side = 0; p.ground = false; p.vx = dirX * KICK_VX * 0.8; p.vy = -220;
   if (G.hp <= 0) { G.cause = cause; die(); }
 }
 function die() {
@@ -779,8 +798,8 @@ function drawTerrain(th) {
   // 面の縁：床は明るく、天井は暗く、壁は細い光と影
   for (const e of G.edges) {
     if (e.kind === 'oneway' || e.maxY < y0 || e.minY > y1) continue;
-    if (e.ny < -0.6) { ctx.strokeStyle = th.accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 2; }
-    else if (e.ny > 0.6) { ctx.strokeStyle = '#000'; ctx.globalAlpha = 0.5; ctx.lineWidth = 3; }
+    if (e.ny < -0.8) { ctx.strokeStyle = th.accent; ctx.globalAlpha = 0.5; ctx.lineWidth = 2; }
+    else if (e.ny > 0.3) { ctx.strokeStyle = '#000'; ctx.globalAlpha = 0.5; ctx.lineWidth = 3; }
     else { ctx.strokeStyle = th.accent; ctx.globalAlpha = 0.22; ctx.lineWidth = 1; }
     ctx.beginPath(); ctx.moveTo(e.ax, e.ay); ctx.lineTo(e.bx, e.by); ctx.stroke();
   }
@@ -916,7 +935,7 @@ function drawDebug() {
   ctx.strokeStyle = '#0f0'; ctx.beginPath(); ctx.arc(P.x, P.y, HIT, 0, Math.PI * 2); ctx.stroke();
   for (const e of G.edges) {
     if (!visible(e.minY) && !visible(e.maxY)) continue;
-    ctx.strokeStyle = e.ny < -0.6 ? '#0f0' : e.ny > 0.6 ? '#f00' : e.kind === 'oneway' ? '#ff0' : '#0af';
+    ctx.strokeStyle = e.ny < -0.8 ? '#0f0' : e.ny > 0.3 ? '#f00' : e.kind === 'oneway' ? '#ff0' : '#0af';
     ctx.beginPath(); ctx.moveTo(e.ax, e.ay); ctx.lineTo(e.bx, e.by); ctx.stroke();
     const mx = (e.ax + e.bx) / 2, my = (e.ay + e.by) / 2;
     ctx.beginPath(); ctx.moveTo(mx, my); ctx.lineTo(mx + e.nx * 8, my + e.ny * 8); ctx.stroke();
@@ -995,9 +1014,9 @@ function attract() { newGame(12345); G.lavaDelay = 1e9; state = 'title'; $('paus
 /* ---------- loop ---------- */
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min(1 / 30, (now - last) / 1000); last = now;
+  const dt = Math.min(1 / 30, (now - last) / 1000) * GAME_SPEED; last = now;
   if (state === 'title') {
-    G.time += dt; cam.y -= 30 * dt;
+    G.time += dt; cam.y -= 22 * dt;
     if (cam.y < -PROTO_LIMIT_M * PX_PER_M) cam.y = 60 - H;
     generateUpTo(cam.y - H);
     updateBats(dt);
