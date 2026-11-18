@@ -125,7 +125,7 @@
 const MOVE = {
   kickVx: 180, kickVy: 300, gravity: 420, maxFall: 0,
   airJumps: 1, airVy: 300, airMode: 'keep',
-  slide: 0, slideAccel: 7, carry: 0.2,
+  slide: 0, slideAccel: 7, carry: 0,   // carry：上昇中に壁へ着いたとき上へ滑る勢い（0＝なし）
   // 斜めの壁から蹴るときの倍率（横, 上）。下向きの斜面は横向き多め、上向きの斜面は上向き多め
   kickDownSlope: { vx: 1.5, vy: 0.85 },   // 上:横 が 1 より小さい（45度より浅い）と、張り付いた斜面にぶつからない
   kickUpSlope: { vx: 0.7, vy: 1.25 },
@@ -465,6 +465,8 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
+##................##
+##................##
 `);
 
 /* ---------- 高さ100mごとのプール ---------- */
@@ -592,7 +594,7 @@ function physStep(w, b, dt) {
     let tx = -b.wn.y, ty = b.wn.x; if (ty < 0) { tx = -tx; ty = -ty; }
     b.vx = tx * b.slideV - b.wn.x * 40; b.vy = ty * b.slideV - b.wn.y * 40;
   } else if (b.ground) { b.vx = 0; b.vy = 40; }
-  else { b.vy += MOVE.gravity * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall); }
+  else { b.vy += MOVE.gravity * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall); if (Math.abs(b.vx) > 1) b.face = Math.sign(b.vx); }   // 空中では進んでいる方を向く
   b.x += b.vx * dt; b.y += b.vy * dt;
   const c = { floor: false, ceil: false, ceilV: 0, walls: [] };
   collide(w, b, c); collide(w, b, c);
@@ -625,16 +627,8 @@ function physStep(w, b, dt) {
   }
   return ev;
 }
-// 床に立っているときに蹴る向き：広く空いている方
-function floorDir(w, b) {
-  const r = Math.floor(-b.y / CELL), c = Math.floor(b.x / CELL);
-  let l = 0, rr = 0;
-  while (l < COLS && !isWall(raw(w, c - l - 1, r))) l++;
-  while (rr < COLS && !isWall(raw(w, c + rr + 1, r))) rr++;
-  return rr > l ? 1 : l > rr ? -1 : (b.x < W / 2 ? 1 : -1);
-}
 function kick(w, b) {
-  const dir = b.side !== 0 ? -b.side : floorDir(w, b);
+  const dir = b.side !== 0 ? -b.side : (b.face || 1);   // 床からは、着地したとき向いていた方へ跳ぶ
   // 斜めの壁からは倍率をかける（下向きの斜面＝横多め、上向きの斜面＝上多め）。斜面に引っかからないように
   const k = b.side === 0 ? null : b.wn.y > 0.3 ? MOVE.kickDownSlope : b.wn.y < -0.3 ? MOVE.kickUpSlope : null;
   b.vx = dir * MOVE.kickVx * (k ? k.vx : 1); b.vy = -MOVE.kickVy * (k ? k.vy : 1);
@@ -667,7 +661,7 @@ function checkPiece(id) {
   appendRows(w, rows);
   const goalY = -(CHECK.padBelow + pc.rows.length + 1) * CELL, fallY = -1 * CELL;
   const slope = b => !b.side ? '' : b.wn.y > 0.3 ? 'd' : b.wn.y < -0.3 ? 'u' : 'v';   // 張り付いている面の向きも区別する
-  const key = b => (b.side ? 'w' + b.side + slope(b) : 'f') + ',' + Math.round(b.x / 3) + ',' + Math.round(b.y / 3);
+  const key = b => (b.side ? 'w' + b.side + slope(b) : 'f' + (b.face || 1)) + ',' + Math.round(b.x / 3) + ',' + Math.round(b.y / 3);
   // 入口：下の足し分の2〜5行目の高さで、左右の壁に張り付いた位置
   const entries = [];
   const cl = bottom.indexOf('.'), cr = bottom.lastIndexOf('.');
