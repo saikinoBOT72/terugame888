@@ -147,7 +147,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19a';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19b';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -170,7 +170,7 @@ const PX_PER_M = 60;
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
 
 const MAX_HP = 3, INVINCIBLE = 1.1;
-const LAVA = { delay: 3, base: 14, perM: 0.12, leash: 160, catchup: 0.9 };
+const LAVA = { delay: 3, speed: 20 };   // 一定の速さ（px/秒）。追いつき・加速なし
 // 障害物：箱の大きさ、回る棒の長さ、出入りトゲ q のずれ（秒）、トゲの面の厚み、扇風機の押す強さ
 const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1.6, teeth: 5 };
 const FAN = { acc: 1000, max: 230 };
@@ -1038,10 +1038,7 @@ function update(dt) {
 
   if (G.lavaDelay > 0) G.lavaDelay -= dt;
   else {
-    let s = LAVA.base + G.best * LAVA.perM;
-    const gap = G.lavaY - (cam.y + H + LAVA.leash);
-    if (gap > 0) s += gap * LAVA.catchup;
-    G.lavaY -= s * dt;
+    G.lavaY -= LAVA.speed * dt;
   }
   if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; die(); }
 }
