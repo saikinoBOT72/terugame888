@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29b';
+const VERSION = '2026.11.29c';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -699,7 +699,7 @@ function ensureAhead() {
 const TEST_FROM = (() => { const v = Math.floor(+new URLSearchParams(location.search).get('from') || 0); return v > 0 && v <= 5000 ? v : 0; })();
 const TEST_CRYSTALS = 40;   // テストで始めるときの結晶（100mにつき）
 function newGame() {
-  world = newWorld(); lookKey = ''; OCC.key = '';
+  world = newWorld(); lookKey = ''; OCC.key = ''; grassPals.clear();
   placePiece('z1_start');
   P = newBody(2 * CELL + HB, -HB, -1);
   P.squash = 0; live = null; resetAnim();
@@ -1041,7 +1041,7 @@ function updateEffects(dt) {
   for (const a of trail) a.life -= dt;
   trail = trail.filter(a => a.life > 0);
   if (G) { G.flash = Math.max(0, (G.flash || 0) - dt * 5); G.zoneT = Math.max(0, (G.zoneT || 0) - dt); G.dark = darkAt(Math.max(0, -(cam.y + H * 0.55) / PX_PER_M)); }
-  spawnEmbers(dt); spawnWarnSparks(dt);
+  spawnEmbers(dt); spawnWarnSparks(dt); spawnSplash(dt); syncWeather(dt);
   for (const f of flyers) { f.t += dt; if (f.t >= 0.5 && !f.done) { f.done = true; if (G) G.coinBump = 1; } }
   flyers = flyers.filter(f => f.t < 0.5);
   if (G) G.coinBump = Math.max(0, G.coinBump - dt * 4);
@@ -1060,6 +1060,7 @@ function dust(x, y, dir, n) {
 const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['underground', 3], ['surface', 0], ['surface', 1], ['surface', 2], ['surface', 3]];
 const lookPal = i => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, i))]; return Kabe.stagePal(L[0], L[1]); };
 const PAL = Object.assign({}, lookPal(0));   // いまの色（カメラの高さで少しずつ変わる。syncLook）
+Kabe.LIVE.grass = true;   // 草と苔の葉は地形の絵に入れず、風で揺らして毎フレーム描く（grassDraw）
 // 高さ m の見た目。境目の前後12mで色を混ぜる
 const LOOK_BLEND = 12;
 function palAt(m) {
@@ -1076,7 +1077,7 @@ function syncLook() {
   if (key === lookKey) return;
   lookKey = key;
   Object.assign(PAL, palAt(b * 100 - LOOK_BLEND + q * LOOK_BLEND * 2));
-  if (glfx && glfx.scene && GLW.k) { const S = glfx.scene; for (const L of GLW.strata.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } GLW.strata.clear(); if (GLW.far) { S.delTex(GLW.far); GLW.far = null; } }
+  if (glfx && glfx.scene && GLW.k) { const S = glfx.scene; for (const m of [GLW.strata, GLW.mid]) { for (const L of m.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } m.clear(); } if (GLW.far) { S.delTex(GLW.far); GLW.far = null; } }
 }
 // 暗い区間（m）：地下の 100m より上に、100mごとに2か所。前後4mで暗くなる。灯りの中（自分・結晶・キノコ・ランプ・ガチャ所）だけが見える
 const DARK = [[128, 141], [176, 186], [224, 238], [271, 282], [322, 336], [368, 380]], DARK_FADE = 4;
@@ -1300,6 +1301,7 @@ function scarfStep(dt) {
   // 風：溶岩の熱は上へ、扇風機は風の向きへ
   let wx = 0, wy = 0;
   const gap = G.lavaY - P.y; if (state === 'play' && G.lavaDelay <= 0 && gap < 260) wy -= 520 * (1 - gap / 260);
+  wx += windAt(P.x, P.y, t) * 650;   // 地上の風
   for (const f of world.fans) if (Math.abs(P.y - f.y) < Kabe.FAN_BAND + 14 && (P.x - f.x) * f.dir > -12 && (P.x - f.x) * f.dir < f.reach + 20) wx += f.dir * 1100;
   const sp = Math.hypot(P.vx, P.vy), flut = (X.air ? Math.min(1, sp / 450) : 0.1) * (spent ? 0.3 : 1), grav = spent ? 620 : 230;
   let rem = Math.min(dt, 0.05);
@@ -1402,10 +1404,100 @@ function surfaceDraw(sp, seg, vis) {
     }
   }
 }
+/* ---------- 天気と風（地上の段ごと：Kabe.STAGES の weather）----------
+   風（wind）：草がなびき、マフラーが流され、砂（sand）が横に飛ぶ。雨（rain）：雨の筋・床のしぶき・画面の水滴（シェーダー）。
+   花びら（petals）・光の粒（motes）はゆっくり漂う。どれも画面に止まった粒を、高さとともに流して描く（数は決まっている） */
+const WX = { wind: 0, rain: 0, petals: 0, sand: 0, motes: 0 };
+function syncWeather(dt) {
+  const w = PAL.weather || {}, k = Math.min(1, dt * 1.5);
+  for (const key in WX) WX[key] += ((w[key] || 0) - WX[key]) * k;
+}
+// その場所・その時の風（右向きが正）。ゆっくり強まり弱まり、ときどき突風
+const windAt = (x, y, t) => WX.wind * (0.6 + 0.4 * Math.sin(t * 0.7 + y * 0.003)) * (0.8 + 0.2 * Math.sin(t * 2.6 + x * 0.025 - y * 0.01)) + WX.wind * Math.max(0, Math.sin(t * 0.31) - 0.7) * 2.2;
+// 見えている上の面ごとに fn(葉の一覧)。色はその帯の色（地形の絵と同じ）
+const grassPals = new Map();
+function grassDraw(seg) {
+  const t = G.time, r0 = Math.max(0, Math.floor(-(cam.y + H) / CELL) - 1), r1 = Math.floor(-cam.y / CELL) + 1;
+  for (let r = r0; r <= r1; r++) {
+    const b = Math.floor(r / BAND), i = b * BAND + BAND - 1 - r;
+    let pal = grassPals.get(b); if (!pal) { pal = bandPal(b * BAND); grassPals.set(b, pal); if (grassPals.size > 40) grassPals.delete(grassPals.keys().next().value); }
+    for (let c = 0; c < COLS; c++) {
+      if (tile(world, c, r) !== '#' || !solidSide(tile(world, c, r), 'T') || solidSide(tile(world, c, r + 1), 'B')) continue;
+      const x = c * CELL, y = -(r + 1) * CELL;
+      for (const bl of Kabe.grassBlades(pal, c, i, x, y)) {
+        // なびき：風＋小さなゆらぎ。体が近いと押しのけられる
+        let bend = windAt(bl.x, y, t) * 0.9 + Math.sin(t * 2.2 + bl.x * 0.3) * (0.06 + WX.wind * 0.18);
+        if (state !== 'title' && state !== 'dying' && state !== 'end') { const dx = bl.x - P.x, dy = y - (P.y + HB); if (Math.abs(dy) < 16 && Math.abs(dx) < 15) bend += Math.sign(dx || 1) * (1 - Math.abs(dx) / 15) * (1 - Math.abs(dy) / 16) * 1.8; }
+        bend = clampN(bend, -1.3, 1.3);
+        const tx = bl.x + bl.lean + bend * bl.h * 0.75, ty = bl.y - bl.h * (1 - Math.abs(bend) * 0.22), cx = bl.x + bl.lean * 0.3 + bend * bl.h * 0.25, cy = bl.y - bl.h * 0.6;
+        const mx = 0.25 * bl.x + 0.5 * cx + 0.25 * tx, my = 0.25 * bl.y + 0.5 * cy + 0.25 * ty;
+        seg(bl.x, bl.y, mx, my, bl.lw * 0.5, bl.col, 1); seg(mx, my, tx, ty, bl.lw * 0.45, bl.col, 1);
+      }
+    }
+  }
+}
+// 雨・砂・花びら・光の粒（disc は丸、seg は線。どちらも世界の点）
+function weatherDraw(seg, disc) {
+  const t = G.time, top = cam.y, wd = windAt(W / 2, cam.y + H / 2, t);
+  if (WX.rain > 0.02) for (const [n, depth, len, wdt, al] of [[46, 0.6, 9, 0.45, 0.22], [30, 1.25, 15, 0.7, 0.32]]) {
+    const vy = 620 * depth, vx = 40 + wd * 160;
+    for (let i = 0; i < Math.round(n * WX.rain); i++) {
+      const h1 = Kabe.hash(i, depth * 10, 21), h2 = Kabe.hash(i, depth * 10, 22);
+      const y = ((h2 * (H + 60) + t * vy - cam.y * (depth - 1)) % (H + 60) + H + 60) % (H + 60) - 30, x = ((h1 * (W + 80) + t * vx + (y * vx / vy)) % (W + 80) + W + 80) % (W + 80) - 40;
+      seg(x, top + y, x - vx / vy * len, top + y - len, wdt, '#ffffff', al);
+    }
+  }
+  if (WX.sand > 0.02) for (let i = 0; i < Math.round(26 * WX.sand); i++) {
+    const h1 = Kabe.hash(i, 5, 31), h2 = Kabe.hash(i, 5, 32), sp = 260 + h1 * 260, y = ((h2 * H - cam.y * 0.9 + Math.sin(t * 1.3 + i) * 10) % H + H) % H;
+    const x = ((h1 * W * 3 + t * sp * Math.max(0.3, wd)) % (W + 60) + W + 60) % (W + 60) - 30;
+    seg(x, top + y, x - 10 - wd * 10, top + y + 1, 0.5, PAL.terrainLight, 0.35 * WX.sand);
+  }
+  if (WX.petals > 0.02) for (let i = 0; i < Math.round(16 * WX.petals); i++) {
+    const h1 = Kabe.hash(i, 6, 41), h2 = Kabe.hash(i, 6, 42), h3 = Kabe.hash(i, 6, 43), y = ((h2 * (H + 40) - cam.y * 0.85 + t * (14 + h3 * 10)) % (H + 40) + H + 40) % (H + 40) - 20;
+    const x = ((h1 * W + t * (12 + wd * 50) + Math.sin(t * 1.7 + i) * 14) % (W + 20) + W + 20) % (W + 20) - 10, a = t * (2 + h3 * 2) + i, l = 1.6 + h3;
+    seg(x - Math.cos(a) * l, top + y - Math.sin(a) * l * 0.5, x + Math.cos(a) * l, top + y + Math.sin(a) * l * 0.5, 0.9, Kabe.mixHex(PAL.accent, '#ffffff', 0.65), 0.75 * WX.petals);
+  }
+  if (WX.motes > 0.02) for (let i = 0; i < Math.round(20 * WX.motes); i++) {
+    const h1 = Kabe.hash(i, 7, 51), h2 = Kabe.hash(i, 7, 52), h3 = Kabe.hash(i, 7, 53), y = ((h2 * (H + 40) - cam.y * 0.6 - t * (5 + h3 * 6)) % (H + 40) + H + 40) % (H + 40) - 20;
+    const x = ((h1 * W + Math.sin(t * 0.5 + i) * 20 + t * wd * 20) % W + W) % W;
+    disc(x, top + y, 0.8 + h3 * 0.9, PAL.glow, (0.35 + 0.35 * Math.sin(t * 2 + i)) * WX.motes);
+  }
+}
+// 雨のしぶき：見えている床に、雨の強さだけ小さく跳ねる
+function spawnSplash(dt) {
+  if (!G || WX.rain < 0.05 || state === 'title') return;
+  const r0 = Math.max(0, Math.floor(-(cam.y + H) / CELL)), r1 = Math.floor(-cam.y / CELL);
+  for (let n = 0; n < 3; n++) {
+    if (Math.random() > dt * 22 * WX.rain) continue;
+    const r = r0 + Math.floor(Math.random() * (r1 - r0 + 1)), c = Math.floor(Math.random() * COLS);
+    if (tile(world, c, r) !== '#' || !solidSide(tile(world, c, r), 'T') || solidSide(tile(world, c, r + 1), 'B')) continue;
+    const x = c * CELL + Math.random() * CELL, y = -(r + 1) * CELL - 1;
+    for (let k = 0; k < 3; k++) particles.push({ kind: 'dot', x, y, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 50, g: 420, life: 0.28, max: 0.28, r: 0.6 + Math.random() * 0.4, col: '#ffffff', al: 0.7 });
+  }
+}
+/* ---------- 雲の層（790m 前後）：地上から上空へ抜けるとき、手前を大きな雲が流れ、画面が白くかすむ。抜けると下に雲の海 ---------- */
+const CLOUD = { at: 790, half: 22 };
+const cloudK = m => smooth01(1 - Math.abs(m - CLOUD.at) / CLOUD.half);
+function cloudsDraw(disc) {
+  const m = Math.max(0, -(cam.y + H * 0.5) / PX_PER_M), k = cloudK(m); if (k <= 0.01) return;
+  const t = G.time;
+  for (let i = 0; i < 9; i++) {   // 手前の雲：地形より速く流れる（すぐそばを抜けていく）
+    const h1 = Kabe.hash(i, 8, 61), h2 = Kabe.hash(i, 8, 62), h3 = Kabe.hash(i, 8, 63), span = H + 300;
+    const y = ((h2 * span - cam.y * 1.35) % span + span) % span - 150, x = ((h1 * (W + 200) + t * (8 + h3 * 14)) % (W + 200) + W + 200) % (W + 200) - 100;
+    for (let j = 0; j < 5; j++) disc(x + (j - 2) * 26 * (0.8 + h3 * 0.4), cam.y + y + Math.sin(j * 1.7 + i) * 9, 34 + Kabe.hash(i, j, 64) * 26, '#ffffff', 0.13 * k);
+  }
+}
+// 雲の海：雲の層より上で、画面の下に（登るほどゆっくり沈む）
+function cloudSea(disc, fill) {
+  const m = Math.max(0, -(cam.y + H * 0.5) / PX_PER_M); if (m < CLOUD.at - 4) return;
+  const k = smooth01((m - CLOUD.at + 4) / 16), y0 = H * 0.72 + Math.min(220, (m - CLOUD.at) * 4), t = G.time, col = Kabe.mixHex(PAL.bgBottom, '#ffffff', 0.6);
+  fill(cam.y + y0 + 10, col, 0.9 * k);
+  for (let i = 0; i < 14; i++) disc(((i * 31.7 + t * 3) % (W + 60)) - 30, cam.y + y0 + 8 + Math.sin(i * 2.3) * 5, 20 + Kabe.hash(i, 9, 71) * 16, col, 0.9 * k);
+}
 /* ---------- 危険物の予告：動き出す前に、出口のふちがだんだん白く光り、熱くなった金属から火花が散る ----------
    出入りトゲ（すき間）・杭（穴）・筒（口）・跳ね橋（ちょうつがい）。どれも同じ色（灰色の金属が熱で白っぽく光る） */
 const smooth01 = k => { k = k < 0 ? 0 : k > 1 ? 1 : k; return k * k * (3 - 2 * k); };
-const warnCol = () => Kabe.mix(PAL.hazardLight, PAL.glow, 0.35);
+const warnCol = () => Kabe.mixHex(PAL.hazardLight, PAL.glow, 0.35);
 const warnK = st => st && st.s === 'warn' ? smooth01(st.e / st.d) : 0;
 // 出入りトゲのすき間：マスの中の線（向き dir で回す）を世界の点で
 function popSlot(c, r) {
@@ -1572,11 +1664,11 @@ function showCv(on) { if (on !== cvShown) { cvShown = on; cv.style.opacity = on 
    ちり・胞子・粒・予測線・風の筋は GPU で丸と線として描く。溶岩はシェーダーで描く。
    それ以外（キャラ・障害物・結晶・ガチャ所・文字）は Kabe でそのまま描いた小さい絵を使う。形が変わらない物は1回だけ送る。
    世界の物は画面のピクセルにそろえて置く（カメラのずれを整数ピクセルにする）。 */
-const GLW = { k: 0, bands: new Map(), strata: new Map(), far: null, strip: null, WX: 0, WY: 0 };
+const GLW = { k: 0, bands: new Map(), strata: new Map(), mid: new Map(), far: null, strip: null, WX: 0, WY: 0 };
 const STRIP = 128, CHUNK = 512;   // 送る単位（行）、地層の1枚の高さ（行）
 function glReset() {
   const S = glfx && glfx.scene; if (!S) return;
-  for (const m of [GLW.bands, GLW.strata]) { for (const L of m.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } m.clear(); }
+  for (const m of [GLW.bands, GLW.strata, GLW.mid]) { for (const L of m.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } m.clear(); }
   if (GLW.far) { S.delTex(GLW.far); GLW.far = null; }
   GLW.k = 0; S.clearCache();
 }
@@ -1622,6 +1714,10 @@ function glStrata(c, k) {
     g.setTransform(k, 0, 0, k, 0, -c * CHUNK); Kabe.bgStrata(g, PAL, 0, W, c * CHUNK / k, (c + 1) * CHUNK / k, 0);
   }), { top: c * CHUNK });
 }
+// 奥の壁 c 枚目（奥の層の座標＝画面の y ＋ カメラ×0.7 を k 倍した行の c×CHUNK から）。すき間は透明
+function glMid(c, k) {
+  return Object.assign(glLayer(CHUNK, g => { g.setTransform(k, 0, 0, k, 0, -c * CHUNK); Kabe.bgMid(g, PAL, 0, W, c * CHUNK / k, (c + 1) * CHUNK / k, 0, null); }), { top: c * CHUNK });
+}
 const RGB = h => glfx.hexRgb(h);
 // 世界の点で描く：丸・線・小さい絵
 const wdisc = (x, y, r, col, a) => { const k = GLW.k; glfx.scene.disc(x * k + GLW.WX, y * k + GLW.WY, r * k, RGB(col), a); };
@@ -1654,6 +1750,16 @@ function drawGL() {
     for (let c = c0; c <= c1; c++) { const L = GLW.strata.get(c); if (L) S.quad(L.tex, 0, 0, L.w, CHUNK, 0, L.top - OFF); }
     if (!GLW.far) { const c = document.createElement('canvas'); c.width = glcv.width; c.height = glcv.height; const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); Kabe.bgFar(g, PAL, 0, 0, W, H); GLW.far = S.tex(c.width, c.height); S.upload(GLW.far, 0, 0, c); c.width = c.height = 0; }
     S.quad(GLW.far, 0, 0, GLW.far.w, GLW.far.h, 0, 0);
+    // 奥の壁と昔の物（地層より速く、地形より遅く動く）。風車・水車の羽だけ毎フレーム線で描く
+    const OFM = Math.round(cam.y * Kabe.MID_K * k), m0 = Math.floor(OFM / CHUNK), m1 = Math.floor((OFM + glcv.height) / CHUNK);
+    glKeep(GLW.mid, m0, m1, m0 - 1, m1 + 1, c => glMid(c, k));
+    for (let c = m0; c <= m1; c++) { const L = GLW.mid.get(c); if (L) S.quad(L.tex, 0, 0, L.w, CHUNK, 0, L.top - OFM); }
+    const sm = OFM / k, hz = RGB(Kabe.midHaze(PAL));
+    for (const o of Kabe.midSpins(PAL, W, sm, sm + H)) {
+      const cy = (o.s - sm) * k, a0 = t * o.speed;
+      for (let j = 0; j < o.n; j++) { const a = a0 + j * Math.PI * 2 / o.n; S.seg(o.x * k, cy, (o.x + Math.cos(a) * o.r) * k, cy + Math.sin(a) * o.r * k, o.w * 0.5 * k, hz, 1); }
+      if (o.rim) for (let j = 0; j < 16; j++) { const a = j * Math.PI / 8, b = a + Math.PI / 8; S.seg((o.x + Math.cos(a) * o.r) * k, cy + Math.sin(a) * o.r * k, (o.x + Math.cos(b) * o.r) * k, cy + Math.sin(b) * o.r * k, k, hz, 1); }
+    }
     const D = Kabe.bgDust(PAL, 0, 0, W, H, t), ink = RGB(PAL.uiInk);
     for (let i = 0; i < D.length; i += 4) S.disc(D[i] * k, D[i + 1] * k, D[i + 2] * k, ink, D[i + 3]);
   }
@@ -1663,12 +1769,14 @@ function drawGL() {
   const b0 = Math.floor(-(cam.y + H) / CELL / BAND) - 1, b1 = Math.floor(-cam.y / CELL / BAND) + 1;
   if (!PERF.off.terrain) {
     glKeep(GLW.bands, b0, b1, b0 - 1, b1 + 2, b => glBand(b, k));
+    cloudSea(wdisc, (y, col, a) => wseg(-600, y + 600, W + 600, y + 600, 600, col, a));
     for (let b = b0; b <= b1; b++) { const L = GLW.bands.get(b); if (L) S.quad(L.tex, 0, 0, L.w, L.h, GLW.WX, L.top + GLW.WY); }
+    grassDraw(wseg);
   }
   if (!PERF.off.sprites) {
     sporesGL(); obstaclesGL(); stationsGL(); gemsGL();
     if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); }
-    particlesGL(); lavaGL();
+    particlesGL(); weatherDraw(wseg, wdisc); lavaGL(); cloudsDraw(wdisc);
   }
   S.end();
   ctx = cvCtx;
@@ -1819,7 +1927,10 @@ function drawFrame() {
   const sx = cam.shake ? (Math.random() - 0.5) * cam.shake : 0, sy = cam.shake ? (Math.random() - 0.5) * cam.shake : 0;
   ctx.save(); ctx.translate(sx, -cam.y + sy);
   const b0 = Math.floor(-(cam.y + H) / CELL / BAND) - 1, b1 = Math.floor(-cam.y / CELL / BAND) + 1;
-  if (!PERF.off.terrain) for (let b = b0; b <= b1; b++) { const band = bandCanvas(b); if (band) ctx.drawImage(band.c, 0, band.yTop, W, band.hpx); }
+  const seg2 = (x0, y0, x1, y1, r, col, a) => { ctx.strokeStyle = rgba(col, a); ctx.lineWidth = r * 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+  const disc2 = (x, y, r, col, a) => { ctx.fillStyle = rgba(col, a); ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); };
+  cloudSea(disc2, (y, col, a) => { ctx.fillStyle = rgba(col, a); ctx.fillRect(-10, y, W + 20, H * 2); });
+  if (!PERF.off.terrain) { for (let b = b0; b <= b1; b++) { const band = bandCanvas(b); if (band) ctx.drawImage(band.c, 0, band.yTop, W, band.hpx); } grassDraw(seg2); }
   // 画面から離れた地形の絵は捨てる（登るほどメモリがたまって重くなるのを防ぐ。戻ってきたら描き直す）
   if (bands.size > b1 - b0 + 5) for (const [b, band] of bands) if (b < b0 - 2 || b > b1 + 2) { band.c.width = band.c.height = 0; bands.delete(b); }
   if (debug) {
@@ -1837,8 +1948,8 @@ function drawFrame() {
     drawGems();
     if (showCheck) drawCheck();
     if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); }
-    drawParticles();
-    drawLava();
+    drawParticles(); weatherDraw(seg2, disc2);
+    drawLava(); cloudsDraw(disc2);
   }
   ctx.restore();
   if (FX.ok) {   // シェーダーで仕上げ、HUD は別の canvas へ
@@ -1893,13 +2004,26 @@ const glfx = (() => {
       float fog = fbm(p * 0.006 + vec2(t * 0.02, -t * 0.035)) * 0.09;
       gl_FragColor = vec4((glowC * (rays + fog * 0.6) + lavaC * fog * lv * 0.8) * 4.0, 1.0); }`;
   const N = FX.maxLights;
-  const COMP = HEAD + `uniform sampler2D scene, bloom, atm; uniform vec2 res, px; uniform float lite, t, amb, bloomK, emb, lavaY, flash, calm, danger, atmK;
+  const COMP = HEAD + `uniform sampler2D scene, bloom, atm; uniform vec2 res, px; uniform float lite, t, amb, bloomK, emb, lavaY, flash, calm, danger, atmK, rain, rt, haze;
     uniform vec4 L[${N}]; uniform vec3 LC[${N}]; uniform float LS[${N}]; uniform int nL; uniform vec3 lavaC, shadowT, lightT;
     uniform sampler2D occ; uniform vec3 occU;   // 地形のマス（1マス1点）。occU：絵の上のはしの画面の y、絵の高さ（px）、影の強さ
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float fbmLite(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
     float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+    // 画面の水滴：流れる大きい粒（縦長のマスに1つ、上から下へ、ゆれながら）と、止まっている小さい粒（現れて消える）。返す値：ずらす量(xy)・粒の濃さ(z)
+    vec3 drops(vec2 p, float tt){
+      vec2 g = vec2(30.0, 96.0), id = floor(p / g), f = p / g - id; float n = h(id + 3.1);
+      float y = fract(tt * (0.04 + n * 0.05) + n), x = 0.3 + 0.4 * h(id + 7.7) + sin(y * 11.0 + n * 6.0) * 0.05;
+      vec2 d = (f - vec2(x, y)) * g; float r = 2.6 + n * 2.2, m = smoothstep(r, r * 0.5, length(d * vec2(1.0, 0.75))) * step(0.35, n);
+      float tr = step(0.35, n) * smoothstep(0.02, 0.0, abs(f.x - x)) * smoothstep(0.0, 0.08, y - f.y) * smoothstep(0.35, 0.08, y - f.y);   // 通ったあとの細い筋
+      vec2 g2 = vec2(14.0), id2 = floor(p / g2), f2 = p / g2 - id2; float n2 = h(id2 * 1.7 + 0.3);
+      float life = fract(tt * 0.12 + n2 * 5.0); vec2 d2 = (f2 - vec2(0.25 + 0.5 * h(id2 + 1.3), 0.25 + 0.5 * h(id2 + 4.1))) * g2;
+      float r2 = 0.8 + n2 * 1.2, m2 = smoothstep(r2, r2 * 0.4, length(d2)) * step(0.62, n2) * smoothstep(1.0, 0.7, life) * smoothstep(0.0, 0.1, life);
+      return vec3(d / r * m + d2 / r2 * m2, max(max(m, m2), tr * 0.5)); }
     void main(){
       vec2 uv = v, p = vec2(v.x, 1.0 - v.y) * res;           // p：画面の点（px、上が0）
+      vec3 dr = vec3(0.0);
+      if (rain > 0.01) { dr = drops(p, rt) * rain; uv += vec2(dr.x, -dr.y) * px * 7.0; }   // 水滴の向こうがゆがんで見える
       float heat = clamp(1.0 - (lavaY - p.y) / 230.0, 0.0, 1.0) * (1.0 - calm);
       if (heat > 0.0) uv += vec2(sin(p.y * 0.09 + t * 7.0) * 1.6, sin(p.x * 0.07 + t * 5.0) * 1.2) * px * heat * (1.0 + heat * 2.0);   // 熱のゆらぎ
       vec2 ca = (uv - 0.5) * (0.0025 + flash * 0.012) * (1.0 - calm);                                                     // 色ずれ
@@ -1942,6 +2066,8 @@ const glfx = (() => {
       c = mix(c, lavaC * 1.2, danger * (1.0 - vg) * 0.8);                                                                // 溶岩が近いとふちが赤く脈打つ
       c += (h(p + fract(t) * 91.7) - 0.5) * 0.045 * (1.0 - calm);                                                        // フィルムの粒
       c = mix(c, vec3(1.0), flash * 0.35 * (1.0 - calm));
+      c += dr.z * 0.06 + max(0.0, -dr.y) * 0.05;                                                                          // 水滴の光るふち
+      c = mix(c, vec3(0.95, 0.96, 1.0), haze * (0.7 + 0.3 * fbmLite(p * 0.004 + vec2(t * 0.03, 0.0))));                      // 雲の中：白くかすむ
       gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`;
   const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
   const prog = fs => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const u = {}; return { p, u: n => u[n] ?? (u[n] = gl.getUniformLocation(p, n)) }; };
@@ -1955,7 +2081,15 @@ const glfx = (() => {
   let bw = 0, bh = 0, sw = 0, sh2 = 0;
   const sizeFb = (w, h) => { bw = w; bh = h; for (const b of fb) { gl.bindTexture(gl.TEXTURE_2D, b.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, b.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, b.t, 0); } gl.bindFramebuffer(gl.FRAMEBUFFER, null); };
   const rgbCache = new Map();
-  const hexRgb = h => { let c = rgbCache.get(h); if (!c) { const n = parseInt(h.replace('#', '').slice(0, 6), 16); c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; rgbCache.set(h, c); } return c; };
+  const hexRgb = h => {   // '#rrggbb' と 'rgb(r,g,b)'（Kabe.mix が返す形）のどちらも読む
+    let c = rgbCache.get(h);
+    if (!c) {
+      if (h[0] === 'r') { const m = h.match(/[\d.]+/g) || [0, 0, 0]; c = [m[0] / 255, m[1] / 255, m[2] / 255]; }
+      else { const n = parseInt(h.replace('#', '').slice(0, 6), 16); c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; }
+      if (rgbCache.size > 512) rgbCache.clear(); rgbCache.set(h, c);
+    }
+    return c;
+  };
   const lightsA = new Float32Array(N * 4), colsA = new Float32Array(N * 3), shA = new Float32Array(N);
   const occT = tex();   // 地形のマス（LUMINANCE、なめらかに引き伸ばす＝影のふちがやわらかい）
   const pass = (P, target, w, h) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target); gl.viewport(0, 0, w, h); };
@@ -2196,7 +2330,7 @@ const glfx = (() => {
       gl.uniform3f(P3.u('occU'), u.occ ? u.occ.top : 0, u.occ ? u.occ.hpx : 1, u.occ && !PERF.off.shadow ? u.occ.k : 0);
       gl.activeTexture(gl.TEXTURE0);
       gl.uniform2f(P3.u('res'), W, H); gl.uniform2f(P3.u('px'), 1 / W2, 1 / H2);
-      for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger', 'atmK']) gl.uniform1f(P3.u(k), u[k] == null ? 1 : u[k]);
+      for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger', 'atmK', 'rain', 'rt', 'haze']) gl.uniform1f(P3.u(k), u[k] == null ? 1 : u[k]);
       for (const k of ['lavaC', 'shadowT', 'lightT']) gl.uniform3fv(P3.u(k), u[k]);
       // マスに分けて描く：マスに少しでも届く光だけを渡す（届かない光の分は元から0なので、絵は全体で1回描くのと同じ）
       const n = PERF.off.lights ? 0 : Math.min(N, lights.length), [TX, TY] = FX.tile, mx = W / W2, my = H / H2;
@@ -2227,7 +2361,7 @@ FX.ok = !!glfx && store.get('kabe_shader', true);
 // 光の点（画面の座標）：おばけ・結晶・光るキノコ・ガチャ所。近い順に FX.maxLights まで
 // 障害物の光：筒の閃光と鉄球、予告ランプの点滅、バネが跳ねた瞬間
 function obstacleLights(out, cy, inView, k) {
-  const t = G.time, warnC = Kabe.mix(PAL.hazardLight, PAL.glow, 0.35), add = (x, y, r, i, c) => out.push({ x, y: y - cy, r, i: i * k, c });
+  const t = G.time, warnC = warnCol(), add = (x, y, r, i, c) => out.push({ x, y: y - cy, r, i: i * k, c });
   for (const o of world.obs) {
     if (!inView(o.yMid, 80)) continue;
     if (o.type === 'cannon') {
@@ -2282,6 +2416,7 @@ function renderFx(src) {
   glfx.render(src, collectLights(), {
     t: G.time, amb: FX.ambient * (PAL.amb || 1) * (1 - (G.dark || 0) * 0.74), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: (PAL.lightK == null ? 1 : PAL.lightK) * (1 - (G.dark || 0) * 0.8), emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94], occ: occMap(),
+    rain: WX.rain * (calm ? 0.5 : 1), rt: G.time % 64, haze: cloudK(Math.max(0, -(cam.y + H * 0.5) / PX_PER_M)) * 0.32,
   });
 }
 
