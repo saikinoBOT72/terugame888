@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29a';
+const VERSION = '2026.11.29b';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -699,7 +699,7 @@ function ensureAhead() {
 const TEST_FROM = (() => { const v = Math.floor(+new URLSearchParams(location.search).get('from') || 0); return v > 0 && v <= 5000 ? v : 0; })();
 const TEST_CRYSTALS = 40;   // テストで始めるときの結晶（100mにつき）
 function newGame() {
-  world = newWorld(); lookKey = '';
+  world = newWorld(); lookKey = ''; OCC.key = '';
   placePiece('z1_start');
   P = newBody(2 * CELL + HB, -HB, -1);
   P.squash = 0; live = null; resetAnim();
@@ -1035,13 +1035,13 @@ function spawnEmbers(dt) {
 }
 function updateEffects(dt) {
   cam.shake = Math.max(0, cam.shake - dt * 25);
-  for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= q.kind === 'ember' || q.kind === 'chunk' ? 0.99 : 0.92; q.vy = q.kind === 'ember' ? q.vy * 0.995 : q.kind === 'chunk' ? q.vy + 700 * dt : q.vy * 0.92 + ({ puff: 30, cloud: -20, line: 0 }[q.kind] ?? 160) * dt; if (q.vr) q.rot += q.vr * dt; } }
+  for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= q.kind === 'ember' || q.kind === 'chunk' ? 0.99 : 0.92; q.vy = q.kind === 'ember' ? q.vy * 0.995 : q.kind === 'chunk' ? q.vy + 700 * dt : q.kind === 'dot' ? q.vy * 0.97 + q.g * dt : q.vy * 0.92 + ({ puff: 30, cloud: -20, line: 0 }[q.kind] ?? 160) * dt; if (q.vr) q.rot += q.vr * dt; } }
   particles = particles.filter(q => q.life > 0);
   for (const f of floaters) { f.life -= dt; f.y -= 22 * dt; }
   for (const a of trail) a.life -= dt;
   trail = trail.filter(a => a.life > 0);
-  if (G) { G.flash = Math.max(0, (G.flash || 0) - dt * 5); G.zoneT = Math.max(0, (G.zoneT || 0) - dt); }
-  spawnEmbers(dt);
+  if (G) { G.flash = Math.max(0, (G.flash || 0) - dt * 5); G.zoneT = Math.max(0, (G.zoneT || 0) - dt); G.dark = darkAt(Math.max(0, -(cam.y + H * 0.55) / PX_PER_M)); }
+  spawnEmbers(dt); spawnWarnSparks(dt);
   for (const f of flyers) { f.t += dt; if (f.t >= 0.5 && !f.done) { f.done = true; if (G) G.coinBump = 1; } }
   flyers = flyers.filter(f => f.t < 0.5);
   if (G) G.coinBump = Math.max(0, G.coinBump - dt * 4);
@@ -1078,6 +1078,9 @@ function syncLook() {
   Object.assign(PAL, palAt(b * 100 - LOOK_BLEND + q * LOOK_BLEND * 2));
   if (glfx && glfx.scene && GLW.k) { const S = glfx.scene; for (const L of GLW.strata.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } GLW.strata.clear(); if (GLW.far) { S.delTex(GLW.far); GLW.far = null; } }
 }
+// 暗い区間（m）：地下の 100m より上に、100mごとに2か所。前後4mで暗くなる。灯りの中（自分・結晶・キノコ・ランプ・ガチャ所）だけが見える
+const DARK = [[128, 141], [176, 186], [224, 238], [271, 282], [322, 336], [368, 380]], DARK_FADE = 4;
+const darkAt = m => { let d = 0; for (const [a, b] of DARK) d = Math.max(d, smooth01(Math.min(m - a + DARK_FADE, b + DARK_FADE - m) / DARK_FADE)); return d; };
 const bandPal = r0 => palAt((r0 + BAND / 2) * CELL / PX_PER_M);   // 地形の帯は、その高さの色で1回だけ描く
 const FONT = '"M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", system-ui, sans-serif';
 const HUD_GAP = 8;
@@ -1399,6 +1402,53 @@ function surfaceDraw(sp, seg, vis) {
     }
   }
 }
+/* ---------- 危険物の予告：動き出す前に、出口のふちがだんだん白く光り、熱くなった金属から火花が散る ----------
+   出入りトゲ（すき間）・杭（穴）・筒（口）・跳ね橋（ちょうつがい）。どれも同じ色（灰色の金属が熱で白っぽく光る） */
+const smooth01 = k => { k = k < 0 ? 0 : k > 1 ? 1 : k; return k * k * (3 - 2 * k); };
+const warnCol = () => Kabe.mix(PAL.hazardLight, PAL.glow, 0.35);
+const warnK = st => st && st.s === 'warn' ? smooth01(st.e / st.d) : 0;
+// 出入りトゲのすき間：マスの中の線（向き dir で回す）を世界の点で
+function popSlot(c, r) {
+  const dir = spikeRect(world, c, r)[4] || 'L', a = { L: 0, R: Math.PI, T: Math.PI / 2, B: -Math.PI / 2 }[dir] || 0, cx = c * CELL + CELL / 2, cy = -(r + 1) * CELL + CELL / 2;
+  const f = (lx, ly) => { const dx = lx - CELL / 2, dy = ly - CELL / 2; return [cx + dx * Math.cos(a) - dy * Math.sin(a), cy + dx * Math.sin(a) + dy * Math.cos(a)]; };
+  return [f(4.2, 2), f(4.2, 16), f(6, 9)];   // すき間の上・下・すぐ前
+}
+function eachWarn(fn) {
+  const t = G.time, yTop = cam.y - 40, yBot = cam.y + H + 40;
+  for (let r = Math.max(0, Math.floor(-yBot / CELL)); r <= Math.ceil(-yTop / CELL); r++) for (let c = 0; c < COLS; c++) {
+    const ch = raw(world, c, r); if (ch !== 'p' && ch !== 'q') continue;
+    const k = warnK(Kabe.popState(t, ch === 'q' ? { offset: OB.popOff } : undefined)); if (!k) continue;
+    const [p0, p1, pf] = popSlot(c, r); fn('pop', k, p0, p1, pf);
+  }
+  for (const o of world.obs) {
+    if (o.yMid < yTop || o.yMid > yBot) continue;
+    if (o.type === 'stake') { const k = warnK(o.st); if (k) fn('stake', k, [o.x0, o.y - 3.5], [o.x0, o.y + 3.5], [o.x0 + o.dir * 4, o.y]); }
+    else if (o.type === 'bridge') { const k = warnK(o.st); if (k) fn('bridge', k, [o.x0 + o.dir * 2, o.y - 3], [o.x0 + o.dir * 2, o.y + 3], [o.x0 + o.dir * 4, o.y - 6]); }
+    else if (o.type === 'cannon') {
+      const ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod, k = ph > SURF.canPeriod - SURF.canWarn ? smooth01((ph - SURF.canPeriod + SURF.canWarn) / SURF.canWarn) : 0;
+      if (k) { const mx = o.x + o.dir * 14; fn('cannon', k, [mx, o.y - 4], [mx, o.y + 4], [mx + o.dir * 3, o.y]); }
+    }
+  }
+}
+// 描く（seg は wseg か 2D の線）。強さ k は 0→1 に上がり、最後はちらつく
+function hazardWarn(seg) {
+  const t = G.time, col = warnCol();
+  eachWarn((kind, k, p0, p1) => {
+    const fl = 0.75 + 0.25 * Math.sin(t * 38 + p0[0]);
+    seg(p0[0], p0[1], p1[0], p1[1], 3.2 + k * 2.5, col, 0.16 * k * fl);   // にじみ
+    seg(p0[0], p0[1], p1[0], p1[1], 0.6 + k * 0.9, '#ffffff', (0.25 + 0.7 * k) * k * fl);   // 熱いふち
+  });
+}
+// 火花：予告のあいだ、出口の前から小さく散る
+function spawnWarnSparks(dt) {
+  if (!G || state !== 'play') return;
+  const col = warnCol();
+  eachWarn((kind, k, p0, p1, pf) => {
+    if (Math.random() > dt * (calm ? 4 : 14) * k) return;
+    const u = Math.random(), x = p0[0] + (p1[0] - p0[0]) * u, y = p0[1] + (p1[1] - p0[1]) * u, dx = pf[0] - (p0[0] + p1[0]) / 2, dy = pf[1] - (p0[1] + p1[1]) / 2, d = Math.hypot(dx, dy) || 1;
+    particles.push({ kind: 'dot', x, y, vx: dx / d * (30 + Math.random() * 50) + (Math.random() - 0.5) * 30, vy: dy / d * (30 + Math.random() * 50) - 20 - Math.random() * 30, g: 260, life: 0.35, max: 0.35, r: 0.7 + Math.random() * 0.6, col, glow: 1 });
+  });
+}
 function drawObstacles() {
   const t = G.time, yTop = cam.y - 60, yBot = cam.y + H + 60, vis = y => y > yTop && y < yBot;
   for (let r = Math.max(0, Math.floor(-yBot / CELL)); r <= Math.ceil(-yTop / CELL); r++) for (let c = 0; c < COLS; c++) {
@@ -1419,8 +1469,9 @@ function drawObstacles() {
     }
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
-  surfaceDraw((key, x, y, bb, fn, a) => { ctx.save(); if (a != null) ctx.globalAlpha = a; fn(); ctx.restore(); },
-    (x0, y0, x1, y1, r, col, a) => { ctx.strokeStyle = rgba(col, a); ctx.lineWidth = r * 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }, vis);
+  const seg2 = (x0, y0, x1, y1, r, col, a) => { ctx.strokeStyle = rgba(col, a); ctx.lineWidth = r * 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); };
+  surfaceDraw((key, x, y, bb, fn, a) => { ctx.save(); if (a != null) ctx.globalAlpha = a; fn(); ctx.restore(); }, seg2, vis);
+  hazardWarn(seg2);
 }
 // 結晶（カタログの Kabe.mote）。ゆっくり上下する
 function drawGems() {
@@ -1457,6 +1508,7 @@ function drawParticles() {
     else if (q.kind === 'chunk') { ctx.save(); ctx.globalAlpha = Math.min(1, a * 3); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.fillStyle = q.col; ctx.fillRect(-q.r * 0.6, -q.r * 0.5, q.r * 1.2, q.r); ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.6; ctx.strokeRect(-q.r * 0.6, -q.r * 0.5, q.r * 1.2, q.r); ctx.restore(); }
     else if (q.kind === 'ember') { const fl = 0.6 + 0.4 * Math.sin(G.time * 12 + q.ph); ctx.fillStyle = rgba(PAL.riseTop, a * fl); ctx.beginPath(); ctx.arc(q.x + Math.sin(G.time * 3 + q.ph) * 3, q.y, q.r, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'spark') { ctx.fillStyle = rgba(PAL.hazard, a); ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill(); }
+    else if (q.kind === 'dot') { if (q.glow) { ctx.fillStyle = rgba(q.col, a * 0.25); ctx.beginPath(); ctx.arc(q.x, q.y, q.r * 2.6, 0, Math.PI * 2); ctx.fill(); } ctx.fillStyle = rgba(q.glow ? '#ffffff' : q.col, a * (q.al || 1)); ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'puff') { ctx.globalAlpha = a; ctx.fillStyle = q.r > 5 ? PAL.scarf : PAL.playerBody; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.5 - a * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
   }
   ctx.font = `800 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1668,6 +1720,7 @@ function obstaclesGL() {
     }
   }
   surfaceDraw(wspr, wseg, vis);
+  hazardWarn(wseg);
 }
 function stationsGL() {
   for (const s of world.stations) {
@@ -1722,6 +1775,7 @@ function particlesGL() {
     else if (q.kind === 'ember') { const fl = 0.6 + 0.4 * Math.sin(G.time * 12 + q.ph); wdisc(q.x + Math.sin(G.time * 3 + q.ph) * 3, q.y, q.r, PAL.riseTop, a * fl); }
     else if (q.kind === 'spark') wdisc(q.x, q.y, 2, PAL.hazard, a);
     else if (q.kind === 'puff') wdisc(q.x, q.y, q.r * (1.5 - a * 0.5), q.r > 5 ? PAL.scarf : PAL.playerBody, a);
+    else if (q.kind === 'dot') { if (q.glow) wdisc(q.x, q.y, q.r * 2.6, q.col, a * 0.25); wdisc(q.x, q.y, q.r, q.glow ? '#ffffff' : q.col, a * (q.al || 1)); }
   }
   for (const f of floaters) {
     cvCtx.font = `800 15px ${FONT}`; const hw = cvCtx.measureText(f.text).width / 2 + 4;
@@ -1807,7 +1861,7 @@ function drawFrame() {
    2Dの絵は上下を返さずに受け取り、シェーダー側で読む向きを返す（転送が速い道を通る）。
    ===================================================================== */
 const glcv = $('gl'), hudcv = $('hud'), hudCtx = hudcv.getContext('2d');
-const FX = { ok: false, ambient: 0.62, bloom: 0.75, emboss: 2.2, maxLights: 24, tile: [3, 8] };
+const FX = { ok: false, ambient: 0.62, bloom: 0.75, emboss: 2.2, maxLights: 24, tile: [3, 8], shadows: 5 };   // shadows：影を落とす光の数（近い順）
 const glfx = (() => {
   let gl;
   try { gl = glcv.getContext('webgl', { alpha: false, premultipliedAlpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'high-performance' }); } catch (e) {}
@@ -1840,7 +1894,8 @@ const glfx = (() => {
       gl_FragColor = vec4((glowC * (rays + fog * 0.6) + lavaC * fog * lv * 0.8) * 4.0, 1.0); }`;
   const N = FX.maxLights;
   const COMP = HEAD + `uniform sampler2D scene, bloom, atm; uniform vec2 res, px; uniform float lite, t, amb, bloomK, emb, lavaY, flash, calm, danger, atmK;
-    uniform vec4 L[${N}]; uniform vec3 LC[${N}]; uniform int nL; uniform vec3 lavaC, shadowT, lightT;
+    uniform vec4 L[${N}]; uniform vec3 LC[${N}]; uniform float LS[${N}]; uniform int nL; uniform vec3 lavaC, shadowT, lightT;
+    uniform sampler2D occ; uniform vec3 occU;   // 地形のマス（1マス1点）。occU：絵の上のはしの画面の y、絵の高さ（px）、影の強さ
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
     void main(){
@@ -1860,12 +1915,18 @@ const glfx = (() => {
       }
       vec3 light = vec3(amb) * mix(shadowT, vec3(1.0), 0.6);
       vec3 glow = vec3(0.0);
+      float self = occU.z > 0.0 ? texture2D(occ, vec2(p.x / res.x, (p.y - occU.x) / occU.y)).r : 0.0, jit = h(p * 0.7 + fract(t) * 13.0);
       for (int i = 0; i < ${N}; i++) { if (i >= nL) break;
         vec2 q = (L[i].xy - p) / L[i].z; float q2 = dot(q, q);                                                              // 半径で割った距離（届かない所は計算しない）
         if (q2 >= 1.0) continue;
         float k = 1.0 - sqrt(q2), att = k * k * L[i].w;
         float dif = max(dot(nrm, normalize(vec3(q, 0.35))), 0.0);
-        light += LC[i] * att * (0.55 + 0.75 * dif); glow += LC[i] * att * att * 0.22; }
+        float shd = 1.0;
+        if (LS[i] > 0.5 && occU.z > 0.0) {   // 影：光までの間を6点調べ、岩が多いほど暗く（岩の中の点は、光の側のふちだけ明るく残る）
+          vec2 dd = L[i].xy - p; float o = 0.0;
+          for (int s = 0; s < 6; s++) { vec2 sp = p + dd * ((float(s) + jit) / 6.0); o += texture2D(occ, vec2(sp.x / res.x, (sp.y - occU.x) / occU.y)).r; }
+          shd = 1.0 - clamp(o * 0.4, 0.0, 1.0) * occU.z * mix(0.9, 0.5, self); }
+        light += LC[i] * att * (0.55 + 0.75 * dif) * shd; glow += LC[i] * att * att * 0.22; }
       float lv = clamp(1.0 - (lavaY - p.y) / 260.0, 0.0, 1.0);                                                           // 溶岩の照り返し（下から）
       float ldif = max(dot(nrm, normalize(vec3(0.0, 1.0, 0.6))), 0.0);
       light += lavaC * lv * lv * (0.9 + 0.6 * ldif) * (0.85 + 0.15 * sin(t * 3.0 + p.x * 0.05));
@@ -1895,7 +1956,8 @@ const glfx = (() => {
   const sizeFb = (w, h) => { bw = w; bh = h; for (const b of fb) { gl.bindTexture(gl.TEXTURE_2D, b.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, b.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, b.t, 0); } gl.bindFramebuffer(gl.FRAMEBUFFER, null); };
   const rgbCache = new Map();
   const hexRgb = h => { let c = rgbCache.get(h); if (!c) { const n = parseInt(h.replace('#', '').slice(0, 6), 16); c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; rgbCache.set(h, c); } return c; };
-  const lightsA = new Float32Array(N * 4), colsA = new Float32Array(N * 3);
+  const lightsA = new Float32Array(N * 4), colsA = new Float32Array(N * 3), shA = new Float32Array(N);
+  const occT = tex();   // 地形のマス（LUMINANCE、なめらかに引き伸ばす＝影のふちがやわらかい）
   const pass = (P, target, w, h) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target); gl.viewport(0, 0, w, h); };
   /* ---------- 画面を GPU の中で組み立てる（2Dの画面をまるごと送らない） ----------
      地形・背景は1回だけ絵にして置き、丸・線・溶岩は GPU で直接描く。毎フレーム形が変わる物（キャラなど）だけ、
@@ -2129,6 +2191,9 @@ const glfx = (() => {
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sT); gl.uniform1i(P3.u('scene'), 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fb[0].t); gl.uniform1i(P3.u('bloom'), 1);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, fb[2].t); gl.uniform1i(P3.u('atm'), 2);
+      gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, occT); gl.uniform1i(P3.u('occ'), 3);
+      if (u.occ && u.occ.data) { gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1); gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, u.occ.w, u.occ.h, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, u.occ.data); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4); u.occ.data = null; }
+      gl.uniform3f(P3.u('occU'), u.occ ? u.occ.top : 0, u.occ ? u.occ.hpx : 1, u.occ && !PERF.off.shadow ? u.occ.k : 0);
       gl.activeTexture(gl.TEXTURE0);
       gl.uniform2f(P3.u('res'), W, H); gl.uniform2f(P3.u('px'), 1 / W2, 1 / H2);
       for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger', 'atmK']) gl.uniform1f(P3.u(k), u[k] == null ? 1 : u[k]);
@@ -2145,9 +2210,9 @@ const glfx = (() => {
             const q = lights[i], dx = Math.max(lft - q.x, 0, q.x - rgt), dy = Math.max(top - q.y, 0, q.y - bot);
             if (dx * dx + dy * dy >= q.r * q.r) continue;
             lightsA[m * 4] = q.x; lightsA[m * 4 + 1] = q.y; lightsA[m * 4 + 2] = q.r; lightsA[m * 4 + 3] = q.i;
-            colsA.set(hexRgb(q.c), m * 3); m++;
+            colsA.set(hexRgb(q.c), m * 3); shA[m] = q.s ? 1 : 0; m++;
           }
-          if (m) { gl.uniform4fv(P3.u('L'), lightsA.subarray(0, m * 4)); gl.uniform3fv(P3.u('LC'), colsA.subarray(0, m * 3)); }
+          if (m) { gl.uniform4fv(P3.u('L'), lightsA.subarray(0, m * 4)); gl.uniform3fv(P3.u('LC'), colsA.subarray(0, m * 3)); gl.uniform1fv(P3.u('LS'), shA.subarray(0, m)); }
           gl.uniform1i(P3.u('nL'), m);
           gl.scissor(x0, H2 - y1, x1 - x0, y1 - y0);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -2174,33 +2239,49 @@ function obstacleLights(out, cy, inView, k) {
     else if (o.type === 'bridge' && o.st && o.st.s === 'warn' && o.st.e % 0.3 < 0.15) add(o.x0 + o.dir, o.y - 12, 48, 0.6, warnC);
     else if (o.type === 'shutter') { const st = Kabe.shutterState(t, { offset: o.offset }); if (st.s === 'warn' && st.e % 0.3 < 0.15) { add(o.x0 + 2, o.y - 11, 44, 0.55, warnC); add(o.x1 - 2, o.y - 11, 44, 0.55, warnC); } }
   }
+  eachWarn((kind, k, p0, p1, pf) => add(pf[0], pf[1], 30 + k * 34, 0.2 + k * 0.6, warnC));   // 予告：出口がだんだん明るく
   for (const s2 of world.springs) { const hit = world.springHit[s2.c + ',' + s2.r]; if (hit != null && t - hit < 0.35 && inView(s2.y, 60)) add(s2.x + CELL / 2, s2.y, 90, 0.9 * (1 - (t - hit) / 0.35), PAL.glow); }
 }
 function collectLights() {
   const out = [], cy = cam.y, inView = (y, r) => y - cy > -r && y - cy < H + r;
-  if (state !== 'dying' && state !== 'end') out.push({ x: P.x, y: P.y - cy, r: 130, i: 0.55, c: '#fff6ec' });
-  for (const st of world.stations) if (inView(st.y - 50, 140)) out.push({ x: st.x, y: st.y - 50 - cy, r: st.used ? 60 : 150, i: st.used ? 0.25 : 0.9, c: PAL.glow });
-  for (const g of world.gems) if (!g.got && inView(g.y, 60)) out.push({ x: g.x, y: g.y - cy, r: 62, i: 0.75, c: PAL.glow });
+  const dk = G.dark || 0;   // 暗い区間では自分の灯りを大きく
+  if (state !== 'dying' && state !== 'end') out.push({ x: P.x, y: P.y - cy, r: 130 + dk * 70, i: 0.55 + dk * 0.35, c: '#fff6ec', s: 1 });
+  for (const st of world.stations) if (inView(st.y - 50, 140)) out.push({ x: st.x, y: st.y - 50 - cy, r: st.used ? 60 : 150, i: st.used ? 0.25 : 0.9, c: PAL.glow, s: 1 });
+  for (const g of world.gems) if (!g.got && inView(g.y, 60)) out.push({ x: g.x, y: g.y - cy, r: 62, i: 0.75, c: PAL.glow, s: 1 });
   const r0 = Math.max(0, Math.floor(-(cy + H) / CELL) - 1), r1 = Math.floor(-cy / CELL) + 1;
   for (let r = r0; r <= r1; r++) {
     const b = Math.floor(r / BAND), i = b * BAND + BAND - 1 - r;
     for (let c = 0; c < COLS; c++) {
       if (tile(world, c, r) !== '#' || !solidSide(tile(world, c, r), 'T') || solidSide(tile(world, c, r + 1), 'B')) continue;
-      if (Kabe.hash(c, i, 12) < 0.25) out.push({ x: c * CELL + 5 + Kabe.hash(c, i, 13) * 8, y: -(r + 1) * CELL - 6 - cy, r: 70, i: 0.55 + 0.08 * Math.sin(G.time * 2 + c + r), c: PAL.glow });
+      if (Kabe.hash(c, i, 12) < 0.25) out.push({ x: c * CELL + 5 + Kabe.hash(c, i, 13) * 8, y: -(r + 1) * CELL - 6 - cy, r: 70, i: 0.55 + 0.08 * Math.sin(G.time * 2 + c + r), c: PAL.glow, s: 1 });
     }
   }
   for (const q of particles) if (q.kind === 'ember' && out.length < FX.maxLights * 2) out.push({ x: q.x, y: q.y - cy, r: 18, i: 0.5 * q.life / q.max, c: PAL.riseLight });
   const px = P.x, py = P.y - cy;
   const lk = PAL.lightK == null ? 1 : PAL.lightK; if (lk !== 1) for (const l of out) l.i *= lk;   // 地上は明るいので光を弱める
   obstacleLights(out, cy, inView, Math.max(0.75, lk));
-  return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
+  out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
+  let ns = 0; for (const l of out) if (l.s && ++ns > FX.shadows) l.s = 0;   // 影を落とすのは近い光だけ（重さを決まった分に）
+  return out;
+}
+/* ---------- 影のための地形のマス：画面の上下2マス先まで、1マス1点（変わったときだけ作り直して送る） ---------- */
+const OCC = { key: '', data: null, r1: 0, n: 0 };
+function occMap() {
+  const r1 = Math.floor(-cam.y / CELL) + 2, r0 = Math.max(0, Math.floor(-(cam.y + H) / CELL) - 2), n = r1 - r0 + 1;
+  const key = r0 + '|' + r1 + '|' + world.rows.length + '|' + PAL.terrain;
+  let data = null;
+  if (key !== OCC.key) {
+    OCC.key = key; OCC.r1 = r1; OCC.n = n; data = new Uint8Array(COLS * n);
+    for (let j = 0; j < n; j++) for (let c = 0; c < COLS; c++) { const r = r1 - j, raw0 = raw(world, c, r), t = tile(world, c, r); data[j * COLS + c] = raw0 === '%' ? 0 : t === '#' ? 255 : SIDES[t] ? 120 : 0; }
+  }
+  return { data, w: COLS, h: OCC.n, top: -(OCC.r1 + 1) * CELL - cam.y, hpx: OCC.n * CELL, k: 1 };
 }
 function renderFx(src) {
   const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
   const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
   glfx.render(src, collectLights(), {
-    t: G.time, amb: FX.ambient * (PAL.amb || 1), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: PAL.lightK == null ? 1 : PAL.lightK, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
-    lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94],
+    t: G.time, amb: FX.ambient * (PAL.amb || 1) * (1 - (G.dark || 0) * 0.74), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: (PAL.lightK == null ? 1 : PAL.lightK) * (1 - (G.dark || 0) * 0.8), emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
+    lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94], occ: occMap(),
   });
 }
 
@@ -2212,14 +2293,15 @@ function drawLighting() {
   if (lightCv.width !== Math.round(W * k)) { lightCv.width = Math.round(W * k); lightCv.height = Math.round(H * k); }
   const L = lightCv.getContext('2d'); L.setTransform(k, 0, 0, k, 0, 0);
   L.globalCompositeOperation = 'source-over'; L.clearRect(0, 0, W, H);
-  L.fillStyle = rgba(Kabe.mix(PAL.bgTop, '#000000', 0.6), LIGHT.dark * Math.max(0.15, 2 - (PAL.amb || 1) * 1.2)); L.fillRect(0, 0, W, H);   // 地上（amb が大きい）は暗くしない
+  const a0 = LIGHT.dark * Math.max(0.15, 2 - (PAL.amb || 1) * 1.2), dk = G.dark || 0;
+  L.fillStyle = rgba(Kabe.mix(PAL.bgTop, '#000000', 0.6), a0 + (0.86 - a0) * dk); L.fillRect(0, 0, W, H);   // 暗い区間はもっと暗く   // 地上（amb が大きい）は暗くしない
   L.globalCompositeOperation = 'destination-out';
   const hole = (x, y, r, a) => {
     const sy = y - cam.y; if (sy < -r || sy > H + r) return;
     const gr = L.createRadialGradient(x, sy, 0, x, sy, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(0.5, `rgba(0,0,0,${a * 0.6})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
     L.fillStyle = gr; L.fillRect(x - r, sy - r, r * 2, r * 2);
   };
-  if (state !== 'dying' && state !== 'end') hole(P.x, P.y, 100, 0.9);
+  if (state !== 'dying' && state !== 'end') hole(P.x, P.y, 100 + dk * 50, 0.95);
   for (const g of world.gems) if (!g.got) hole(g.x, g.y, 34, 0.75);
   for (const st of world.stations) hole(st.x, st.y - 40, st.used ? 40 : 90, st.used ? 0.4 : 0.9);
   // 光るキノコ：カタログの地形と同じ場所（上の面の4つに1つ）
@@ -2846,7 +2928,7 @@ if (PERF.on) {
   box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(10,8,14,.82);color:#fff;font:600 12px/1.3 system-ui;display:flex;flex-wrap:wrap;gap:4px;justify-content:center';
   const info = document.createElement('div'); info.style.cssText = 'width:100%;text-align:center;font:700 13px/1.4 ui-monospace,monospace';
   box.appendChild(info);
-  const items = [['comp', '仕上げ'], ['lights', '点光源'], ['emb', '凹凸+色ずれ'], ['bloom', 'ブルーム'], ['atm', '筋+霧'], ['bg', '背景'], ['terrain', '地形'], ['sprites', '動くもの'], ['hud', 'HUD']];
+  const items = [['comp', '仕上げ'], ['lights', '点光源'], ['shadow', '影'], ['emb', '凹凸+色ずれ'], ['bloom', 'ブルーム'], ['atm', '筋+霧'], ['bg', '背景'], ['terrain', '地形'], ['sprites', '動くもの'], ['hud', 'HUD']];
   const btn = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.style.cssText = 'font:inherit;padding:5px 8px;border-radius:8px;border:0;background:#3a3445;color:#fff'; b.onclick = e => { e.stopPropagation(); fn(b); }; box.appendChild(b); return b; };
   for (const [key, label] of items) btn(label, b => { PERF.off[key] = !PERF.off[key]; b.style.background = PERF.off[key] ? '#b5562d' : '#3a3445'; b.style.textDecoration = PERF.off[key] ? 'line-through' : ''; });
   box.addEventListener('pointerdown', e => e.stopPropagation());
