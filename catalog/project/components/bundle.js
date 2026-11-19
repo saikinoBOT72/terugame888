@@ -237,16 +237,62 @@ window.Kabe = (function () {
   function block(g, P, G, c, r, x, y) {
     var e = G.exp(c, r), k = 6, rad = [e.t && e.l ? k : 0, e.t && e.r ? k : 0, e.b && e.r ? k : 0, e.b && e.l ? k : 0];
     var o0 = e.l ? 0 : 0.6, o1 = e.r ? 0 : 0.6, o2 = e.t ? 0 : 0.6, o3 = e.b ? 0 : 0.6, d = G.depth(c, r);
-    var m = motifOf(P);
+    var m = motifOf(P), base = d === 0 ? P.terrain : d === 1 ? mix(P.terrain, P.terrainDeep, 0.55) : P.terrainDeep, i, n;
     g.save(); rr(g, x - o0, y - o2, CELL + o0 + o1, CELL + o2 + o3, rad);
-    g.fillStyle = d === 0 ? P.terrain : d === 1 ? mix(P.terrain, P.terrainDeep, 0.55) : P.terrainDeep; g.fill(); g.clip();
-    g.fillStyle = d ? 'rgba(0,0,0,.07)' : P.terrainLine; g.fillRect(x - 1, y + 4 + ((r * 7) % 9), CELL + 2, 1.4);
+    g.fillStyle = base; g.fill(); g.clip();
+    // 色むら：マスごとに少しだけ明るさを変え、大きなまだらを重ねる
+    var mv = hash(c, r, 50) - 0.5; g.fillStyle = mv > 0 ? 'rgba(255,255,255,' + (mv * 0.09) + ')' : 'rgba(0,0,0,' + (-mv * 0.08) + ')'; g.fillRect(x - 1, y - 1, CELL + 2, CELL + 2);
+    if (hash(c >> 1, r >> 1, 51) > 0.6) { g.fillStyle = alpha(P.terrainDeep, 0.18); ell(g, x + hash(c, r, 52) * CELL, y + hash(c, r, 53) * CELL, 7, 5); g.fill(); }
+    // 大きな岩：マスをまたいで続く（世界の座標で決める）。影の三日月・本体・上のふちの光
+    var BS = 54, gx = Math.floor(x / BS), gy = Math.floor(y / BS), ix, iy;
+    for (ix = gx - 1; ix <= gx + 1; ix++) for (iy = gy - 1; iy <= gy + 1; iy++) {
+      if (hash(ix, iy, 120) < 0.4) continue;
+      var bx2 = ix * BS + hash(ix, iy, 121) * BS, by2 = iy * BS + hash(ix, iy, 122) * BS, rx = 9 + hash(ix, iy, 123) * 13, ry = rx * (0.55 + hash(ix, iy, 124) * 0.3);
+      if (bx2 + rx + 2 < x || bx2 - rx > x + CELL || by2 + ry + 3 < y || by2 - ry > y + CELL) continue;
+      g.fillStyle = 'rgba(0,0,0,.11)'; ell(g, bx2 + 1.4, by2 + 2.2, rx, ry); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.09)'; ell(g, bx2, by2, rx, ry); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = 1; g.beginPath(); g.ellipse(bx2, by2, rx - 1, ry - 1, 0, Math.PI * 1.05, Math.PI * 1.7); g.stroke();
+    }
+    // 地層の線：となりのマスとつながる、ゆるい波
+    var ly = y + 5 + ((r * 7) % 9), wv = function (xx) { return ly + Math.sin((xx + r * 13) * 0.16) * 1.3; };
+    g.strokeStyle = d ? 'rgba(0,0,0,.08)' : P.terrainLine; g.lineWidth = 1.3; g.beginPath(); g.moveTo(x - 1, wv(x - 1)); g.quadraticCurveTo(x + CELL / 2, wv(x + CELL / 2) + 0.6, x + CELL + 1, wv(x + CELL + 1)); g.stroke();
+    g.strokeStyle = d ? 'rgba(255,255,255,.04)' : alpha(P.terrainGrain, 0.6); g.lineWidth = 0.7; g.beginPath(); g.moveTo(x - 1, wv(x - 1) + 1.4); g.lineTo(x + CELL + 1, wv(x + CELL + 1) + 1.4); g.stroke();
+    // 細かい粒（明るいのと暗いの）
+    for (i = 0; i < 6; i++) { var px = x + 1 + hash(c, r, 60 + i) * 16, py = y + 1 + hash(c, r, 70 + i) * 16, pr = 0.45 + hash(c, r, 80 + i) * 0.55;
+      g.fillStyle = i % 2 ? alpha(P.terrainShade, d ? 0.25 : 0.55) : alpha(P.terrainGrain, d ? 0.15 : 0.7); ell(g, px, py, pr, pr); g.fill(); }
+    // 埋まった石
     if (hash(c, r, 1) > 0.55) grain(g, P, m.grain, x + 4 + hash(c, r, 2) * 10, y + 6 + hash(c, r, 3) * 8, 1.6 + hash(c, r, 4) * 1.4, d > 0);
-    if (e.t) { g.fillStyle = P.terrainLight; g.fillRect(x - 1, y, CELL + 2, 4); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x - 1, y, CELL + 2, 1.2); }
-    if (e.b) { g.fillStyle = P.terrainShade; g.fillRect(x - 1, y + CELL - 3, CELL + 2, 3); }
-    if (e.l) { g.fillStyle = 'rgba(255,255,255,.1)'; g.fillRect(x, y, 2, CELL); }
-    if (e.r) { g.fillStyle = 'rgba(0,0,0,.07)'; g.fillRect(x + CELL - 2, y, 2, CELL); }
+    if (!d && hash(c, r, 90) > 0.86) {
+      var sx = x + 5 + hash(c, r, 91) * 8, sy = y + 7 + hash(c, r, 92) * 6, sr = 2.4 + hash(c, r, 93) * 1.6;
+      g.fillStyle = P.terrainShade; ell(g, sx + 0.6, sy + 0.8, sr, sr * 0.8); g.fill();
+      g.fillStyle = P.terrainGrain; ell(g, sx, sy, sr, sr * 0.78); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.45)'; ell(g, sx - sr * 0.35, sy - sr * 0.3, sr * 0.35, sr * 0.22); g.fill();
+    }
+    // ひび（外に出ている面のそばにときどき）
+    if (!d && (e.l || e.r || e.b) && hash(c, r, 95) > 0.8) {
+      var cx = e.l ? x + 1 : e.r ? x + CELL - 1 : x + 4 + hash(c, r, 96) * 10, cy = e.b ? y + CELL - 1 : y + 5 + hash(c, r, 97) * 8, dx = e.l ? 1 : e.r ? -1 : 0, dy = e.b ? -1 : 0;
+      g.strokeStyle = alpha(P.terrainShade, 0.9); g.lineWidth = 0.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy);
+      g.lineTo(cx + dx * 3 + (dy ? 1.5 : 0), cy + dy * 3 + (dx ? 1.5 : 0)); g.lineTo(cx + dx * 5 - (dy ? 1 : 0), cy + dy * 5 + (dx ? 3.5 : 0)); g.stroke();
+    }
+    // 外に出た面：上は光と縁、下は影、左は光、右は影（幅を持たせてやわらかく）
+    if (e.t) {
+      g.fillStyle = P.terrainLight; g.fillRect(x - 1, y, CELL + 2, 4);
+      g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x - 1, y, CELL + 2, 1.2);
+      g.fillStyle = alpha(P.terrainShade, 0.35); for (i = 0; i < 3; i++) { var bx = x + 1 + hash(c, r, 100 + i) * 15; ell(g, bx, y + 4.4, 1.6, 0.8); g.fill(); }
+    }
+    if (e.b) {
+      g.fillStyle = P.terrainShade; g.fillRect(x - 1, y + CELL - 3, CELL + 2, 3);
+      g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(x - 1, y + CELL - 5, CELL + 2, 2);
+    }
+    if (e.l) { var gl = g.createLinearGradient(x, 0, x + 4, 0); gl.addColorStop(0, 'rgba(255,255,255,.22)'); gl.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gl; g.fillRect(x, y, 4, CELL); }
+    if (e.r) { var gr = g.createLinearGradient(x + CELL - 5, 0, x + CELL, 0); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, 'rgba(0,0,0,.16)'); g.fillStyle = gr; g.fillRect(x + CELL - 5, y, 5, CELL); }
     g.restore();
+    // 外に出た面のふちに、うすい濃い線（形がしまって見える）
+    g.strokeStyle = alpha(mixHex(P.terrainShade, '#000000', 0.35), 0.45); g.lineWidth = 0.8; g.beginPath();
+    if (e.l) { g.moveTo(x + 0.4, y + (e.t ? k : 0)); g.lineTo(x + 0.4, y + CELL - (e.b ? k : 0)); }
+    if (e.r) { g.moveTo(x + CELL - 0.4, y + (e.t ? k : 0)); g.lineTo(x + CELL - 0.4, y + CELL - (e.b ? k : 0)); }
+    if (e.b) { g.moveTo(x + (e.l ? k : 0), y + CELL - 0.4); g.lineTo(x + CELL - (e.r ? k : 0), y + CELL - 0.4); }
+    g.stroke();
   }
   function lip(g, P, x, y, c, r) {
     var m = motifOf(P), i;
@@ -259,11 +305,16 @@ window.Kabe = (function () {
     for (i = 0; i <= 6; i++) g.lineTo(x + i * 3, y + 2.2 + (hash(c * 7 + i, r) > 0.5 ? 1.6 : 0.4));
     g.lineTo(x + CELL + 0.5, y - 0.6); g.lineTo(x - 0.5, y - 0.6); g.closePath(); g.fill();
     g.fillStyle = P.accent; g.fillRect(x - 0.5, y - 1, CELL + 1, 2);
+    g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x - 0.5, y - 1, CELL + 1, 0.7);   // 縁の光
     if (m.lip === 'moss' || m.lip === 'grass') {
-      for (i = 0; i < 3; i++) if (hash(c, r, 20 + i) > (m.lip === 'grass' ? 0.3 : 0.55)) {
-        var bx = x + 2 + i * 6 + hash(c, r, 30 + i) * 3; g.strokeStyle = P.accent; g.lineWidth = 1; g.lineCap = 'round';
-        g.beginPath(); g.moveTo(bx, y - 0.5); g.quadraticCurveTo(bx - 1, y - 3, bx + 0.5, y - (m.lip === 'grass' ? 5.5 : 4.5)); g.stroke();
+      var grass = m.lip === 'grass', nb = grass ? 7 : 5;
+      g.lineCap = 'round';
+      for (i = 0; i < nb; i++) if (hash(c, r, 20 + i) > (grass ? 0.25 : 0.45)) {   // 奥の暗い葉 → 手前の明るい葉
+        var bx = x + 1 + i * (CELL / nb) + hash(c, r, 30 + i) * 2, hh = (grass ? 3.5 : 2.5) + hash(c, r, 40 + i) * (grass ? 3.5 : 2.5), lean = (hash(c, r, 45 + i) - 0.5) * 3;
+        g.strokeStyle = i % 2 ? P.accentShade : P.accent; g.lineWidth = i % 2 ? 1.2 : 1;
+        g.beginPath(); g.moveTo(bx, y - 0.5); g.quadraticCurveTo(bx + lean * 0.3, y - hh * 0.6, bx + lean, y - hh); g.stroke();
       }
+      if (hash(c, r, 48) > 0.85) { g.fillStyle = P.terrainGrain; ell(g, x + 4 + hash(c, r, 49) * 10, y - 1.2, 1.6, 1.1); g.fill(); g.fillStyle = P.terrainShade; ell(g, x + 4.4 + hash(c, r, 49) * 10, y - 0.6, 1.2, 0.5); g.fill(); }   // 小石
     } else if (m.lip === 'dust') {
       for (i = 0; i < 2; i++) if (hash(c, r, 40 + i) > 0.6) { var sx2 = x + 4 + i * 8, sy2 = y - 3; g.fillStyle = P.glow; g.beginPath(); g.moveTo(sx2, sy2 - 2); g.lineTo(sx2 + 0.6, sy2); g.lineTo(sx2, sy2 + 2); g.lineTo(sx2 - 0.6, sy2); g.closePath(); g.fill(); }
     }
@@ -274,7 +325,11 @@ window.Kabe = (function () {
     tri(); g.fillStyle = P.terrain; g.fill();
     var a = (k === 'BR' || k === 'TL') ? [x, Y, X, y] : [x, y, X, Y], up = k === 'BR' || k === 'BL';
     g.save(); tri(); g.clip(); g.strokeStyle = up ? P.terrainLight : P.terrainShade; g.lineWidth = 6; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(a[2], a[3]); g.stroke(); g.restore();
-    if (up) { g.strokeStyle = P.accent; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(a[2], a[3]); g.stroke(); }
+    g.save(); tri(); g.clip();
+    for (var i = 0; i < 4; i++) { var px = x + 2 + hash(x, y, 60 + i) * 14, py = y + 2 + hash(x, y, 70 + i) * 14; g.fillStyle = i % 2 ? alpha(P.terrainShade, 0.5) : alpha(P.terrainGrain, 0.7); ell(g, px, py, 0.6, 0.6); g.fill(); }
+    g.restore();
+    if (up) { g.strokeStyle = P.accent; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(a[2], a[3]); g.stroke(); g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(a[0], a[1] - 1); g.lineTo(a[2], a[3] - 1); g.stroke(); }
+    else { g.strokeStyle = alpha(mixHex(P.terrainShade, '#000000', 0.35), 0.45); g.lineWidth = 0.8; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(a[2], a[3]); g.stroke(); }
   }
   function hang(g, P, x, y, len, s) {   // 下の面から垂れるもの（根・霧・結晶）
     var m = motifOf(P), sw = (hash(s, 1) - 0.5) * 6;
@@ -330,6 +385,8 @@ window.Kabe = (function () {
   function spikeTooth(g, P, ty) {
     solid(g, function () { g.beginPath(); g.moveTo(2.5, ty); g.lineTo(14, ty + 3.6); g.quadraticCurveTo(15.2, ty + 4, 14, ty + 4.4); g.lineTo(2.5, ty + 8); g.closePath(); }, P.hazard, P.hazardShade, P.ink, 0.9, 0.85);
     g.fillStyle = P.hazardLight; g.beginPath(); g.moveTo(3.5, ty + 1.2); g.lineTo(12, ty + 3.6); g.lineTo(3.5, ty + 3.4); g.closePath(); g.fill();
+    g.strokeStyle = alpha(P.hazardShade, 0.9); g.lineWidth = 0.6; g.beginPath(); g.moveTo(3.4, ty + 4.6); g.lineTo(12.5, ty + 4.1); g.stroke();   // 稜線
+    g.fillStyle = 'rgba(255,255,255,.85)'; ell(g, 12.6, ty + 3.7, 0.7, 0.5); g.fill();   // 先の光
   }
   function terrain(g, P, G, t, ox, oy) {
     ox = ox || 0; oy = oy || 0; var r, c, k;
@@ -346,6 +403,7 @@ window.Kabe = (function () {
      動きは時間 t だけで決まる（同じ t なら本編も到達チェックも同じ位置になる） ---------- */
   function phase(t, period, offset) { var p = ((t + (offset || 0)) % period + period) % period; return p / period; }
   function smooth(k) { k = Math.min(1, Math.max(0, k)); return k * k * (3 - 2 * k); }
+  function backOut(k) { k = Math.min(1, Math.max(0, k)); var c = 2.2; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); }   // 少し行きすぎて戻る
   // 行って戻る 0→1→0。端で hold の割合だけ止まる
   function slide(t, period, offset, hold) {
     period = period || 3; hold = hold == null ? 0.12 : hold;
@@ -358,15 +416,36 @@ window.Kabe = (function () {
     var p = phase(t, tot, offset) * tot;
     for (i = 0; i < steps.length; i++) { if (p < steps[i][1] || i === steps.length - 1) return { s: steps[i][0], k: Math.min(1, p / steps[i][1]), e: p, d: steps[i][1] }; p -= steps[i][1]; }
   }
-  function metalSolid(g, P, path, off) { solid(g, path, P.metal, P.metalShade, P.ink, off == null ? 1.1 : off, 1.0); }
-  function bolt(g, P, x, y, r) { g.fillStyle = P.metalShade; ell(g, x + 0.3, y + 0.3, r, r); g.fill(); g.fillStyle = P.metalLight; ell(g, x, y, r * 0.7, r * 0.7); g.fill(); }
-  function blade(g, P, path) { solid(g, path, P.hazard, P.hazardShade, P.ink, 0.8, 0.85); }
+  // 鉄：面取りの光（左上）と影（右下）、細いヘアラインの模様を重ねる
+  var hairCache = {};
+  function hairline(g, P) {
+    var key = P.metalLight + P.metalShade; if (hairCache[key]) return hairCache[key];
+    var c = document.createElement('canvas'); c.width = 24; c.height = 24; var q = c.getContext('2d');
+    q.strokeStyle = alpha(P.metalLight, 0.22); q.lineWidth = 0.6;
+    for (var i = -24; i < 48; i += 3.4) { q.beginPath(); q.moveTo(i, 0); q.lineTo(i + 10, 24); q.stroke(); }
+    q.strokeStyle = alpha(P.metalShade, 0.25); for (var j = -22; j < 48; j += 7.3) { q.beginPath(); q.moveTo(j, 0); q.lineTo(j + 10, 24); q.stroke(); }
+    return (hairCache[key] = g.createPattern(c, 'repeat'));
+  }
+  function metalSolid(g, P, path, off) {
+    solid(g, path, P.metal, P.metalShade, P.ink, off == null ? 1.1 : off, 1.0);
+    g.save(); path(); g.clip();
+    var pat = hairline(g, P); if (pat) { g.fillStyle = pat; g.fillRect(-400, -400, 800, 800); }
+    g.lineJoin = 'round';
+    g.translate(0.9, 0.9); path(); g.strokeStyle = alpha(P.metalLight, 0.75); g.lineWidth = 1.3; g.stroke();
+    g.translate(-1.8, -1.8); path(); g.strokeStyle = alpha(mixHex(P.metalShade, '#000000', 0.25), 0.6); g.lineWidth = 1.3; g.stroke();
+    g.restore();
+  }
+  function bolt(g, P, x, y, r) { g.fillStyle = mix(P.metalShade, '#000000', 0.3); ell(g, x + 0.35, y + 0.4, r, r); g.fill(); g.fillStyle = P.metalLight; ell(g, x, y, r * 0.75, r * 0.75); g.fill(); g.fillStyle = 'rgba(255,255,255,.7)'; ell(g, x - r * 0.25, y - r * 0.25, r * 0.28, r * 0.28); g.fill(); }
+  function blade(g, P, path) {
+    solid(g, path, P.hazard, P.hazardShade, P.ink, 0.8, 0.85);
+    g.save(); path(); g.clip(); g.translate(0.7, 0.7); path(); g.strokeStyle = alpha(P.hazardLight, 0.8); g.lineWidth = 1; g.stroke(); g.restore();   // 刃のふちの光
+  }
 
   // 出入りトゲ：引っ込む → 予告（先が少しのぞき、すき間が点滅）→ 出る。痛いのは hurt のときだけ
   function popState(t, o) {
     o = o || {}; var st = cycleState(t, [['in', o.in || 1.4], ['warn', o.warn || 0.6], ['out', o.out || 1.2]], o.offset), a = 0;
     if (st.s === 'warn') a = 0.3 + Math.sin(st.e * 40) * 0.04;
-    if (st.s === 'out') a = Math.min(1, st.e / 0.08) * Math.min(1, (st.d - st.e) / 0.18);
+    if (st.s === 'out') a = backOut(st.e / 0.16) * Math.min(1, (st.d - st.e) / 0.18);   // 勢いよく出て、少し行きすぎて戻る
     st.amount = a; st.hurt = st.s === 'out' && a > 0.5; return st;
   }
   // (x, y) はトゲのマスの左上。dir は spike と同じ（生える壁の側）
@@ -391,6 +470,8 @@ window.Kabe = (function () {
     var sides = axis === 'y' ? [[0, 0, 0, w], [w, h, Math.PI, w]] : [[0, h, -Math.PI / 2, h], [w, 0, Math.PI / 2, h]];
     sides.forEach(function (sd) { g.save(); g.translate(x + sd[0], y + sd[1]); g.rotate(sd[2]); teethRow(g, P, sd[3]); g.restore(); });
     metalSolid(g, P, function () { rr(g, x, y, w, h, 3); }, 1.6);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; rr(g, x + 3, y + 3, w - 6, h - 6, 1.5); g.stroke();   // 補強の板
+    g.strokeStyle = alpha(P.metalLight, 0.5); g.beginPath(); g.moveTo(x + 3.5, y + h - 3.5); g.lineTo(x + w - 3.5, y + 3.5); g.stroke();
     shine(g, x + 4.5, y + 3.5, 2.6, 1.3, 0.35);
     [[3.4, 3.4], [w - 3.4, 3.4], [3.4, h - 3.4], [w - 3.4, h - 3.4]].forEach(function (b) { bolt(g, P, x + b[0], y + b[1], 1.2); });
   }
@@ -491,12 +572,15 @@ window.Kabe = (function () {
     shine(g, bx - 3, by - 3.2, 2.6, 1.5, 0.5);
   }
   // 筒：(x, y) は壁の面の真ん中、dir は撃つ向き（1＝右へ）。lit：撃つ前に口が光る
-  function cannon(g, P, x, y, dir, lit) {
+  function cannon(g, P, x, y, dir, lit, recoil) {
     g.save(); g.translate(x, y); g.scale(dir, 1);
+    var rc = (recoil || 0) * 3.5;
     metalSolid(g, P, function () { g.beginPath(); g.arc(-4, 0, 9, -Math.PI / 2, Math.PI / 2); g.lineTo(-10, 9); g.lineTo(-10, -9); g.closePath(); }, 1);   // 壁にはまった台
+    g.save(); g.translate(-rc, 0);   // 撃った反動で筒が下がる
     metalSolid(g, P, function () { rr(g, -2, -5.5, 10, 11, 2); }, 1);   // 筒
     metalSolid(g, P, function () { rr(g, 6, -7, 4, 14, 1.5); }, 0.6);   // 口の輪
     g.fillStyle = P.ink; ell(g, 9.6, 0, 1.4, 4.2); g.fill();
+    g.restore();
     if (lit) { var gl = g.createRadialGradient(10, 0, 0, 10, 0, 10); gl.addColorStop(0, alpha(P.hazardLight, 0.75)); gl.addColorStop(1, alpha(P.hazardLight, 0)); g.fillStyle = gl; ell(g, 10, 0, 10, 10); g.fill(); }
     bolt(g, P, -6, -5, 1.3); bolt(g, P, -6, 5, 1.3);
     g.restore();
@@ -505,8 +589,8 @@ window.Kabe = (function () {
   // 杭：壁の面 (x0, y) から dir の向きへ、長さ len の amount（0〜1）だけ突き出る。lit：出る前の点滅
   function stakeState(t, o) {
     o = o || {}; var st = cycleState(t, [['in', o.in || 2.0], ['warn', o.warn || 0.7], ['out', o.out || 1.3]], o.offset), a = 0;
-    if (st.s === 'warn') a = 0.08 + Math.sin(st.e * 30) * 0.03;
-    if (st.s === 'out') a = smooth(st.e / 0.12) * smooth((st.d - st.e) / 0.3);
+    if (st.s === 'warn') a = 0.08 + Math.sin(st.e * 30) * 0.03 + Math.max(0, st.e - st.d + 0.2) * -0.3;   // 出る直前に少し引いて溜める
+    if (st.s === 'out') a = backOut(st.e / 0.22) * smooth((st.d - st.e) / 0.3);
     st.amount = a; st.hurt = st.s === 'out' && a > 0.5; return st;
   }
   function stake(g, P, x0, y, dir, len, amount, lit) {
@@ -587,7 +671,7 @@ window.Kabe = (function () {
     if (m.rise === 'lava' || m.rise === 'mud') { g.fillStyle = mix(P.rise, '#000000', 0.3); rr(g, cx - cw / 2, cy - 2, cw, 4, 2); g.fill(); if (m.rise === 'lava') { g.strokeStyle = P.riseTop; g.lineWidth = 0.8; g.beginPath(); g.moveTo(cx - cw * 0.2, cy - 1.5); g.lineTo(cx, cy + 0.2); g.lineTo(cx + cw * 0.25, cy - 1); g.stroke(); } }
     else if (m.rise === 'poison') {   // 毒の沼：ふくらんではじける泡と、暗いしみ
       var bk = ((t * 0.6 + hash(i, 4)) % 1), br = (0.15 + bk * 0.35) * cw;
-      g.fillStyle = alpha(mix(P.rise, '#000000', 0.35), 0.6); ell(g, cx + cw * 0.3, cy + 3, cw * 0.35, 1.8); g.fill();
+      g.fillStyle = alpha(mixHex(P.rise, '#000000', 0.35), 0.6); ell(g, cx + cw * 0.3, cy + 3, cw * 0.35, 1.8); g.fill();
       if (bk < 0.92) { g.fillStyle = alpha(P.riseLight, 0.55); ell(g, cx, cy, br, br * 0.9); g.fill(); g.strokeStyle = P.riseTop; g.lineWidth = 0.9; ell(g, cx, cy, br, br * 0.9); g.stroke(); g.fillStyle = 'rgba(255,255,255,.6)'; ell(g, cx - br * 0.35, cy - br * 0.35, br * 0.22, br * 0.18); g.fill(); }
     }
     else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
@@ -962,14 +1046,14 @@ window.Kabe = (function () {
     [-17, 17].forEach(function (dx) { solid(g, function () { rr(g, dx - 2, 30, 4, 12, 1.5); }, P.metal, P.metalShade, P.ink, 0.5, 1); });
     solid(g, function () { g.beginPath(); g.moveTo(-20, 14); g.lineTo(20, 14); g.lineTo(16, 18); g.lineTo(-16, 18); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.5, 1);   // 受け皿
     var body = function () { g.beginPath(); g.moveTo(-6, -40); g.lineTo(-6, -24); g.bezierCurveTo(-28, -20, -30, 14, 0, 15); g.bezierCurveTo(30, 14, 28, -20, 6, -24); g.lineTo(6, -40); g.closePath(); };
-    var gg = g.createRadialGradient(-6, -8, 2, 0, -2, 30); gg.addColorStop(0, alpha(mix(liq, '#ffffff', 0.7), 0.22)); gg.addColorStop(1, alpha(P.uiInk, 0.06));
+    var gg = g.createRadialGradient(-6, -8, 2, 0, -2, 30); gg.addColorStop(0, alpha(mixHex(liq, '#ffffff', 0.7), 0.22)); gg.addColorStop(1, alpha(P.uiInk, 0.06));
     body(); g.fillStyle = gg; g.fill();   // ガラス（中の光が映る）
     g.save(); body(); g.clip();
     var lv = -6 - spin * 2, wv = function (xx) { return lv + Math.sin(xx * 0.25 + t * (3 + spin * 8)) * (1 + spin * 2.5); }, xx;
     g.beginPath(); g.moveTo(-32, 20); for (xx = -32; xx <= 32; xx += 2) g.lineTo(xx, wv(xx)); g.lineTo(32, 20); g.closePath();
-    var lg = g.createLinearGradient(0, lv - 4, 0, 16); lg.addColorStop(0, alpha(mix(liq, '#ffffff', 0.35), 0.85)); lg.addColorStop(0.5, alpha(liq, 0.72)); lg.addColorStop(1, alpha(mix(liq, '#000000', 0.35), 0.85)); g.fillStyle = lg; g.fill();   // 光の液
+    var lg = g.createLinearGradient(0, lv - 4, 0, 16); lg.addColorStop(0, alpha(mixHex(liq, '#ffffff', 0.35), 0.85)); lg.addColorStop(0.5, alpha(liq, 0.72)); lg.addColorStop(1, alpha(mixHex(liq, '#000000', 0.35), 0.85)); g.fillStyle = lg; g.fill();   // 光の液
     g.globalCompositeOperation = 'lighter'; glowAt(g, P, Math.sin(t * 1.3) * 4, 4, 16 + spin * 6, 0.35 + spin * 0.35, mix(liq, '#ffffff', 0.4)); g.globalCompositeOperation = 'source-over';
-    g.fillStyle = alpha(mix(liq, '#000000', 0.5), 0.35); g.beginPath(); g.moveTo(10, 15); g.bezierCurveTo(28, 10, 30, -14, 16, -20); g.bezierCurveTo(24, -6, 22, 8, 8, 15); g.closePath(); g.fill();   // 右の奥の影
+    g.fillStyle = alpha(mixHex(liq, '#000000', 0.5), 0.35); g.beginPath(); g.moveTo(10, 15); g.bezierCurveTo(28, 10, 30, -14, 16, -20); g.bezierCurveTo(24, -6, 22, 8, 8, 15); g.closePath(); g.fill();   // 右の奥の影
     g.beginPath(); for (xx = -32; xx <= 32; xx += 2) g.lineTo(xx, wv(xx)); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.2; g.stroke();
     for (i = 0; i < 6 + spin * 8; i++) { var k = (t * (0.6 + spin * 1.6) + i * 0.29) % 1; g.strokeStyle = 'rgba(255,255,255,' + (0.7 * (1 - k)) + ')'; g.lineWidth = 0.9; ell(g, -14 + ((i * 11) % 28), 12 - k * (18 + spin * 4), 1.2 + k, 1.2 + k); g.stroke(); }   // 泡
     for (i = 0; i < 3; i++) { var a2 = t * (0.8 + spin * 3) + i * 2.1; mote(g, P, Math.cos(a2) * 10, 2 + Math.sin(a2) * 5, t, 0.4, i); }   // 中の結晶
@@ -978,7 +1062,7 @@ window.Kabe = (function () {
     g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -4, 15.5, Math.PI * 0.72, Math.PI * 0.9); g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-3.6, -38); g.lineTo(-3.6, -27); g.stroke();   // 首の光
     g.fillStyle = 'rgba(255,255,255,.8)'; ell(g, 10, -12, 1.7, 1.7); g.fill(); twinkle(g, -11, -10, 2.6 + Math.sin(t * 2.5) * 1, 0.7);
-    g.strokeStyle = alpha(mix(liq, '#ffffff', 0.5), 0.55); g.lineWidth = 3; body(); g.stroke();   // ふちに液の色が映る
+    g.strokeStyle = alpha(mixHex(liq, '#ffffff', 0.5), 0.55); g.lineWidth = 3; body(); g.stroke();   // ふちに液の色が映る
     g.strokeStyle = P.ink; g.lineWidth = 1.5; body(); g.stroke();
     solid(g, function () { rr(g, -8, -46, 16, 7, 2); }, P.terrainShade, P.terrainDeep, P.ink, 0.6, 1);   // 栓
     if (spin > 0.2) for (i = 0; i < 3; i++) { var sk = (t * (0.5 + spin) + i / 3) % 1; g.fillStyle = alpha(P.uiInk, 0.3 * spin * (1 - sk)); ell(g, Math.sin(sk * 6 + i) * 4, -50 - sk * 30, 3 + sk * 6, 3 + sk * 6); g.fill(); }   // 湯気

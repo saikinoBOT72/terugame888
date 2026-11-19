@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.27b';
+const VERSION = '2026.11.28b';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -284,7 +284,7 @@ const FAN = { acc: 1000, max: 230 };
 const CLING = { hold: 2, wobble: 2, push: 50 };
 // 地上の仕掛け：振り子（鎖の長さ・ゆれの角度・周期・鉄球の当たり）、筒（撃つ間隔・弾の速さ・光る秒・弾の当たり）、
 // バネ（上への速さ）、崩れる足場（ぐらつく秒・となりのマスへ伝わる秒・消えている秒・組み上がる秒）
-const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5, ballHit: 5.5, springV: 470, crumbleWarn: 0.6, crumbleStep: 0.12, crumbleGone: 3, crumbleGrow: 0.3 };
+const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5, ballHit: 5.5, springV: 470, crumbleWarn: 0.6, crumbleStep: 0.12, crumbleGone: 8, crumbleGrow: 0.3 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -806,6 +806,7 @@ function update(dt) {
   crumbleTouch();
   if (ev === 'spring') {   // バネ：縮んで、真上へ
     sfx.spring(); P.squash = -0.4; G.kickT = 0.14; A.kickPose = 'kick'; startFlip();
+    for (let i = 0; i < 8; i++) { const a = Math.PI * (i / 7); particles.push({ kind: 'cloud', x: P.x, y: P.y + HB, vx: Math.cos(a) * 80, vy: -Math.sin(a) * 25, life: 0.35, max: 0.35, r: 2.5 }); }
     for (const dx of [-HB + 2, HB - 2]) world.springHit[Math.floor((P.x + dx) / CELL) + ',' + Math.floor(-(P.y + HB + 2) / CELL)] = G.time;
     kickLines(P.x, P.y, 0, -400);
   }
@@ -897,7 +898,14 @@ function updateObstacles() {
     if (o.type === 'bridge') {   // 跳ね橋：下りている間だけ乗れる（押し出しは上下だけ）
       o.st = Kabe.bridgeState(t, { offset: o.offset });
       o.om = o.angT != null && t > o.angT ? (o.st.ang - o.ang) / (t - o.angT) : 0; o.ang = o.st.ang; o.angT = t;   // 角度と回る速さ（押すとき使う）
-      if (o.st.solid) { const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len); rectEdges(o, a, o.y - 4.5, b, o.y + 4.5, true); }
+      if (o.st.solid) {
+        const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len);
+        const over = P.x + HB - 1 > a && P.x - HB + 1 < b && P.y + HB - 1 > o.y - 4.5 && P.y - HB + 1 < o.y + 4.5;   // 下りきった瞬間に体と重なっていたら、離れるまで板の面を作らない（急に押し出さない）
+        if (over && !o.wasSolid) o.ghost = true; else if (!over) o.ghost = false;
+        if (!o.ghost) rectEdges(o, a, o.y - 4.5, b, o.y + 4.5, true);
+      }
+      if (o.st.solid && o.wasSolid === false) for (let i = 0; i < 3; i++) impact(o.x0 + o.dir * o.len * (0.3 + i * 0.3), o.y + 4, 'y', 1, i > 0);   // 下りきった瞬間
+      o.wasSolid = o.st.solid;
       continue;
     }
     if (o.type === 'cannon') {   // 筒：撃った瞬間に音と煙（画面に見えているときだけ）
@@ -929,15 +937,26 @@ function updateObstacles() {
     }
     if (o.axis) {   // 箱：4つの面とも壁。トゲの面に触れると痛い（obstacleHit）。乗る・張り付くと運ばれる
       const k = Kabe.slide(t, o.period, o.offset), cx = o.x0 + (o.x1 - o.x0) * k, cy = o.y0 + (o.y1 - o.y0) * k;
+      const end = k <= 0.0005 ? 0 : k >= 0.9995 ? 1 : -1;   // 端に着いた瞬間：土ぼこりと小さな音
+      if (end >= 0 && o.end !== end && o.end != null) impact(o.axis === 'x' ? cx + (end ? 1 : -1) * o.w / 2 : cx, o.axis === 'y' ? cy + (end ? -1 : 1) * o.h / 2 : cy, o.axis, end ? 1 : -1);
+      o.end = end;
       o.dx = o.cx == null ? 0 : cx - o.cx; o.dy = o.cx == null ? 0 : cy - o.cy; o.cx = cx; o.cy = cy; o.carry = true;
       rectEdges(o, cx - o.w / 2, cy - o.h / 2, cx + o.w / 2, cy + o.h / 2, true);
     } else if (o.type === 'shutter') {   // シャッター：閉じた板の上に乗れる（押し出しは上下だけ）
       const st = Kabe.shutterState(t, { offset: o.offset }), len = ((o.x1 - o.x0) / 2 - 3) * st.close;
+      if (st.close >= 0.999 && !(o.prevClose >= 0.999)) impact((o.x0 + o.x1) / 2, o.y, 'x', 0);   // 閉まった瞬間
+      o.prevClose = st.close;
       if (len > 2) { rectEdges(o, o.x0 + 3, o.y - 4.5, o.x0 + 3 + len, o.y + 4.5, false); rectEdges(o, o.x1 - 3 - len, o.y - 4.5, o.x1 - 3, o.y + 4.5, false); }
     }
   }
 }
 // 筒の鉄球の x の一覧（時間だけで決まる。反対の壁に着いたら消える）
+// ぶつかった瞬間の演出（土ぼこり・小さな音・ほんの少しの揺れ）。画面に見えているときだけ
+function impact(x, y, axis, dir, quiet) {
+  if (Math.abs(y - (cam.y + H / 2)) > H / 2 + 30) return;
+  for (let i = 0; i < 4; i++) particles.push({ kind: 'dust', x: x + (Math.random() - 0.5) * 6, y: y + (Math.random() - 0.5) * 6, vx: axis === 'x' ? dir * (20 + Math.random() * 40) + (Math.random() - 0.5) * 20 : (Math.random() - 0.5) * 70, vy: axis === 'y' ? -dir * (10 + Math.random() * 30) : -10 - Math.random() * 20, life: 0.4, max: 0.4, r: 1.4 + Math.random() * 1.6 });
+  if (!quiet) { sfx.clank(); if (Math.abs(P.y - y) < 120) shake(1.2); }
+}
 // 跳ね橋が動いているあいだ：板に重なった体を板の外へ押し出し、板の動く速さをうつす（乗ったまま上がると上へはじかれる）
 function bridgePush() {
   for (const o of world.obs) {
@@ -952,6 +971,10 @@ function bridgePush() {
     // 板のその点の速さ（蝶番のまわりを回る）。体の方へ向かっているときだけ押す
     const pvx = -o.dir * u * o.len * sa * o.om, pvy = -u * o.len * ca * o.om, vn = pvx * nx + pvy * ny;
     if (vn <= 0) continue;
+    // 押した先が壁なら押さない（橋と壁にはさまれたら板が体をすり抜ける。壁の中へは押しこまない）
+    const tb = { x: P.x + nx * (R - d), y: P.y + ny * (R - d), vx: 0, vy: 0 }, res = { floor: false, ceil: false, ceilV: 0, walls: [] }, ox = tb.x, oy = tb.y, dyn = world.dynEdges;
+    world.dynEdges = []; collide(world, tb, res); world.dynEdges = dyn;
+    if ((tb.x - ox) * nx + (tb.y - oy) * ny < -1.5) continue;
     P.x += nx * (R - d); P.y += ny * (R - d);
     const push = Math.min(vn, 460), bv = P.vx * nx + P.vy * ny;
     if (bv < push) { P.vx += (push - bv) * nx; P.vy += (push - bv) * ny; }
@@ -1279,11 +1302,15 @@ function surfaceDraw(sp, seg, vis) {
     if (!vis(o.yMid)) continue;
     if (o.type === 'pend') {
       const a = Kabe.pendAngle(t, pendOpt(o)), L = o.len + 14;
+      const om = Math.abs(Kabe.pendAngle(t + 0.03, pendOpt(o)) - a);
+      if (om > 0.025) for (let j = 2; j >= 1; j--) { const aj = Kabe.pendAngle(t - j * 0.045, pendOpt(o)), bx = o.x + Math.sin(aj) * o.len, by = o.y + Math.cos(aj) * o.len; sp(null, bx, by, [-14, -14, 14, 14], () => { ctx.fillStyle = PAL.hazard; ctx.beginPath(); ctx.arc(bx, by, 10.5, 0, Math.PI * 2); ctx.fill(); }, (0.22 / j) * Math.min(1, om * 12)); }   // 速いときだけ残像
       sp(null, o.x, o.y, [-L, -8, L, L], () => Kabe.pendulum(ctx, PAL, o.x, o.y, o.len, a));
     } else if (o.type === 'cannon') {
       const ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod, lit = ph > SURF.canPeriod - SURF.canWarn && ph % 0.2 < 0.1;
       for (const bx of cannonBalls(o, t)) sp('cball', bx, o.y, [-8, -8, 8, 8], () => Kabe.cannonBall(ctx, PAL, bx, o.y));
-      sp(`can|${o.dir}|${lit}`, o.x, o.y, [-24, -12, 24, 12], () => Kabe.cannon(ctx, PAL, o.x, o.y, o.dir, lit));
+      const rc = ph < 0.22 ? 1 - ph / 0.22 : 0;
+      sp(rc ? null : `can|${o.dir}|${lit}`, o.x, o.y, [-24, -12, 24, 12], () => Kabe.cannon(ctx, PAL, o.x, o.y, o.dir, lit, rc));
+      for (const bx of cannonBalls(o, t)) for (let j = 1; j <= 2; j++) sp(null, bx - o.dir * j * 5, o.y, [-8, -8, 8, 8], () => Kabe.cannonBall(ctx, PAL, bx - o.dir * j * 5, o.y), 0.3 / j);   // 鉄球の残像
     } else if (o.type === 'stake') {
       const st = o.st || Kabe.stakeState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.24 < 0.12, still = st.amount === 0 || st.amount === 1;
       sp(still ? `stake|${o.dir}|${o.len}|${st.amount}|${lit}` : null, o.x0, o.y, [-o.len - 14, -12, o.len + 14, 12], () => Kabe.stake(ctx, PAL, o.x0, o.y, o.dir, o.len, st.amount, lit));
@@ -1312,10 +1339,14 @@ function drawObstacles() {
       const ex = o.axis === 'x' ? o.w / 2 : 0, ey = o.axis === 'y' ? o.h / 2 : 0;
       Kabe.track(ctx, PAL, o.x0 - ex, o.y0 + ey, o.x1 + ex, o.y1 - ey);
       Kabe.ironBox(ctx, PAL, o.cx - o.w / 2, o.cy - o.h / 2, o.w, o.h, o.axis);
-    } else if (o.type === 'spin') Kabe.spinner(ctx, PAL, o.x, o.y, o.len, Kabe.spinAngle(t, o.speed));
+    } else if (o.type === 'spin') {
+      const a = Kabe.spinAngle(t, o.speed);
+      for (let j = 2; j >= 1; j--) { ctx.globalAlpha = 0.2 / j; Kabe.spinner(ctx, PAL, o.x, o.y, o.len, a - o.speed * j * 0.035); }
+      ctx.globalAlpha = 1; Kabe.spinner(ctx, PAL, o.x, o.y, o.len, a);
+    }
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
-  surfaceDraw((key, x, y, bb, fn) => { ctx.save(); fn(); ctx.restore(); },
+  surfaceDraw((key, x, y, bb, fn, a) => { ctx.save(); if (a != null) ctx.globalAlpha = a; fn(); ctx.restore(); },
     (x0, y0, x1, y1, r, col, a) => { ctx.strokeStyle = rgba(col, a); ctx.lineWidth = r * 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }, vis);
 }
 // 結晶（カタログの Kabe.mote）。ゆっくり上下する
@@ -1556,6 +1587,7 @@ function obstaclesGL() {
     } else if (o.type === 'spin') {
       const a = Kabe.spinAngle(t, o.speed), c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
       const hx = Math.max(o.len * c + 2.8 * s, 6) + 4, hy = Math.max(o.len * s + 2.8 * c, 6) + 4;
+      for (let j = 2; j >= 1; j--) { const aj = a - o.speed * j * 0.035; wspr(null, o.x, o.y, [-o.len - 6, -o.len - 6, o.len + 6, o.len + 6], () => Kabe.spinner(ctx, PAL, o.x, o.y, o.len, aj), 0.2 / j); }   // 回る残像
       wspr(null, o.x, o.y, [-hx, -hy, hx, hy], () => Kabe.spinner(ctx, PAL, o.x, o.y, o.len, a));
     } else if (o.type === 'shutter') {
       const st = Kabe.shutterState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.3 < 0.15, still = st.close === 0 || st.close === 1;
@@ -2060,6 +2092,22 @@ const glfx = (() => {
 })();
 FX.ok = !!glfx && store.get('kabe_shader', true);
 // 光の点（画面の座標）：おばけ・結晶・光るキノコ・ガチャ所。近い順に FX.maxLights まで
+// 障害物の光：筒の閃光と鉄球、予告ランプの点滅、バネが跳ねた瞬間
+function obstacleLights(out, cy, inView, k) {
+  const t = G.time, warnC = Kabe.mix(PAL.hazardLight, PAL.glow, 0.35), add = (x, y, r, i, c) => out.push({ x, y: y - cy, r, i: i * k, c });
+  for (const o of world.obs) {
+    if (!inView(o.yMid, 80)) continue;
+    if (o.type === 'cannon') {
+      const ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod;
+      if (ph < 0.18) add(o.x + o.dir * 12, o.y, 120, 1.1 * (1 - ph / 0.18), '#fff1d6');
+      else if (ph > SURF.canPeriod - SURF.canWarn && ph % 0.2 < 0.1) add(o.x + o.dir * 8, o.y, 46, 0.6, warnC);
+      for (const bx of cannonBalls(o, t)) add(bx, o.y, 38, 0.3, PAL.hazardLight);
+    } else if (o.type === 'stake' && o.st && o.st.s === 'warn' && o.st.e % 0.24 < 0.12) add(o.x0 + o.dir * 4, o.y, 52, 0.6, warnC);
+    else if (o.type === 'bridge' && o.st && o.st.s === 'warn' && o.st.e % 0.3 < 0.15) add(o.x0 + o.dir, o.y - 12, 48, 0.6, warnC);
+    else if (o.type === 'shutter') { const st = Kabe.shutterState(t, { offset: o.offset }); if (st.s === 'warn' && st.e % 0.3 < 0.15) { add(o.x0 + 2, o.y - 11, 44, 0.55, warnC); add(o.x1 - 2, o.y - 11, 44, 0.55, warnC); } }
+  }
+  for (const s2 of world.springs) { const hit = world.springHit[s2.c + ',' + s2.r]; if (hit != null && t - hit < 0.35 && inView(s2.y, 60)) add(s2.x + CELL / 2, s2.y, 90, 0.9 * (1 - (t - hit) / 0.35), PAL.glow); }
+}
 function collectLights() {
   const out = [], cy = cam.y, inView = (y, r) => y - cy > -r && y - cy < H + r;
   if (state !== 'dying' && state !== 'end') out.push({ x: P.x, y: P.y - cy, r: 130, i: 0.55, c: '#fff6ec' });
@@ -2076,6 +2124,7 @@ function collectLights() {
   for (const q of particles) if (q.kind === 'ember' && out.length < FX.maxLights * 2) out.push({ x: q.x, y: q.y - cy, r: 18, i: 0.5 * q.life / q.max, c: PAL.riseLight });
   const px = P.x, py = P.y - cy;
   const lk = PAL.lightK == null ? 1 : PAL.lightK; if (lk !== 1) for (const l of out) l.i *= lk;   // 地上は明るいので光を弱める
+  obstacleLights(out, cy, inView, Math.max(0.75, lk));
   return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
 }
 function renderFx(src) {
@@ -2211,6 +2260,7 @@ const sfx = {
   crack() { noise(0.06, 0.04, 800, 3000); tone(200, 0.06, 'triangle', 0.05, 150); },
   crumble() { noise(0.25, 0.06, 200, 1600); tone(120, 0.2, 'sine', 0.06, 70); },
   cannon() { noise(0.12, 0.05, 150, 900); tone(110, 0.15, 'sine', 0.08, 60); },
+  clank() { tone(520, 0.06, 'triangle', 0.03, 380); noise(0.03, 0.015, 1500, 5000); },
   hurt() { tone(420, 0.3, 'triangle', 0.12, 160, 0, 0.003); tone(400, 0.3, 'triangle', 0.08, 150, 0.02, 0.003); },
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
   lava() { tone(240, 0.9, 'sine', 0.14, 60, 0, 0.01); noise(0.8, 0.05, 100, 900); },
