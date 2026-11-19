@@ -170,7 +170,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19f';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19g';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -189,22 +189,22 @@ const MOVE = {
 const CELL = 18, COLS = 20;          // 1マス18px、横20マス
 const W = CELL * COLS, H = 640;
 const R = 11, HB = 10, HIT = 8;      // 見た目の半径 / 地形との当たり / トゲ・敵との当たり
-const PX_PER_M = 15;                 // 1m＝15px（体感に合わせて、もとの60pxの4倍の数字が出る）
+const PX_PER_M = 240;                // 1m＝240px（体感に合わせて、はじめの60pxの4倍の長さ。数字は1/4）
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
 
 const MAX_HP = 3, INVINCIBLE = 1.1;
-const LAVA = { delay: 3, speed: 30 };   // 一定の速さ（px/秒）。追いつき・加速なし
+const LAVA = { delay: 3, speed: 50 };   // 一定の速さ（px/秒）。追いつき・加速なし
 // 障害物：箱の大きさ、回る棒の長さ、出入りトゲ q のずれ（秒）、トゲの面の厚み、扇風機の押す強さ
 const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1.6, teeth: 5 };
 const FAN = { acc: 1000, max: 230 };
 // 壁に hold 秒ついていると wobble 秒グラグラして、反対向きに push px/秒で離れて落ちる（すべりの水晶があれば、ゆっくり滑り落ちる）
-const CLING = { hold: 5, wobble: 2, push: 50 };
+const CLING = { hold: 3, wobble: 2, push: 50 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
 // lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate（0.1＝10mで1個）
-const GACHA = { every: 200, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 40, lavaRate: 0.025 };
+const GACHA = { every: 12.5, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 2.5, lavaRate: 0.4 };
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
@@ -215,7 +215,7 @@ const GEMS = {
   triple: { name: '3段ジャンプ', short: '3段', star: 2, lv: [{ cd: 8 }, { cd: 5 }, { cd: 3 }],
     desc: v => `空中でもう1回跳べる。使ったら${v.cd}秒でたまる` },
   slide: { name: 'かべすべり', short: 'すべり', star: 1, lv: [{ v: 45 }, { v: 28 }, { v: 15 }],
-    desc: v => `グラグラした壁から落ちずに、ゆっくり滑り落ちる（${Math.round(v.v / PX_PER_M * 10) / 10}m/秒）` },
+    desc: v => `グラグラした壁から落ちずに、ゆっくり滑り落ちる（1秒に${Math.round(v.v / CELL * 10) / 10}マス）` },
   predict: { name: '予測線', short: '予測', star: 2, lv: [{ t: 0.5, air: false }, { t: 1.1, air: false }, { t: 1.1, air: true }],
     desc: v => `${v.air ? '蹴りと2段ジャンプ' : '蹴り'}でどう跳ぶかの線が出る（${v.t}秒先まで）` },
   turn: { name: '振り向き', short: '振向', star: 3, lv: [{ on: 1 }, { on: 2 }, { on: 3 }],
@@ -708,7 +708,7 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 /* ---------- 高さ100mごとのプール ---------- */
 const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_zigzag', 'z1_longwall', 'z1_sideleft'] },
-  { from: 400, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
+  { from: 25, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
@@ -1047,7 +1047,7 @@ function nextPiece() {
   const recent = world.placed.slice(-2).map(p => p.id);
   let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
   if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));
-  const within = (m - pool.from) / 400;   // プールの中で上に行くほど難しいパーツが出やすい
+  const within = (m - pool.from) / 25;   // プールの中で上に行くほど難しいパーツが出やすい
   const wt = id => { const d = PIECES[id].diff; return d <= 1 + within * 2.5 ? 1 : 0.25; };
   let r = Math.random() * cands.reduce((s, id) => s + wt(id), 0);
   for (const id of cands) if ((r -= wt(id)) < 0) return id;
@@ -1136,7 +1136,7 @@ function update(dt) {
   P.squash += (0 - P.squash) * Math.min(1, dt * 10);
   updatePose(dt);
   G.best = Math.max(G.best, heightM());
-  if (Math.floor(G.best / 50) > G.mark) { G.mark = Math.floor(G.best / 50); sfx.tick(); floaters.push({ text: G.mark * 50 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
+  if (Math.floor(G.best / 5) > G.mark) { G.mark = Math.floor(G.best / 5); sfx.tick(); floaters.push({ text: G.mark * 5 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
 
   cam.y += (P.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
   cam.y = Math.min(cam.y, 60 - H);
@@ -1466,7 +1466,7 @@ function drawHud() {
     ctx.fillStyle = cool ? PAL.uiMuted : PAL.glow; ctx.fillText(txt, W - HUD_GAP - ew / 2, ey + 10.5);
   });
   if (state === 'play' && G.lavaY > cam.y + H) {
-    const m = Math.max(0, Math.round((G.lavaY - P.y) / PX_PER_M)), txt = `▼ 溶岩まで ${m}m`, near = m < 24;
+    const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ 溶岩まで ${m.toFixed(1)}m`, near = m < 1.5;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
     pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.rise : null);
     ctx.fillStyle = near ? PAL.ink : PAL.uiInk; ctx.fillText(txt, W / 2, H - HUD_GAP - 10.5);
@@ -1557,11 +1557,11 @@ const sfx = {
 /* ---------- menus & loop ---------- */
 const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
-function renderBest() { const b = store.get('kabe_best4', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
+function renderBest() { const b = store.get('kabe_bestm', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
 function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
-  const m = Math.floor(G.best), best = store.get('kabe_best4', 0);
-  if (m > best) store.set('kabe_best4', m);
+  const m = Math.floor(G.best), best = store.get('kabe_bestm', 0);
+  if (m > best) store.set('kabe_bestm', m);
   $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
@@ -1580,7 +1580,7 @@ function renderGacha() {
   $('gCrys').textContent = `結晶 ${Math.floor(G.crystals)}`;
   const b = $('btnRoll'); b.textContent = `回す（結晶${GACHA.cost}）`; b.disabled = G.crystals < GACHA.cost;
   const lv = $('btnLava'), gain = lavaGain();
-  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${Math.round(lavaDist())}m（${GACHA.lavaTo + Math.ceil(1 / GACHA.lavaRate)}m以上はなれていれば交換できる）`; lv.disabled = gain <= 0;
+  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`; lv.disabled = gain <= 0;
   const list = $('gList'); list.textContent = '';
   const ids = Object.keys(G.gems);
   if (!ids.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'まだ水晶がない'; list.append(p); }
@@ -1669,7 +1669,7 @@ function loop(now) {
   draw();
   requestAnimationFrame(loop);
 }
-if (store.get('kabe_best4', null) == null && store.get('kabe_best', 0)) store.set('kabe_best4', store.get('kabe_best', 0) * 4);   // 1m の長さを変えたので、前の記録を4倍にして引き継ぐ
+if (store.get('kabe_bestm', null) == null && store.get('kabe_best', 0)) store.set('kabe_bestm', Math.floor(Math.max(store.get('kabe_best', 0) / 4, store.get('kabe_best4', 0) / 16)));   // 1m の長さを変えたので、前の記録を1/4にして引き継ぐ
 resize(); renderBest(); newGame();
 if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS Rounded 1c"`).catch(() => {});
 requestAnimationFrame(loop);
