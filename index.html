@@ -106,7 +106,10 @@
   .ghead h2 { font-size: calc(var(--u) * 20px); }
   .coins { display: inline-flex; align-items: center; gap: calc(var(--u) * 2px); background: rgba(0,0,0,.22); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 12px) calc(var(--u) * 2px) calc(var(--u) * 4px); font-weight: 800; font-size: calc(var(--u) * 15px); font-variant-numeric: tabular-nums; }
   .uic { display: block; }
-  .gstage { width: calc(var(--u) * 288px); height: calc(var(--u) * 118px); border-radius: calc(var(--u) * 14px); background: rgba(0,0,0,.22); }
+  .gstage { width: calc(var(--u) * 288px); height: calc(var(--u) * 118px); border-radius: calc(var(--u) * 14px);
+    background: radial-gradient(ellipse 60% 75% at 50% 62%, color-mix(in srgb, var(--glow) 16%, transparent), transparent 70%),
+      linear-gradient(180deg, rgba(0,0,0,.34), rgba(0,0,0,.14) 70%, rgba(255,255,255,.04));
+    box-shadow: inset 0 calc(var(--u) * 2px) calc(var(--u) * 10px) rgba(0,0,0,.35), inset 0 -1px 0 rgba(255,255,255,.06); }
   .gresult { min-height: 1.6em; font-weight: 800; color: var(--cream) !important; font-size: calc(var(--u) * 13px); }
   .gresult .st { color: var(--tone, var(--teal)); margin-right: .3em; }
   .gresult .tag { color: var(--teal); font-size: .85em; margin-left: .4em; }
@@ -139,13 +142,17 @@
   .gtile .lv { display: flex; gap: calc(var(--u) * 3px); margin-top: calc(var(--u) * 2px); }
   .gtile .lv i { width: calc(var(--u) * 5px); height: calc(var(--u) * 5px); border-radius: 50%; background: rgba(255,244,230,.22); }
   .gtile .lv i.f { background: var(--tone); }
-  .gtile.on { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); }
+  .gtile { background: radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--tone) 22%, transparent), transparent 62%), rgba(0,0,0,.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), inset 0 calc(var(--u) * -6px) calc(var(--u) * 10px) rgba(0,0,0,.18); }
+  .gtile.on { border-color: var(--tone); background: radial-gradient(circle at 50% 34%, color-mix(in srgb, var(--tone) 34%, transparent), transparent 66%), color-mix(in srgb, var(--tone) 12%, rgba(0,0,0,.2));
+    box-shadow: 0 0 calc(var(--u) * 12px) color-mix(in srgb, var(--tone) 40%, transparent), inset 0 1px 0 rgba(255,255,255,.1); }
   .gtile.on::after { content: '装備'; position: absolute; top: calc(var(--u) * -6px); right: calc(var(--u) * -4px); font-size: calc(var(--u) * 9px); font-weight: 800; color: var(--ink); background: var(--tone); border-radius: 999px; padding: 0 calc(var(--u) * 6px); }
   .gtile.empty { cursor: default; opacity: .5; border: 2px dashed rgba(255,244,230,.18); background: transparent; min-height: calc(var(--u) * 62px); align-content: center; font-size: calc(var(--u) * 10px); color: var(--dim); }
   .gtile:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
   .gdesc { min-height: 2.9em; font-size: calc(var(--u) * 11.5px); line-height: 1.45; text-align: left; width: 100%; }
   .gdesc b { color: var(--cream); }
   .gshow { position: absolute; inset: 0; z-index: 5; cursor: pointer; touch-action: none; }
+  .gshowfx { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; }
   .rollRow { display: flex; gap: calc(var(--u) * 8px); width: 100%; justify-content: center; }
   .rollRow .btn { padding-left: calc(var(--u) * 20px); padding-right: calc(var(--u) * 20px); }
   .btn.alt { background: var(--teal); box-shadow: 0 calc(var(--u) * 4px) 0 color-mix(in srgb, var(--teal) 55%, #000); }
@@ -2083,6 +2090,10 @@ uiCanvas($('gStage'), (g, t, w, h) => {
     Kabe.gemBurst(g, PAL, st, cx, cy - 6, t, k);
     Kabe.gem(g, PAL, id, st, cx, cy - 6 + (1 - k) * 26 + Math.sin(t * 2) * 1.5, 1.2 + k * 1.2, t);
   } else { g.save(); g.translate(cx, 62); g.scale(0.85, 0.85); Kabe.gachaFlask(g, PAL, 0, 0, t, 0.15); g.restore(); }
+  // 浮かぶ光の粒（棚のまわりの空気）
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 9; i++) { const ph = (t * (0.06 + (i % 3) * 0.03) + i * 0.13) % 1, x = (i * 53.7) % w, y = h * (1 - ph); g.globalAlpha = Math.sin(ph * Math.PI) * 0.7; Kabe.twinkle(g, x, y, 1.2 + (i % 3) * 0.6, 0.8); }
+  g.restore();
 });
 function updateGacha(dt) { gacha.t += dt; updateShow(dt); }
 function openGacha() {
@@ -2194,6 +2205,7 @@ function showTap() {
 $('gShow').addEventListener('pointerdown', e => { e.preventDefault(); showTap(); });
 function popFx(r, big) {
   show.flash = calm ? 0.3 : 1; show.shake = calm ? 0 : 4 + r.star * 3;
+  show.shock = { t0: show.t, x: r.x, y: r.y, k: 1 + r.star * 0.35 };
   sfx.pop(r.star); buzz(r.star >= 3 ? [40, 60, 90] : r.star === 2 ? [30, 40] : 25);
   const c = Kabe.gemTone(PAL, r.star), n = 18 + r.star * 14 + (big ? 10 : 0);
   for (let i = 0; i < n; i++) {
@@ -2209,13 +2221,110 @@ function updateShow(dt) {
   S.flash = Math.max(0, S.flash - dt * 3); S.shake = Math.max(0, S.shake - dt * 18);
   while (S.plinks < Math.min(10, S.n * 5) && S.t > 0.08 + S.plinks * 0.06) { sfx.plink(S.plinks); S.plinks++; }   // 結晶を入れる音（だんだん高く）
   if (S.t > S.nextBubble && S.t < S.brewEnd) { sfx.bubble(Math.min(1, (S.t - 0.7) / (S.brewEnd - 0.7))); S.nextBubble = S.t + 0.12 + Math.random() * 0.12; }   // 煮立つ音
-  for (const u of S.ups) if (!u.fired && S.t >= u.t) { u.fired = true; S.tier = u.star; S.flash = calm ? 0.2 : 0.7; S.shake = calm ? 0 : 6; S.upFx.push({ t: S.t, star: u.star }); sfx.up(u.star); buzz(20); }
+  for (const u of S.ups) if (!u.fired && S.t >= u.t) { u.fired = true; S.tier = u.star; S.shock = { t0: S.t, x: POT.x, y: POT.y - 20, k: 0.8 }; S.flash = calm ? 0.2 : 0.7; S.shake = calm ? 0 : 6; S.upFx.push({ t: S.t, star: u.star }); sfx.up(u.star); buzz(20); }
   if (!S.hushed && S.t >= S.brewEnd) { S.hushed = true; sfx.hush(); }
   S.res.forEach((r, i) => { if (!r.popped && S.t >= r.popAt) { r.popped = true; popFx(r, i === S.n - 1); } });
   if (!S.done && S.t >= S.endAt) S.done = true;
   for (const q of S.parts) { q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt; if (!q.rain) { q.vx *= 0.96; q.vy = q.vy * 0.96 + 260 * dt; } }
   S.parts = S.parts.filter(q => q.life > 0 && q.y < 700);
 }
+/* ---------- ガチャ演出のシェーダー（showFx）----------
+   #gShow（2D）を絵として受け取り、上に重ねた WebGL の canvas で仕上げる。画質「かるい」では使わない。
+   明るいところを 1/4 で取り出してぼかす → ブルーム、光源へ向かって集める → 光の筋、出た瞬間の衝撃波のゆがみ、色ずれ、煮立つあいだの熱のゆらぎ、ふちを暗く、粒。 */
+const showFx = (() => {
+  const src = $('gShow'), cvx = document.createElement('canvas'); cvx.className = 'gshowfx'; cvx.hidden = true; cvx.setAttribute('aria-hidden', 'true');
+  src.after(cvx);
+  let gl = null;
+  try { gl = cvx.getContext('webgl', { alpha: false, antialias: false, depth: false, stencil: false, premultipliedAlpha: false }); } catch (e) {}
+  const api = { on: false, frame() {} };
+  if (!gl) return api;
+  const VS = 'attribute vec2 a; varying vec2 v; void main(){ v = a * 0.5 + 0.5; gl_Position = vec4(a, 0.0, 1.0); }';
+  const HEAD = 'precision mediump float; varying vec2 v;\n';
+  // 明るいところだけ（白く光るもの・色の強い光）。q は上が0（canvas と同じ向き）
+  const BRIGHT = HEAD + `uniform sampler2D s; uniform vec2 px;
+    void main(){ vec2 q = vec2(v.x, 1.0 - v.y); vec3 c = vec3(0.0);
+      c += texture2D(s, q + vec2(-px.x, -px.y)).rgb; c += texture2D(s, q + vec2(px.x, -px.y)).rgb; c += texture2D(s, q + vec2(-px.x, px.y)).rgb; c += texture2D(s, q + px).rgb; c *= 0.25;
+      float l = dot(c, vec3(0.299, 0.587, 0.114)), sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+      gl_FragColor = vec4(c * clamp(smoothstep(0.62, 1.0, l) + smoothstep(0.25, 0.55, sat) * smoothstep(0.4, 0.8, l), 0.0, 1.0), 1.0); }`;
+  // ぼかし（縦か横に 9 つ）。ここからは上下の向きはそのまま
+  const BLUR = HEAD + `uniform sampler2D s; uniform vec2 d;
+    void main(){ vec3 c = texture2D(s, v).rgb * 0.2;
+      c += (texture2D(s, v + d * 1.4).rgb + texture2D(s, v - d * 1.4).rgb) * 0.18; c += (texture2D(s, v + d * 3.3).rgb + texture2D(s, v - d * 3.3).rgb) * 0.12;
+      c += (texture2D(s, v + d * 5.2).rgb + texture2D(s, v - d * 5.2).rgb) * 0.06; c += (texture2D(s, v + d * 7.6).rgb + texture2D(s, v - d * 7.6).rgb) * 0.04;
+      gl_FragColor = vec4(c, 1.0); }`;
+  const COMP = HEAD + `uniform sampler2D s, b; uniform vec2 res, lc; uniform vec3 tint; uniform vec4 shock; uniform float t, rays, bloomK, flash, chroma, heat, grain;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    void main(){
+      vec2 q = vec2(v.x, 1.0 - v.y), asp = vec2(res.x / res.y, 1.0);
+      vec2 d = (q - shock.xy) * asp; float r = length(d), ring = shock.w * exp(-pow((r - shock.z) * 16.0, 2.0));
+      vec2 dir = d / max(r, 1e-4) / asp;
+      q -= dir * ring * 0.035;                                                   // 衝撃波：輪のところだけ外へゆがむ
+      float hm = heat * exp(-pow((q.x - lc.x) * asp.x * 3.5, 2.0)) * smoothstep(lc.y + 0.05, lc.y - 0.35, q.y) * smoothstep(lc.y - 0.6, lc.y - 0.3, q.y);
+      q.x += sin(q.y * 70.0 - t * 8.0) * 0.003 * hm;                            // 熱のゆらぎ（フラスコの上）
+      vec2 ca = (q - 0.5) * chroma * 0.01 + dir * ring * 0.008;
+      vec3 c = vec3(texture2D(s, q + ca).r, texture2D(s, q).g, texture2D(s, q - ca).b);
+      vec2 bq = vec2(q.x, 1.0 - q.y);                                            // ぼかした絵は下が0
+      vec3 bl0 = texture2D(b, bq).rgb; c += mix(bl0, tint * dot(bl0, vec3(0.33)), 0.35) * bloomK;
+      if (rays > 0.01) {                                                         // 光の筋：光源へ向かって明るさを集める
+        vec2 bl = vec2(lc.x, 1.0 - lc.y), st = (bl - bq) / 30.0, p = bq; vec3 gr = vec3(0.0); float w = 1.0;
+        for (int i = 0; i < 30; i++) { p += st; gr += texture2D(b, p).rgb * w; w *= 0.95; }
+        vec2 dl = (q - lc) * asp; float ang = atan(dl.y, dl.x);
+        float streak = 0.55 + 0.45 * sin(ang * 13.0 + t * 0.7) * sin(ang * 7.0 - t * 0.4 + 1.3);
+        c += gr / 16.0 * rays * streak * mix(vec3(1.0), tint, 0.7);
+      }
+      c += tint * ring * 0.35 + flash * mix(vec3(1.0), tint, 0.3) * 0.45;
+      float vg = smoothstep(1.15, 0.3, length((v - 0.5) * vec2(asp.x * 1.25, 1.0)));
+      c *= mix(0.5, 1.0, vg);
+      vec3 hi = max(c - 0.78, 0.0); c = min(c, 0.78) + 0.22 * (1.0 - exp(-hi / 0.22));   // 明るすぎるところをやわらかく頭打ち（白飛びさせない）
+      c += (h(v * res + fract(t) * 91.0) - 0.5) * grain;
+      gl_FragColor = vec4(c, 1.0); }`;
+  const prog = (fs) => {
+    const sh = (type, txt) => { const o = gl.createShader(type); gl.shaderSource(o, txt); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const loc = {}; return { p, u: n => loc[n] !== undefined ? loc[n] : (loc[n] = gl.getUniformLocation(p, n)) };
+  };
+  let PB, PL, PC;
+  try { PB = prog(BRIGHT); PL = prog(BLUR); PC = prog(COMP); } catch (e) { console.warn('showFx', e.message); return api; }
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const tex = () => { const o = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, o); [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.LINEAR)); [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T].forEach(k => gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE)); return o; };
+  const srcT = tex(), fb = [0, 1].map(() => ({ t: tex(), f: gl.createFramebuffer(), w: 0, h: 0 }));
+  const size = (o, w, h) => { if (o.w === w && o.h === h) return; o.w = w; o.h = h; gl.bindTexture(gl.TEXTURE_2D, o.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, w, h, 0, gl.RGB, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, o.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, o.t, 0); };
+  const pass = (P, target, w, h, bind) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.f : null); gl.viewport(0, 0, w, h); bind(); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); };
+  const use = (P, name, unit, t) => { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, t); gl.uniform1i(P.u(name), unit); };
+  api.frame = () => {
+    const S = show, want = S.active && FX.ok && !src.hidden && !!src.offsetParent;
+    if (!want) { if (!cvx.hidden) cvx.hidden = true; api.on = false; return; }
+    const W2 = src.width, H2 = src.height;
+    if (cvx.width !== W2 || cvx.height !== H2) { cvx.width = W2; cvx.height = H2; cvx.style.width = src.style.width; cvx.style.height = src.style.height; }
+    cvx.hidden = false; api.on = true;
+    // 演出の今の様子から、光の強さ・光源・衝撃波を決める
+    const T = S.t, popped = T >= S.hushEnd, brew = T < 0.7 ? T / 0.7 * 0.35 : T < S.brewEnd ? 0.35 + 0.65 * (T - 0.7) / (S.brewEnd - 0.7) : 0;
+    const hush = T < S.brewEnd ? 0 : Math.min(1, (T - S.brewEnd) / 0.3), last = S.res.filter(r => r.popped).pop();
+    const lx = last && popped ? last.x : POT.x, ly = last && popped ? last.y : POT.my + 20;
+    const tone = glfx.hexRgb(Kabe.gemTone(PAL, popped ? (last ? last.star : S.best) : S.tier)[0]);
+    const sinceP = last ? T - last.popAt : 0, sk = S.shock ? (T - S.shock.t0) : 9;
+    let rays = popped ? (0.35 + 0.2 * (last ? last.star : 1)) * (0.6 + 0.4 * Math.exp(-sinceP * 2.5)) : brew * 0.7 * (1 - hush) + hush * 0.12;
+    if (S.kakutei && !popped) rays += 0.25;
+    const shockOn = !calm && S.shock && sk < 0.9;
+    gl.bindTexture(gl.TEXTURE_2D, srcT); gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, src);
+    const qw = Math.max(1, Math.round(W2 / 4)), qh = Math.max(1, Math.round(H2 / 4));
+    size(fb[0], qw, qh); size(fb[1], qw, qh);
+    pass(PB, fb[0], qw, qh, () => { use(PB, 's', 0, srcT); gl.uniform2f(PB.u('px'), 1 / W2 * 1.5, 1 / H2 * 1.5); });
+    pass(PL, fb[1], qw, qh, () => { use(PL, 's', 0, fb[0].t); gl.uniform2f(PL.u('d'), 1 / qw, 0); });
+    pass(PL, fb[0], qw, qh, () => { use(PL, 's', 0, fb[1].t); gl.uniform2f(PL.u('d'), 0, 1 / qh); });
+    pass(PC, null, W2, H2, () => {
+      use(PC, 's', 0, srcT); use(PC, 'b', 1, fb[0].t);
+      gl.uniform2f(PC.u('res'), W2, H2); gl.uniform2f(PC.u('lc'), lx / 360, ly / 640); gl.uniform3f(PC.u('tint'), tone[0], tone[1], tone[2]);
+      gl.uniform4f(PC.u('shock'), shockOn ? S.shock.x / 360 : 0, shockOn ? S.shock.y / 640 : 0, shockOn ? sk * 0.75 : 0, shockOn ? S.shock.k * (1 - sk / 0.9) : 0);
+      gl.uniform1f(PC.u('t'), T); gl.uniform1f(PC.u('rays'), calm ? rays * 0.4 : rays); gl.uniform1f(PC.u('bloomK'), (calm ? 0.35 : 0.5) + brew * 0.3 + (popped ? 0.1 : 0));
+      gl.uniform1f(PC.u('flash'), S.flash); gl.uniform1f(PC.u('chroma'), calm ? 0 : 0.25 + S.flash * 1.6 + S.shake * 0.05); gl.uniform1f(PC.u('heat'), calm ? 0 : brew * (1 - hush)); gl.uniform1f(PC.u('grain'), calm ? 0 : 0.035);
+    });
+  };
+  return api;
+})();
 const easeOutBack = k => 1 + 2.4 * (k - 1) ** 3 + 1.4 * (k - 1) ** 2;
 uiCanvas($('gShow'), (g, t, w, h) => {
   const S = show; if (!S.active) return;
@@ -2223,8 +2332,14 @@ uiCanvas($('gShow'), (g, t, w, h) => {
   const hush = T < S.brewEnd ? 0 : Math.min(1, (T - S.brewEnd) / 0.3), popped = T >= S.hushEnd;
   g.save();
   if (S.shake) g.translate((Math.random() - 0.5) * S.shake, (Math.random() - 0.5) * S.shake);
-  // 背景：暗くして、釜のまわりだけ湯の色で明るい
-  g.fillStyle = rgba(dark, 0.97); g.fillRect(-20, -20, w + 40, h + 40);
+  // 背景：下が暗い夜の色（不透明。うしろの画面は見せない）＋ぼけた光の粒がゆっくり上る
+  const bgc = Kabe.gemTone(PAL, popped ? S.best : S.tier)[0], bgg = g.createLinearGradient(0, 0, 0, h);
+  bgg.addColorStop(0, Kabe.mix(dark, bgc, 0.1)); bgg.addColorStop(0.55, dark); bgg.addColorStop(1, Kabe.mix(dark, '#000000', 0.5));
+  g.fillStyle = bgg; g.fillRect(-20, -20, w + 40, h + 40);
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 16; i++) { const ph = (t * (0.03 + (i % 4) * 0.012) + i * 0.161) % 1, bx = ((i * 97.3) % w) + Math.sin(t * 0.5 + i) * 12, by = h * (1.1 - ph * 1.3), br = 6 + (i % 5) * 5;
+    const bg2 = g.createRadialGradient(bx, by, 0, bx, by, br); bg2.addColorStop(0, rgba(i % 3 ? bgc : PAL.glow, 0.14 * Math.sin(ph * Math.PI))); bg2.addColorStop(1, rgba(bgc, 0)); g.fillStyle = bg2; g.fillRect(bx - br, by - br, br * 2, br * 2); }
+  g.restore();
   const brew = T < 0.7 ? T / 0.7 * 0.35 : T < S.brewEnd ? 0.35 + 0.65 * (T - 0.7) / (S.brewEnd - 0.7) : popped ? 0.15 : 0;
   const gl = g.createRadialGradient(POT.x, POT.y - 30, 10, POT.x, POT.y - 30, 260 + brew * 80);
   gl.addColorStop(0, rgba(popped ? Kabe.gemTone(PAL, S.best)[0] : liquid, Math.max(0, 0.28 + brew * 0.25 - hush * 0.2))); gl.addColorStop(1, rgba(dark, 0));
@@ -2280,7 +2395,13 @@ uiCanvas($('gShow'), (g, t, w, h) => {
     if (bk > 0) {
       const bx = w / 2 + (1 - easeOutBack(bk)) * -w, by = S.n === 1 ? 96 : 140;
       g.save(); g.translate(bx, by); g.rotate(-0.04);
-      g.fillStyle = c[1]; rr(g, -130, -17, 260, 38, 19); g.fill(); g.fillStyle = c[0]; rr(g, -130, -20, 260, 38, 19); g.fill();
+      g.fillStyle = c[1]; rr(g, -130, -17, 260, 38, 19); g.fill();
+      const bgr = g.createLinearGradient(0, -20, 0, 18); bgr.addColorStop(0, Kabe.mix(c[0], '#ffffff', 0.45)); bgr.addColorStop(0.55, c[0]); bgr.addColorStop(1, Kabe.mix(c[0], c[1], 0.6));
+      g.fillStyle = bgr; rr(g, -130, -20, 260, 38, 19); g.fill();
+      g.save(); rr(g, -130, -20, 260, 38, 19); g.clip(); const sx = ((T - lastR.popAt) * 260) % 700 - 200;   // 光がすっと横切る
+      g.globalCompositeOperation = 'lighter'; const sg = g.createLinearGradient(sx - 30, 0, sx + 30, 0); sg.addColorStop(0, 'rgba(255,255,255,0)'); sg.addColorStop(0.5, 'rgba(255,255,255,.55)'); sg.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = sg; g.beginPath(); g.moveTo(sx - 20, -20); g.lineTo(sx + 40, -20); g.lineTo(sx + 20, 18); g.lineTo(sx - 40, 18); g.closePath(); g.fill(); g.restore();
+      g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(-112, -17.5); g.lineTo(112, -17.5); g.stroke();
       g.font = `800 20px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = PAL.ink; g.fillText(txt, 0, 0);
       Kabe.twinkle(g, -112, -14, 5 + Math.sin(t * 5) * 2, 0.95); Kabe.twinkle(g, 116, 12, 4 + Math.sin(t * 5 + 2) * 2, 0.95);
       g.restore();
@@ -2293,7 +2414,7 @@ uiCanvas($('gShow'), (g, t, w, h) => {
     else { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillStyle = q.col; g.fillRect(-q.size / 2, -q.size * 0.3, q.size, q.size * 0.6 * Math.abs(Math.cos(q.rot * 2)) + 0.6); g.restore(); }
   }
   g.globalAlpha = 1;
-  if (S.flash) { g.fillStyle = rgba('#ffffff', S.flash * 0.75); g.fillRect(-20, -20, w + 40, h + 40); }
+  if (S.flash) { g.fillStyle = rgba('#ffffff', S.flash * (showFx.on ? 0.35 : 0.75)); g.fillRect(-20, -20, w + 40, h + 40); }
   g.restore();
   g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `500 12px ${FONT}`;
   g.fillStyle = rgba(PAL.uiInk, S.done ? 0.55 + Math.sin(t * 4) * 0.35 : 0.45);
@@ -2383,7 +2504,7 @@ function loop(now) {
   updateEffects(frame);
   const t0 = performance.now();
   draw();
-  drawUi(now / 1000);
+  drawUi(now / 1000); showFx.frame();
   if (PERF.on) perfTick(performance.now() - t0, now);
   requestAnimationFrame(loop);
 }
@@ -2414,7 +2535,7 @@ if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS
 // 文字の絵は使い回すので、フォントが届いたら描き直す
 if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
-window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, GEMS };
+window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS };
 })();
 </script>
 </body>

@@ -11,10 +11,11 @@
 | `pools.html` | プールとパーツの一覧（動く見本） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `catalog/project/` | 統一カタログの元ファイル。`components/bundle.js` が全素材の描画ライブラリ `Kabe` |
-| `tools/` | 確認用スクリプト（下の「確かめ方」）と公開用のコピー作り |
+| `tools/` | 確認用スクリプト（下の「確かめ方」）と公開用のコピー作り、アイコン作り（`make_icon.js`） |
+| `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（オフラインは sw.js が前に取ったものを返す） |
 
 `index.html` の区切り（`grep -n "^/\* ===" index.html`）：動きの数値 → 地形 → 動き（`physStep`、ゲームとチェックで共通）→ 到達チェック → ゲーム → 見た目（2D）→ シェーダー（`glfx`）→ 効果音。
-画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。ガチャの演出は #gShow。
+画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。ガチャの演出は #gShow（2D）を `showFx` が別の WebGL canvas（.gshowfx）で仕上げる。
 きれい画質は 2D の画面を送らず、GPU の中で組み立てる（`drawGL` → `glfx.scene`）。地形・地層は1回だけ絵にして少しずつ送り、丸・線・溶岩は GPU で描き、キャラなど動く物だけ小さい絵にまとめて送る。#cv に描くのは「かるい」と D・V の表示のときだけ。描く物を足したら `drawGL` 側にも足す。`?perf` で1フレームに送った量（送信 k/f）が見られる。
 
 ## GitHub Pages（だれでも遊べる）
