@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.28b';
+const VERSION = '2026.11.28c';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -305,7 +305,7 @@ const GEMS = {
   predict: { name: '予測線', short: '予測', star: 2, lv: [{ t: 0.5, air: false }, { t: 1.1, air: false }, { t: 1.1, air: true }],
     desc: v => `${v.air ? '蹴りと2段ジャンプ' : '蹴り'}でどう跳ぶかの線が出る（${v.t}秒先まで）` },
   turn: { name: '振り向き', short: '振向', star: 3, lv: [{ on: 1 }, { on: 2 }, { on: 3 }],
-    desc: v => ['床の上で', '床と壁で', '床・壁・2段ジャンプで'][v.on - 1] + '、画面の押した側（←→キー）へ跳ぶ' + (v.on >= 2 ? '。壁側を押すと壁ぞいに跳び上がる' : '') },
+    desc: v => ['床の上で', '床と2段ジャンプで', '床と2段ジャンプで'][v.on - 1] + '、画面の押した側（←→キー）へ跳ぶ' + (v.on >= 3 ? '。2段ジャンプも蹴りと同じ速さ' : '') },
 };
 const GEM_ORDER = Kabe.GEM_ORDER.filter(id => GEMS[id]);   // 並び順はカタログと同じ
 const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒）
@@ -489,7 +489,6 @@ function collide(w, b, res) {
 function physStep(w, b, dt) {
   b.prevY = b.y;
   if (b.grace > 0) b.grace -= dt;
-  if (b.noStick > 0 && (b.noStick -= dt) <= 0) b.vx = b.hopDir * 60;   // 壁ぞいの跳び上がり（振り向き）：終わったら壁へ寄せて張り付き直す
   if (b.side !== 0) {
     b.slideV += ((b.slideTo || MOVE.slide) - b.slideV) * Math.min(1, dt * MOVE.slideAccel);   // slideTo：かべすべりの水晶（ゲームだけ）
     let tx = -b.wn.y, ty = b.wn.x; if (ty < 0) { tx = -tx; ty = -ty; }
@@ -525,7 +524,7 @@ function physStep(w, b, dt) {
     if (!c.floor) { b.ground = false; b.vy = 0; } else { b.vx = 0; b.vy = 0; }
   } else {
     if (c.floor) { b.ground = true; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'floor'; }
-    else if (c.walls.length && !(b.noStick > 0)) {
+    else if (c.walls.length) {
       const n = c.walls.find(q => q.y > 0.3) || c.walls[c.walls.length - 1];
       b.side = n.x > 0 ? -1 : 1; b.wn = n; b.slideV = Math.min(0, b.vy) * MOVE.carry; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'wall';
     }
@@ -548,12 +547,6 @@ function airJump(b) {
   else if (MOVE.airMode === 'up') b.vx = 0;
   else if (Math.abs(b.vx) < MOVE.kickVx * 0.5) b.vx = (b.vx ? Math.sign(b.vx) : b.face) * MOVE.kickVx * 0.7;
   b.vy = -MOVE.airVy; b.air--;
-}
-// 振り向き Lv2〜：壁側を押すと、壁ぞいに真上へ跳び、少し上で同じ壁に張り付き直す
-function wallHop(b) {
-  b.grace = KICK_GRACE; b.graceSide = b.side < 0 ? 'L' : 'R';
-  b.hopDir = b.side; b.noStick = 0.3; b.face = -b.side;
-  b.vx = 0; b.vy = -MOVE.kickVy * 0.85; b.side = 0; b.ground = false; b.air = MOVE.airJumps;
 }
 const canAct = b => b.side !== 0 || b.ground;
 
@@ -739,8 +732,7 @@ function tryAct() {
   const turn = gemLv('turn') ? GEMS.turn.lv[gemLv('turn') - 1].on : 0, dir = turn ? inputDir : 0;
   if (canAct(P)) {
     const from = P.side, fx = P.x + P.side * HB, fy = P.y;
-    if (from && turn >= 2 && dir === from) wallHop(P);   // 壁側を押した：壁ぞいに跳び上がる
-    else kick(world, P, P.ground ? dir : 0);
+    kick(world, P, P.ground ? dir : 0);   // 壁からはいつも反対側へ（壁ぞいの跳び上がりはやめた。強すぎたので）
     inputBuf = 0; P.squash = -0.28; sfx.kick(); G.kickT = 0.14; A.kickPose = Math.random() < 0.45 ? 'kick2' : 'kick'; A.rot = 0; A.flip = 0;
     kickLines(P.x, P.y, P.vx, P.vy);
     if (from) dust(fx, fy, -from, 7); else dust(P.x, P.y + HB, 0, 7);
@@ -754,7 +746,7 @@ function tryAct() {
     airJump(P); inputBuf = 0; P.squash = -0.3; sfx.air();
     puffCloud(P.x, P.y + 10);
     if (triple) { P.air = 0; G.tripleCd = gemVal('triple').cd; }
-    if (turn >= 3 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * 0.7); P.face = dir; }
+    if (turn >= 2 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * (turn >= 3 ? 1 : 0.7)); P.face = dir; }   // Lv2〜 2段ジャンプも押した側へ（Lv3 は蹴りと同じ横の速さ）
     G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
     startFlip();
   }
