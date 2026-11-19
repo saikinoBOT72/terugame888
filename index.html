@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.26b';
+const VERSION = '2026.11.27a';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -283,8 +283,8 @@ const FAN = { acc: 1000, max: 230 };
 // 壁に hold 秒ついていると wobble 秒グラグラして、反対向きに push px/秒で離れて落ちる（すべりの水晶があれば、ゆっくり滑り落ちる）
 const CLING = { hold: 2, wobble: 2, push: 50 };
 // 地上の仕掛け：振り子（鎖の長さ・ゆれの角度・周期・鉄球の当たり）、筒（撃つ間隔・弾の速さ・光る秒・弾の当たり）、
-// バネ（上への速さ）、崩れる足場（ぐらつく秒・消えている秒）
-const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5, ballHit: 5.5, springV: 470, crumbleWarn: 0.7, crumbleGone: 3 };
+// バネ（上への速さ）、崩れる足場（ぐらつく秒・となりのマスへ伝わる秒・消えている秒・組み上がる秒）
+const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5, ballHit: 5.5, springV: 470, crumbleWarn: 0.6, crumbleStep: 0.12, crumbleGone: 3, crumbleGrow: 0.3 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -354,9 +354,9 @@ function buildEdges(w, upto) {
     for (let c = 0; c < COLS; c++) {
       const t = tile(w, c, r), x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL;
       if (!SIDES[t]) continue;
-      // 崩れる足場（%）：となりが % でない壁なら、その壁の面も作っておく（崩れたあと中に入りこまない）。% どうしの間は作らない
-      const ch = raw(w, c, r), cr = ch === '%' ? crumbleId(w, c, r) : undefined;
-      const nb = (cc, rr2, side) => { const n = raw(w, cc, rr2); if (n === '%' && ch !== '%') return false; return solidSide(tile(w, cc, rr2), side); };
+      // 崩れる足場（%）：1マスずつ崩れるので、% のマスは4つの面を全部作り、となりの壁も % 側の面を作っておく（崩れたあと中に入りこまない）
+      const ch = raw(w, c, r), cr = ch === '%' ? c + ',' + r : undefined;
+      const nb = (cc, rr2, side) => raw(w, cc, rr2) === '%' ? false : solidSide(tile(w, cc, rr2), side);
       if (solidSide(t, 'L') && !nb(c - 1, r, 'R')) addEdge(w, x0, yB, x0, yT, -1, 0, 'wall', r, cr);
       if (solidSide(t, 'R') && !nb(c + 1, r, 'L')) addEdge(w, x1, yB, x1, yT, 1, 0, 'wall', r, cr);
       if (solidSide(t, 'T') && !nb(c, r + 1, 'B')) addEdge(w, x0, yT, x1, yT, 0, -1, ch === 'S' ? 'spring' : 'wall', r, cr);
@@ -369,8 +369,6 @@ function buildEdges(w, upto) {
   }
   w.edgeRow = Math.max(w.edgeRow, upto);
 }
-// 崩れる足場は横につながった % をひとまとまりにする（左はしのマスで名前をつける）
-function crumbleId(w, c, r) { while (raw(w, c - 1, r) === '%') c--; return r + ':' + c; }
 function appendRows(w, rows) {
   const r0 = w.rows.length;
   for (const row of rows) w.rows.push(row);
@@ -408,8 +406,9 @@ function addObstacles(w, r0, n) {
       }
       if (ch === '%' && row[c - 1] !== '%') {
         let e = c; while (row[e + 1] === '%') e++;
-        const o = { type: 'crumble', id: r + ':' + c, r, x: c * CELL, y: -(r + 1) * CELL, n: e - c + 1, t0: null, yMid: y };
-        w.obs.push(o); for (let k = c; k <= e; k++) w.crumbleAt[k + ',' + r] = o;
+        const o = { type: 'crumble', r, x: c * CELL, y: -(r + 1) * CELL, n: e - c + 1, cells: [], yMid: y };
+        for (let k = c; k <= e; k++) { const cell = { c: k, key: k + ',' + r, x: k * CELL, y: o.y, t0: null, back: -9, seed: (k * 7 + r * 3) % 11, run: o }; o.cells.push(cell); w.crumbleAt[cell.key] = cell; }
+        w.obs.push(o);
       }
       if (ch === 'S') w.springs.push({ c, r, x: c * CELL, y: -(r + 1) * CELL });
       if (ch === '=' && row[c - 1] !== '=') { let e = c; while (row[e + 1] === '=') e++; w.obs.push({ type: 'shutter', x0: c * CELL, x1: (e + 1) * CELL, y, offset: r * 0.7 }); }
@@ -783,6 +782,7 @@ function update(dt) {
   G.time += dt; G.inv = Math.max(0, G.inv - dt); G.airT = Math.max(0, G.airT - dt);
   const wasAir = !canAct(P);
   updateObstacles();
+  bridgePush();
   if (P.on && P.on.carry && canAct(P)) { P.x += P.on.dx; P.y += P.on.dy; }   // 動く箱に運ばれる
   const vy0 = P.vy, ev = physStep(world, P, dt);
   G.tripleCd = Math.max(0, G.tripleCd - dt);
@@ -896,7 +896,8 @@ function updateObstacles() {
     if (o.type === 'stake') { o.st = Kabe.stakeState(t, { offset: o.offset }); if (o.st.hurt) world.stakeAmt[o.r] = o.st.amount; continue; }
     if (o.type === 'bridge') {   // 跳ね橋：下りている間だけ乗れる（押し出しは上下だけ）
       o.st = Kabe.bridgeState(t, { offset: o.offset });
-      if (o.st.solid) { const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len); rectEdges(o, a, o.y - 4.5, b, o.y + 4.5, false); }
+      o.om = o.angT != null && t > o.angT ? (o.st.ang - o.ang) / (t - o.angT) : 0; o.ang = o.st.ang; o.angT = t;   // 角度と回る速さ（押すとき使う）
+      if (o.st.solid) { const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len); rectEdges(o, a, o.y - 4.5, b, o.y + 4.5, true); }
       continue;
     }
     if (o.type === 'cannon') {   // 筒：撃った瞬間に音と煙（画面に見えているときだけ）
@@ -904,16 +905,25 @@ function updateObstacles() {
       if (o.ph != null && ph < o.ph && Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 20) { sfx.cannon(); for (let i = 0; i < 5; i++) particles.push({ kind: 'dust', x: o.x + o.dir * 6, y: o.y + (Math.random() - 0.5) * 6, vx: o.dir * (40 + Math.random() * 60), vy: -10 - Math.random() * 20, life: 0.4, max: 0.4, r: 1.5 + Math.random() * 1.5 }); }
       o.ph = ph; continue;
     }
-    if (o.type === 'crumble') {   // 崩れる足場：触れてから crumbleWarn 秒で消え、crumbleGone 秒で戻る（体が重なっていたら待つ）
-      if (o.t0 == null) continue;
-      const e = t - o.t0;
-      if (e >= SURF.crumbleWarn && !world.broken.has(o.id) && e < SURF.crumbleWarn + SURF.crumbleGone) {
-        world.broken.add(o.id); sfx.crumble();
-        for (let i = 0; i < o.n * 4; i++) particles.push({ kind: 'pebble', x: o.x + Math.random() * o.n * CELL, y: o.y + Math.random() * CELL, vx: (Math.random() - 0.5) * 40, vy: -20 + Math.random() * 40, life: 0.8, max: 0.8, r: 1.2 + Math.random() * 1.8 });
-      }
-      if (e >= SURF.crumbleWarn + SURF.crumbleGone) {
-        const over = P.x + HB > o.x && P.x - HB < o.x + o.n * CELL && P.y + HB > o.y && P.y - HB < o.y + CELL;
-        if (!over) { world.broken.delete(o.id); o.t0 = null; }
+    if (o.type === 'crumble') {   // 崩れる足場：マスごとに、触れてから crumbleWarn 秒で崩れ、crumbleGone 秒で組み上がる（体が重なっていたら待つ）
+      for (const cell of o.cells) {
+        if (cell.t0 == null) continue;
+        const e = t - cell.t0;
+        if (e > 0 && e < SURF.crumbleWarn && Math.random() < 0.06 + e) particles.push({ kind: 'pebble', x: cell.x + 3 + Math.random() * 12, y: cell.y + CELL, vx: (Math.random() - 0.5) * 10, vy: 10, life: 0.6, max: 0.6, r: 0.6 + Math.random() * 0.9 });   // こぼれる小石
+        if (e >= SURF.crumbleWarn && !world.broken.has(cell.key) && e < SURF.crumbleWarn + SURF.crumbleGone) {
+          world.broken.add(cell.key);
+          if (!(o.snd > t - 0.1)) { sfx.crumble(); o.snd = t; }
+          const cols = [PAL.terrain, PAL.terrainShade, PAL.terrainLight];
+          for (let i = 0; i < 5; i++) particles.push({ kind: 'chunk', x: cell.x + 3 + Math.random() * 12, y: cell.y + 3 + Math.random() * 12, vx: (Math.random() - 0.5) * 70, vy: -40 - Math.random() * 50, life: 1, max: 1, r: 2 + Math.random() * 2.2, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, col: cols[i % 3] });
+          for (let i = 0; i < 3; i++) particles.push({ kind: 'dust', x: cell.x + 9, y: cell.y + 9, vx: (Math.random() - 0.5) * 60, vy: -10 - Math.random() * 20, life: 0.5, max: 0.5, r: 2 + Math.random() * 2 });
+        }
+        if (e >= SURF.crumbleWarn + SURF.crumbleGone) {
+          const over = P.x + HB > cell.x && P.x - HB < cell.x + CELL && P.y + HB > cell.y && P.y - HB < cell.y + CELL;
+          if (!over) {
+            world.broken.delete(cell.key); cell.t0 = null; cell.back = t;
+            for (let i = 0; i < 3; i++) particles.push({ kind: 'dust', x: cell.x + 9, y: cell.y + CELL, vx: (Math.random() - 0.5) * 50, vy: -15, life: 0.4, max: 0.4, r: 1.5 + Math.random() * 1.5 });
+          }
+        }
       }
       continue;
     }
@@ -928,6 +938,28 @@ function updateObstacles() {
   }
 }
 // 筒の鉄球の x の一覧（時間だけで決まる。反対の壁に着いたら消える）
+// 跳ね橋が動いているあいだ：板に重なった体を板の外へ押し出し、板の動く速さをうつす（乗ったまま上がると上へはじかれる）
+function bridgePush() {
+  for (const o of world.obs) {
+    if (o.type !== 'bridge' || !o.st || !o.om || Math.abs(o.yMid - P.y) > 160) continue;
+    const ca = Math.cos(o.ang), sa = Math.sin(o.ang), vx = o.dir * o.len * ca, vy = -o.len * sa;
+    const u = clamp(((P.x - o.x0) * vx + (P.y - o.y) * vy) / (vx * vx + vy * vy), 0, 1), qx = o.x0 + vx * u, qy = o.y + vy * u;
+    let dx = P.x - qx, dy = P.y - qy, d = Math.hypot(dx, dy);
+    const R = HB + 4.5 + 0.5;
+    if (d >= R) continue;
+    if (d < 0.01) { dx = 0; dy = o.om > 0 ? -1 : 1; d = 1; }
+    const nx = dx / d, ny = dy / d;
+    // 板のその点の速さ（蝶番のまわりを回る）。体の方へ向かっているときだけ押す
+    const pvx = -o.dir * u * o.len * sa * o.om, pvy = -u * o.len * ca * o.om, vn = pvx * nx + pvy * ny;
+    if (vn <= 0) continue;
+    P.x += nx * (R - d); P.y += ny * (R - d);
+    const push = Math.min(vn, 460), bv = P.vx * nx + P.vy * ny;
+    if (bv < push) { P.vx += (push - bv) * nx; P.vy += (push - bv) * ny; }
+    const sp = Math.hypot(P.vx, P.vy); if (sp > 460) { P.vx *= 460 / sp; P.vy *= 460 / sp; }   // バネより強くしない
+    if (P.side || P.ground) { P.side = 0; P.ground = false; P.air = MOVE.airJumps; }
+    if (!(o.thump > G.time - 0.3)) { o.thump = G.time; sfx.kick(); dust(qx, qy, Math.sign(nx) || 1, 3); if (o.om > 0 && ny < -0.5) { G.kickT = 0.14; A.kickPose = 'kick2'; startFlip(); } }
+  }
+}
 function cannonBalls(o, t) {
   const out = [], ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod;
   for (let age = ph; 6 + age * SURF.canSpeed < o.reach - 4; age += SURF.canPeriod) out.push(o.x + o.dir * (6 + age * SURF.canSpeed));
@@ -937,7 +969,15 @@ function cannonBalls(o, t) {
 function crumbleTouch() {
   if (!(P.ground || P.side)) return;
   const pts = P.ground ? [[P.x - HB + 2, P.y + HB + 2], [P.x + HB - 2, P.y + HB + 2]] : [[P.x + P.side * (HB + 2), P.y - HB + 3], [P.x + P.side * (HB + 2), P.y + HB - 3]];
-  for (const [x, y] of pts) { const o = world.crumbleAt[Math.floor(x / CELL) + ',' + Math.floor(-y / CELL)]; if (o && o.t0 == null && !world.broken.has(o.id)) { o.t0 = G.time; sfx.crack(); } }
+  for (const [x, y] of pts) {
+    const cell = world.crumbleAt[Math.floor(x / CELL) + ',' + Math.floor(-y / CELL)];
+    if (!cell || cell.t0 != null || world.broken.has(cell.key)) continue;
+    sfx.crack();
+    for (const q of cell.run.cells) {   // 触れたマスから、となりへ順に伝わる（ドミノ）
+      const at = G.time + Math.abs(q.c - cell.c) * SURF.crumbleStep;
+      if (q.t0 == null && !world.broken.has(q.key)) q.t0 = at; else if (q.t0 != null && q.t0 > at) q.t0 = at;
+    }
+  }
 }
 function circleRect(x, y, r, a, b, c, d) { const nx = clamp(x, a, c), ny = clamp(y, b, d); return (x - nx) ** 2 + (y - ny) ** 2 < r * r; }
 function obstacleHit() {
@@ -975,7 +1015,7 @@ function spawnEmbers(dt) {
 }
 function updateEffects(dt) {
   cam.shake = Math.max(0, cam.shake - dt * 25);
-  for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= q.kind === 'ember' ? 0.99 : 0.92; q.vy = q.kind === 'ember' ? q.vy * 0.995 : q.vy * 0.92 + ({ puff: 30, cloud: -20, line: 0 }[q.kind] ?? 160) * dt; } }
+  for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= q.kind === 'ember' || q.kind === 'chunk' ? 0.99 : 0.92; q.vy = q.kind === 'ember' ? q.vy * 0.995 : q.kind === 'chunk' ? q.vy + 700 * dt : q.vy * 0.92 + ({ puff: 30, cloud: -20, line: 0 }[q.kind] ?? 160) * dt; if (q.vr) q.rot += q.vr * dt; } }
   particles = particles.filter(q => q.life > 0);
   for (const f of floaters) { f.life -= dt; f.y -= 22 * dt; }
   for (const a of trail) a.life -= dt;
@@ -1251,9 +1291,11 @@ function surfaceDraw(sp, seg, vis) {
       const st = o.st || Kabe.bridgeState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.3 < 0.15, still = st.s === 'down' || st.s === 'warn' || st.s === 'up';
       sp(still ? `bridge|${o.dir}|${o.len}|${st.ang.toFixed(2)}|${lit}` : null, o.x0, o.y, [-o.len - 8, -o.len - 16, o.len + 8, 14], () => Kabe.bridge(ctx, PAL, o.x0, o.y, o.dir, o.len, st.ang, lit));
     } else if (o.type === 'crumble') {
-      if (world.broken.has(o.id)) continue;
-      const e = o.t0 == null ? -1 : t - o.t0, shake = e < 0 ? 0 : Math.min(1, e / SURF.crumbleWarn);
-      sp(shake ? null : `crumble|${o.n}`, o.x, o.y, [-4, -3, o.n * CELL + 4, CELL + 3], () => Kabe.crumble(ctx, PAL, o.x, o.y, o.n, shake, t));
+      for (const cell of o.cells) {
+        if (world.broken.has(cell.key)) continue;
+        const e = cell.t0 == null ? -1 : t - cell.t0, k = e < 0 ? 0 : Math.min(1, e / SURF.crumbleWarn), grow = Math.min(1, (t - cell.back) / SURF.crumbleGrow);
+        sp(k || grow < 1 ? null : `crc|${cell.seed}|${PAL.terrain}`, cell.x, cell.y, [-5, -4, CELL + 5, CELL + 5], () => Kabe.crumbleCell(ctx, PAL, cell.x, cell.y, k, t, cell.seed, grow));
+      }
     }
   }
 }
@@ -1308,6 +1350,7 @@ function drawParticles() {
     else if (q.kind === 'line') { ctx.strokeStyle = rgba(PAL.playerBody, a * 0.8); ctx.lineWidth = 1.4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x + q.dx * 12 * a, q.y + q.dy * 12 * a); ctx.stroke(); }
     else if (q.kind === 'cloud') { ctx.fillStyle = rgba(PAL.playerBody, a * 0.7); ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.8 - a * 0.8), 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'pebble') { ctx.fillStyle = rgba(PAL.terrainShade, Math.min(1, a * 2)); ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill(); }
+    else if (q.kind === 'chunk') { ctx.save(); ctx.globalAlpha = Math.min(1, a * 3); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.fillStyle = q.col; ctx.fillRect(-q.r * 0.6, -q.r * 0.5, q.r * 1.2, q.r); ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.6; ctx.strokeRect(-q.r * 0.6, -q.r * 0.5, q.r * 1.2, q.r); ctx.restore(); }
     else if (q.kind === 'ember') { const fl = 0.6 + 0.4 * Math.sin(G.time * 12 + q.ph); ctx.fillStyle = rgba(PAL.riseTop, a * fl); ctx.beginPath(); ctx.arc(q.x + Math.sin(G.time * 3 + q.ph) * 3, q.y, q.r, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'spark') { ctx.fillStyle = rgba(PAL.hazard, a); ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'puff') { ctx.globalAlpha = a; ctx.fillStyle = q.r > 5 ? PAL.scarf : PAL.playerBody; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.5 - a * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
@@ -1575,6 +1618,7 @@ function particlesGL() {
     else if (q.kind === 'line') wseg(q.x, q.y, q.x + q.dx * 12 * a, q.y + q.dy * 12 * a, 0.7, PAL.playerBody, a * 0.8);
     else if (q.kind === 'cloud') wdisc(q.x, q.y, q.r * (1.8 - a * 0.8), PAL.playerBody, a * 0.7);
     else if (q.kind === 'pebble') wdisc(q.x, q.y, q.r, PAL.terrainShade, Math.min(1, a * 2));
+    else if (q.kind === 'chunk') { const c = Math.cos(q.rot) * q.r * 0.5, s2 = Math.sin(q.rot) * q.r * 0.5; wseg(q.x - c, q.y - s2, q.x + c, q.y + s2, q.r * 0.55, q.col, Math.min(1, a * 3)); }
     else if (q.kind === 'ember') { const fl = 0.6 + 0.4 * Math.sin(G.time * 12 + q.ph); wdisc(q.x + Math.sin(G.time * 3 + q.ph) * 3, q.y, q.r, PAL.riseTop, a * fl); }
     else if (q.kind === 'spark') wdisc(q.x, q.y, 2, PAL.hazard, a);
     else if (q.kind === 'puff') wdisc(q.x, q.y, q.r * (1.5 - a * 0.5), q.r > 5 ? PAL.scarf : PAL.playerBody, a);

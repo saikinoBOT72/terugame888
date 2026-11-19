@@ -525,7 +525,7 @@ window.Kabe = (function () {
   function bridgeState(t, o) {
     o = o || {}; var st = cycleState(t, [['down', o.down || 2.2], ['warn', o.warn || 0.7], ['rise', 0.35], ['up', o.up || 1.6], ['fall', 0.35]], o.offset), a = 0;
     if (st.s === 'rise') a = smooth(st.k); else if (st.s === 'up') a = 1; else if (st.s === 'fall') a = 1 - smooth(st.k);
-    st.ang = a * Math.PI / 2 * 0.92; st.solid = a < 0.15; return st;
+    st.ang = a * Math.PI / 2 * 0.92; st.solid = a === 0; return st;   // 乗れるのは下りきっている間だけ（動いている板は本編で体を押す）
   }
   function bridge(g, P, x0, y, dir, len, ang, lit) {
     g.save(); g.translate(x0, y); g.scale(dir, 1);
@@ -552,20 +552,28 @@ window.Kabe = (function () {
     metalSolid(g, P, function () { rr(g, x, top, CELL, 4, 1.5); }, 0.6);   // 上の板
     g.fillStyle = P.glow; g.fillRect(x + 3, top + 1, CELL - 6, 1.2);
   }
-  // 崩れる足場：(x, y) は左上、n マスぶん。shake（0〜1）でゆれてひびが増える
-  function crumble(g, P, x, y, n, shake, t) {
-    var dx = shake > 0 ? Math.sin(t * 60) * shake * 1.2 : 0;
-    g.save(); g.translate(dx, 0);
-    for (var i = 0; i < n; i++) {
-      var cx = x + i * CELL;
-      solid(g, function () { rr(g, cx + 0.5, y + 0.5, CELL - 1, CELL - 1, 2.5); }, P.terrainLight, P.terrainShade, P.ink, 1.4, 1.1);
-      g.strokeStyle = alpha(P.ink, 0.55); g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath();
-      g.moveTo(cx + 5 + hash(i, 1) * 4, y + 2); g.lineTo(cx + 8, y + 8); g.lineTo(cx + 6 + hash(i, 2) * 6, y + 14);
-      if (shake > 0.3) { g.moveTo(cx + 8, y + 8); g.lineTo(cx + 14, y + 6); g.moveTo(cx + 3, y + 11); g.lineTo(cx + 8, y + 9); }
-      g.stroke();
-    }
+  // 崩れる足場：1マスの石のブロック。地形と同じ土の色で、もとからうっすらひびがある。
+  // k（0〜1）：崩れかけ（ひびが伸び、ゆれて少し沈む）。grow（0〜1）：戻るとき下から組み上がる。seed でひびの形を変える
+  function crumbleCell(g, P, x, y, k, t, seed, grow) {
+    k = k || 0; seed = seed || 0; grow = grow == null ? 1 : grow;
+    var sh = k > 0 ? Math.sin(t * 55 + seed * 3) * (0.4 + k * 1.3) : 0, sag = k * k * 1.6, rot = k > 0 ? Math.sin(t * 38 + seed) * k * 0.05 : 0;
+    g.save(); g.translate(x + CELL / 2 + sh, y + CELL / 2 + sag); g.rotate(rot);
+    if (grow < 1) { var gs = 0.55 + 0.45 * smooth(grow); g.globalAlpha *= Math.min(1, grow * 1.6); g.translate(0, (1 - grow) * 6); g.scale(gs, gs); }
+    var h = CELL / 2 - 0.6, path = function () { g.beginPath(); g.moveTo(-h + 1.5, -h); g.lineTo(h - 2.5, -h); g.lineTo(h, -h + 2.5); g.lineTo(h, h - 1.5); g.lineTo(h - 1.5, h); g.lineTo(-h + 2, h); g.lineTo(-h, h - 2); g.lineTo(-h, -h + 1.5); g.closePath(); };   // 角が少し欠けた四角
+    solid(g, path, P.terrain, P.terrainShade, P.ink, 1.8, 1.05);
+    g.fillStyle = P.terrainGrain; ell(g, -3 + hash(seed, 1) * 6, 2 + hash(seed, 2) * 3, 1.6, 1.2); g.fill();
+    g.fillStyle = alpha(P.terrainLight, 0.9); g.fillRect(-h + 1.5, -h + 0.8, CELL - 5, 1.6);   // 上の面の明るい縁
+    g.fillStyle = P.accent; g.fillRect(-h + 1, -h - 0.6, CELL - 4, 1.6);   // 上の苔
+    // ひび：もとから短く入っていて、崩れかけると枝分かれしながら伸びる
+    var L = 0.35 + k * 0.65, x0 = -2 + hash(seed, 3) * 4;
+    g.strokeStyle = alpha(P.ink, 0.45 + k * 0.4); g.lineWidth = 0.8 + k * 0.5; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(x0, -h); g.lineTo(x0 + 2 * L, -h + 5 * L); g.lineTo(x0 - 1 * L, -h + 10 * L); g.lineTo(x0 + 2.5 * L, -h + 15 * L);
+    if (k > 0.25) { g.moveTo(x0 + 2 * L, -h + 5 * L); g.lineTo(x0 + 7 * k, -h + 3 + 3 * k); }
+    if (k > 0.55) { g.moveTo(x0 - 1 * L, -h + 10 * L); g.lineTo(x0 - 6 * k, -h + 9 + 4 * k); }
+    g.stroke();
     g.restore();
   }
+  function crumble(g, P, x, y, n, shake, t) { for (var i = 0; i < n; i++) crumbleCell(g, P, x + i * CELL, y, shake, t, i); }
 
   /* ---------- 迫ってくるもの（地下は溶岩。ほかのゾーンは仮） ---------- */
   // 溶岩の表面の下に浮かぶもの（かさぶた・稲妻・点）。riseCrusts で位置、riseCrust で1つ描く
@@ -1053,7 +1061,7 @@ window.Kabe = (function () {
     grid: grid, background: background, bgStrata: bgStrata, bgFar: bgFar, bgDust: bgDust, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
     spinAngle: spinAngle, spinner: spinner, pendAngle: pendAngle, pendulum: pendulum, cannon: cannon, cannonBall: cannonBall, stakeState: stakeState, stake: stake,
-    bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
+    bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
