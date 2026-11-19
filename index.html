@@ -213,7 +213,7 @@
         <h2>ひとやすみ</h2>
         <div class="grows" id="pGems"></div>
         <button class="btn" id="btnResume" type="button">つづける</button>
-        <button class="sub" id="btnQuit" type="button">はじめからやり直す</button>
+        <button class="sub" id="btnQuit" type="button">タイトルへ</button>
       </div>
     </section>
     <section id="ovGacha" class="ov" hidden>
@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.27a';
+const VERSION = '2026.11.27b';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -2674,8 +2674,9 @@ $('btnUpdate').onclick = async () => {
   } catch (e) {}
   location.replace(location.pathname + '?v=' + Date.now());
 };
-$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnQuit').onclick = startGame;
-$('btnToTitle').onclick = () => { state = 'title'; newGame(); renderBest(); showOnly('title'); };
+$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame;
+const toTitle = () => { state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
+$('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
 $('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); showOnly('pause'); } };
 // 振り向きの水晶があるときは、画面の左半分＝左へ、右半分＝右へ
