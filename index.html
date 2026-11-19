@@ -33,6 +33,8 @@
   #app { width: 100%; height: 100%; display: grid; place-items: center; }
   #frame { position: relative; --u: 1; border-radius: calc(var(--u) * 10px); overflow: hidden; }
   #cv { display: block; touch-action: none; cursor: pointer; }
+  .layer { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #gl[hidden], #hud[hidden] { display: none; }
   .ov {
     position: absolute; inset: 0; box-sizing: border-box;
     display: flex; align-items: center; justify-content: center;
@@ -141,6 +143,8 @@
 <div id="app">
   <div id="frame">
     <canvas id="cv" aria-label="ゲーム画面"></canvas>
+    <canvas id="gl" class="layer" aria-hidden="true"></canvas>
+    <canvas id="hud" class="layer" aria-hidden="true"></canvas>
     <button id="pauseBtn" type="button" aria-label="一時停止" hidden>II</button>
     <section id="ovTitle" class="ov">
       <div class="logo">
@@ -156,6 +160,7 @@
           <button class="sub" id="btnHow" type="button">遊び方</button>
           <button class="sub" id="btnMute" type="button">音：オン</button>
           <button class="sub" id="btnCalm" type="button">演出：ふつう</button>
+          <button class="sub" id="btnFx" type="button">画質：きれい</button>
           <button class="sub" id="btnUpdate" type="button">アプデ</button>
         </div>
       </div>
@@ -216,7 +221,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.20b';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.20c';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -1326,7 +1331,8 @@ function checkAll() { return Object.keys(PIECES).map(id => { const t0 = performa
 /* =====================================================================
    ゲーム
    ===================================================================== */
-const cv = $('cv'), ctx = cv.getContext('2d'), frameEl = $('frame');
+const cv = $('cv'), frameEl = $('frame');
+let ctx = cv.getContext('2d');   // HUD を描くあいだだけ #hud の canvas に切り替える
 let scale = 1, dpr = 1;
 function resize() {
   const box = $('app').getBoundingClientRect();
@@ -1336,6 +1342,7 @@ function resize() {
   cv.style.width = frameEl.style.width = cw + 'px'; cv.style.height = frameEl.style.height = ch + 'px';
   frameEl.style.setProperty('--u', scale.toFixed(4));
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
+  for (const c of [$('gl'), $('hud')]) { c.style.width = cw + 'px'; c.style.height = ch + 'px'; c.width = cv.width; c.height = cv.height; }
   bands.clear();
 }
 const bands = new Map();
@@ -1861,10 +1868,155 @@ function draw() {
   drawParticles();
   drawLava();
   ctx.restore();
+  if (FX.ok) {   // シェーダーで仕上げ、HUD は別の canvas へ
+    renderFx(); glcv.hidden = false; hudcv.hidden = false;
+    const main = ctx; ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
+    if (state !== 'title') { drawHud(); drawZoneBanner(); }
+    ctx = main;
+    return;
+  }
+  glcv.hidden = true; hudcv.hidden = true;
   drawLighting();
   if (G && G.flash > 0 && !calm) { ctx.fillStyle = rgba('#ffffff', G.flash * 0.35); ctx.fillRect(0, 0, W, H); }
   if (state !== 'title') { drawHud(); drawZoneBanner(); }
 }
+/* =====================================================================
+   シェーダーの後処理（WebGL）：2Dで描いた画面を1枚の絵として受け取り、光・にじみ・熱のゆらぎ・色を足す。
+   HUD は別の canvas（#hud）に描くので、ここは通らない。WebGL が使えないときは、今までの2Dの光（drawLighting）に戻る。
+     1. 明るい所だけ取り出して1/4に縮める → 2. 横・縦にぼかす（ブルーム）
+     3. 仕上げ：熱のゆらぎ → 色ずれ → 明るさの差から凹凸を作り、色つきの点光源で照らす → ブルームを足す
+        → 上から差す光の筋・霧 → 色の調整（暗部は青紫、明部は暖かく）→ ふちを暗く → フィルムの粒
+   ===================================================================== */
+const glcv = $('gl'), hudcv = $('hud'), hudCtx = hudcv.getContext('2d');
+const FX = { ok: false, ambient: 0.62, bloom: 0.75, emboss: 2.2, maxLights: 24 };
+const glfx = (() => {
+  let gl;
+  try { gl = glcv.getContext('webgl', { premultipliedAlpha: false, antialias: false }); } catch (e) {}
+  if (!gl) return null;
+  const VS = 'attribute vec2 a; varying vec2 v; void main(){ v = a * 0.5 + 0.5; gl_Position = vec4(a, 0.0, 1.0); }';
+  const HEAD = 'precision mediump float; varying vec2 v;\n';
+  const BRIGHT = HEAD + `uniform sampler2D s; uniform vec2 px;
+    void main(){ vec3 c = vec3(0.0);
+      for (int i = -1; i <= 1; i++) for (int j = -1; j <= 1; j++) c += texture2D(s, v + vec2(float(i), float(j)) * px).rgb;
+      c /= 9.0; float l = dot(c, vec3(0.299, 0.587, 0.114)); float sat = max(c.r, max(c.g, c.b)) - min(c.r, min(c.g, c.b));
+      float k = smoothstep(0.86, 1.0, l) + smoothstep(0.24, 0.42, sat) * smoothstep(0.55, 0.85, l);   // 白く光るもの＋色の強い光だけ（壁はにじませない）
+      gl_FragColor = vec4(c * clamp(k, 0.0, 1.0), 1.0); }`;
+  const BLUR = HEAD + `uniform sampler2D s; uniform vec2 dir;
+    void main(){ vec3 c = texture2D(s, v).rgb * 0.227;
+      c += (texture2D(s, v + dir * 1.385).rgb + texture2D(s, v - dir * 1.385).rgb) * 0.316;
+      c += (texture2D(s, v + dir * 3.231).rgb + texture2D(s, v - dir * 3.231).rgb) * 0.070;
+      gl_FragColor = vec4(c, 1.0); }`;
+  const N = FX.maxLights;
+  const COMP = HEAD + `uniform sampler2D scene, bloom; uniform vec2 res, px; uniform float t, amb, bloomK, emb, lavaY, flash, calm, danger;
+    uniform vec4 L[${N}]; uniform vec3 LC[${N}]; uniform int nL; uniform vec3 lavaC, glowC, shadowT, lightT;
+    float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
+    float fbm(vec2 p){ return n2(p) * 0.5 + n2(p * 2.1) * 0.3 + n2(p * 4.3) * 0.2; }
+    float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+    void main(){
+      vec2 uv = v, p = vec2(v.x, 1.0 - v.y) * res;           // p：画面の点（px、上が0）
+      float heat = clamp(1.0 - (lavaY - p.y) / 230.0, 0.0, 1.0) * (1.0 - calm);
+      uv += vec2(sin(p.y * 0.09 + t * 7.0) * 1.6, sin(p.x * 0.07 + t * 5.0) * 1.2) * px * heat * (1.0 + heat * 2.0);   // 熱のゆらぎ
+      vec2 ca = (uv - 0.5) * (0.0025 + flash * 0.012) * (1.0 - calm);                                                     // 色ずれ
+      vec3 c = vec3(texture2D(scene, uv + ca).r, texture2D(scene, uv).g, texture2D(scene, uv - ca).b);
+      // 明るさの差を高さとみなして面の向きを作る（岩や体が浮き上がって見える）
+      float lx = lum(texture2D(scene, uv + vec2(px.x, 0.0)).rgb) - lum(texture2D(scene, uv - vec2(px.x, 0.0)).rgb);
+      float ly = lum(texture2D(scene, uv - vec2(0.0, px.y)).rgb) - lum(texture2D(scene, uv + vec2(0.0, px.y)).rgb);
+      vec3 nrm = normalize(vec3(-lx * emb, -ly * emb, 1.0));
+      vec3 light = vec3(amb) * mix(shadowT, vec3(1.0), 0.6);
+      vec3 glow = vec3(0.0);
+      for (int i = 0; i < ${N}; i++) { if (i >= nL) break;
+        vec2 d = L[i].xy - p; float r = L[i].z, dist = length(d);
+        float att = pow(clamp(1.0 - dist / r, 0.0, 1.0), 2.0) * L[i].w;
+        float dif = max(dot(nrm, normalize(vec3(d, r * 0.35))), 0.0);
+        light += LC[i] * att * (0.55 + 0.75 * dif); glow += LC[i] * att * att * 0.22; }
+      float lv = clamp(1.0 - (lavaY - p.y) / 260.0, 0.0, 1.0);                                                           // 溶岩の照り返し（下から）
+      float ldif = max(dot(nrm, normalize(vec3(0.0, 1.0, 0.6))), 0.0);
+      light += lavaC * lv * lv * (0.9 + 0.6 * ldif) * (0.85 + 0.15 * sin(t * 3.0 + p.x * 0.05));
+      c = c * light + glow;
+      c += texture2D(bloom, uv).rgb * bloomK;                                                                              // にじみ
+      // 上から差しこむ光の筋（ゆっくり動く）と、漂う霧
+      float ang = (p.x - res.x * 0.5) / (p.y + 160.0);
+      float rays = smoothstep(0.55, 1.0, n2(vec2(ang * 9.0 + t * 0.05, t * 0.12))) * (1.0 - p.y / res.y) * 0.1;
+      float fog = fbm(p * 0.006 + vec2(t * 0.02, -t * 0.035)) * 0.09;
+      c += glowC * (rays + fog * 0.6) + lavaC * fog * lv * 0.8;
+      // 色の調整：暗い所は青紫、明るい所は暖かく。少しだけ鮮やかに
+      float l = lum(c); c = mix(c * shadowT * 1.25, c * lightT, smoothstep(0.15, 0.85, l));
+      c = mix(vec3(lum(c)), c, 1.12);
+      c = c * (1.0 + c * 0.18) / (1.0 + c * 0.32);
+      float vg = smoothstep(1.05, 0.35, length((v - 0.5) * vec2(1.0, 1.25)));                                            // ふちを暗く
+      c *= mix(0.62, 1.0, vg);
+      c = mix(c, lavaC * 1.2, danger * (1.0 - vg) * 0.8);                                                                // 溶岩が近いとふちが赤く脈打つ
+      c += (h(p + fract(t) * 91.7) - 0.5) * 0.045 * (1.0 - calm);                                                        // フィルムの粒
+      c = mix(c, vec3(1.0), flash * 0.35 * (1.0 - calm));
+      gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0); }`;
+  const sh = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const prog = fs => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.bindAttribLocation(p, 0, 'a'); gl.linkProgram(p); if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); const u = {}; return { p, u: n => u[n] ?? (u[n] = gl.getUniformLocation(p, n)) }; };
+  let P1, P2, P3;
+  try { P1 = prog(BRIGHT); P2 = prog(BLUR); P3 = prog(COMP); } catch (e) { console.warn('glfx', e.message); return null; }
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const tex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+  const sceneT = tex(), fb = [0, 1].map(() => ({ t: tex(), f: gl.createFramebuffer() }));
+  let bw = 0, bh = 0;
+  const sizeFb = (w, h) => { bw = w; bh = h; for (const b of fb) { gl.bindTexture(gl.TEXTURE_2D, b.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); gl.bindFramebuffer(gl.FRAMEBUFFER, b.f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, b.t, 0); } gl.bindFramebuffer(gl.FRAMEBUFFER, null); };
+  const hexRgb = h => { const n = parseInt(h.replace('#', '').slice(0, 6), 16); return [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; };
+  const lightsA = new Float32Array(N * 4), colsA = new Float32Array(N * 3);
+  const pass = (P, target, w, h) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target); gl.viewport(0, 0, w, h); };
+  return {
+    render(src, lights, u) {
+      const W2 = glcv.width, H2 = glcv.height, w4 = Math.max(1, W2 >> 2), h4 = Math.max(1, H2 >> 2);
+      if (w4 !== bw || h4 !== bh) sizeFb(w4, h4);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sceneT);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      pass(P1, fb[0].f, w4, h4); gl.uniform1i(P1.u('s'), 0); gl.uniform2f(P1.u('px'), 1 / W2 * 2, 1 / H2 * 2); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      for (let i = 0; i < 2; i++) {
+        pass(P2, fb[1].f, w4, h4); gl.bindTexture(gl.TEXTURE_2D, fb[0].t); gl.uniform1i(P2.u('s'), 0); gl.uniform2f(P2.u('dir'), (1 + i) / w4, 0); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        pass(P2, fb[0].f, w4, h4); gl.bindTexture(gl.TEXTURE_2D, fb[1].t); gl.uniform1i(P2.u('s'), 0); gl.uniform2f(P2.u('dir'), 0, (1 + i) / h4); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+      pass(P3, null, W2, H2);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sceneT); gl.uniform1i(P3.u('scene'), 0);
+      gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fb[0].t); gl.uniform1i(P3.u('bloom'), 1);
+      const n = Math.min(N, lights.length); lightsA.fill(0); colsA.fill(0);
+      lights.slice(0, n).forEach((q, i) => { lightsA.set([q.x, q.y, q.r, q.i], i * 4); colsA.set(hexRgb(q.c), i * 3); });
+      gl.uniform4fv(P3.u('L'), lightsA); gl.uniform3fv(P3.u('LC'), colsA); gl.uniform1i(P3.u('nL'), n);
+      gl.uniform2f(P3.u('res'), W, H); gl.uniform2f(P3.u('px'), 1 / W2, 1 / H2);
+      for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger']) gl.uniform1f(P3.u(k), u[k]);
+      for (const k of ['lavaC', 'glowC', 'shadowT', 'lightT']) gl.uniform3fv(P3.u(k), u[k]);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    },
+    hexRgb,
+  };
+})();
+FX.ok = !!glfx && store.get('kabe_shader', true);
+// 光の点（画面の座標）：おばけ・結晶・光るキノコ・ガチャ所。近い順に FX.maxLights まで
+function collectLights() {
+  const out = [], cy = cam.y, inView = (y, r) => y - cy > -r && y - cy < H + r;
+  if (state !== 'dying' && state !== 'end') out.push({ x: P.x, y: P.y - cy, r: 130, i: 0.55, c: '#fff6ec' });
+  for (const st of world.stations) if (inView(st.y - 50, 140)) out.push({ x: st.x, y: st.y - 50 - cy, r: st.used ? 60 : 150, i: st.used ? 0.25 : 0.9, c: PAL.glow });
+  for (const g of world.gems) if (!g.got && inView(g.y, 60)) out.push({ x: g.x, y: g.y - cy, r: 62, i: 0.75, c: PAL.glow });
+  const r0 = Math.max(0, Math.floor(-(cy + H) / CELL) - 1), r1 = Math.floor(-cy / CELL) + 1;
+  for (let r = r0; r <= r1; r++) {
+    const b = Math.floor(r / BAND), i = b * BAND + BAND - 1 - r;
+    for (let c = 0; c < COLS; c++) {
+      if (tile(world, c, r) !== '#' || !solidSide(tile(world, c, r), 'T') || solidSide(tile(world, c, r + 1), 'B')) continue;
+      if (Kabe.hash(c, i, 12) < 0.25) out.push({ x: c * CELL + 5 + Kabe.hash(c, i, 13) * 8, y: -(r + 1) * CELL - 6 - cy, r: 70, i: 0.55 + 0.08 * Math.sin(G.time * 2 + c + r), c: PAL.glow });
+    }
+  }
+  for (const q of particles) if (q.kind === 'ember' && out.length < FX.maxLights * 2) out.push({ x: q.x, y: q.y - cy, r: 18, i: 0.5 * q.life / q.max, c: PAL.riseLight });
+  const px = P.x, py = P.y - cy;
+  return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
+}
+function renderFx() {
+  const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
+  const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
+  glfx.render(cv, collectLights(), {
+    t: G.time, amb: FX.ambient, bloomK: FX.bloom, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
+    lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94],
+  });
+}
+
 /* ---------- 光と影：洞窟を少し暗くして、光るものだけ明るく抜く（おばけ・結晶・キノコ・ガチャ所・溶岩） ---------- */
 const lightCv = document.createElement('canvas'), LIGHT = { dark: 0.4 };
 function drawLighting() {
@@ -2124,7 +2276,7 @@ function renderGacha() {
    流れ：結晶を釜へ入れる → 煮立つ（湯の色でレア度を予告。途中で色が上がる＝昇格）→ 静まる（溜め）→ 水晶が飛び出す → 名前・★・NEW を出す。
    ★★★はたまに最初から金の湯（確定演出）。まとめて回すと、いちばん良いものを最後に出す。どこでもタップで先へ飛ばせる。 */
 const show = { active: false };
-const POT = { x: 180, y: 450, s: 2.2, my: 450 - 46 * 2.2 }   // my：フラスコの口, COIN_FROM = { x: 296, y: 96 };
+const POT = { x: 180, y: 450, s: 2.2, my: 450 - 46 * 2.2 }, COIN_FROM = { x: 296, y: 96 };   // my：フラスコの口
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 function applyResult(r) {
@@ -2297,6 +2449,10 @@ $('btnGachaGo').onclick = leaveGacha;
 const calmLabel = () => { $('btnCalm').textContent = calm ? '演出：ひかえめ' : '演出：ふつう'; };
 $('btnCalm').onclick = () => { calm = !calm; store.set('kabe_calm', calm); calmLabel(); sfx.tick(); };
 calmLabel();
+// 画質：きれい＝シェーダーの後処理あり、かるい＝2Dだけ（重い端末向け）
+const fxLabel = () => { $('btnFx').textContent = FX.ok ? '画質：きれい' : '画質：かるい'; $('btnFx').disabled = !glfx; if (!glfx) $('btnFx').textContent = '画質：かるい（WebGLなし）'; };
+$('btnFx').onclick = () => { FX.ok = !FX.ok && !!glfx; store.set('kabe_shader', FX.ok); fxLabel(); sfx.tick(); };
+fxLabel();
 const muteLabel = () => { $('btnMute').textContent = muted ? '音：オフ' : '音：オン'; };
 $('btnMute').onclick = () => { muted = !muted; store.set('kabe_muted', muted); muteLabel(); if (!muted) sfx.tick(); };
 muteLabel();
