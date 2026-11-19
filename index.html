@@ -232,7 +232,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.20i';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.21a';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -577,21 +577,8 @@ const cv = $('cv'), frameEl = $('frame');
 let ctx = cv.getContext('2d', { alpha: false });   // HUD を描くあいだだけ #hud の canvas に切り替える。背景で毎回全部塗るので不透明（重ねるのが速い）
 let scale = 1, dpr = 1;
 // 計測モード（URL に ?perf）：部分ごとにオフにして、実機でどこが重いかを見る
-const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, mode: (location.search.match(/[?&]up=(gpu|cpu|bmp)/) || [])[1] || 'gpu' };
-// シェーダーへ渡す2Dの絵の描き先（見た目は同じ、渡し方だけ違う）
-//   gpu：見えている #cv にそのまま描いて渡す（今まで）／ cpu：メモリ上の canvas に描いて渡す／ bmp：画面外の OffscreenCanvas に描いて画像として渡す
-const cvCtx = ctx, scene = { c: null, g: null, mode: '' };
-const canBmp = typeof OffscreenCanvas === 'function' && !!OffscreenCanvas.prototype.transferToImageBitmap;
-function sceneTarget() {
-  const mode = PERF.mode === 'bmp' && !canBmp ? 'gpu' : PERF.mode;
-  if (mode === 'gpu') return null;
-  if (scene.mode !== mode || scene.c.width !== cv.width || scene.c.height !== cv.height) {
-    scene.mode = mode;
-    scene.c = mode === 'bmp' ? new OffscreenCanvas(cv.width, cv.height) : Object.assign(document.createElement('canvas'), { width: cv.width, height: cv.height });
-    scene.g = scene.c.getContext('2d', { alpha: false, willReadFrequently: mode === 'cpu' });
-  }
-  return scene;
-}
+const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, up: 0 };
+const cvCtx = ctx;
 
 function resize() {
   const box = $('app').getBoundingClientRect();
@@ -603,6 +590,7 @@ function resize() {
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
   for (const c of [$('gl'), $('hud')]) { c.style.width = cw + 'px'; c.style.height = ch + 'px'; c.width = cv.width; c.height = cv.height; }
   clearBands();
+  if (typeof glfx !== 'undefined' && glfx) glReset();
 }
 const bands = new Map();
 function clearBands() { for (const band of bands.values()) band.c.width = band.c.height = 0; bands.clear(); }   // 幅0にするとメモリがすぐ返る（iPhone の canvas の上限対策）
@@ -663,7 +651,7 @@ function newGame() {
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
   cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
-  clearBands();
+  clearBands(); if (glfx) glReset();
   ensureAhead();
 }
 function heightM() { return Math.max(0, -P.y - HB) / PX_PER_M; }
@@ -920,7 +908,7 @@ function bandCanvas(b) {
   if (world.rows.length < (b + 1) * BAND + 2) return null;   // 上の行がまだない
   const r0 = b * BAND, pad = 2 * CELL, yTop = -(r0 + BAND) * CELL - pad, hpx = BAND * CELL + pad * 2, k = scale * dpr;
   const c = document.createElement('canvas'); c.width = Math.ceil(W * k); c.height = Math.ceil(hpx * k);
-  const g = c.getContext('2d', { willReadFrequently: PERF.mode === 'cpu' }); g.setTransform(k, 0, 0, k, 0, -yTop * k);
+  const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, -yTop * k);
   Kabe.terrain(g, PAL, bandGrid(r0), 0, 0, -(r0 + BAND) * CELL);
   const out = { c, yTop, hpx };
   bands.set(b, out);
@@ -1119,12 +1107,249 @@ function drawHud() {
 // シェーダーの絵が上をおおうときは、下の2Dの canvas を見えなくする（読み取りとタップはそのまま。画面の重ね合わせが1枚へる）
 let cvShown = true;
 function showCv(on) { if (on !== cvShown) { cvShown = on; cv.style.opacity = on ? '' : '0'; } }
-function draw() {
-  const sc = FX.ok ? sceneTarget() : null;
-  ctx = sc ? sc.g : cvCtx;
-  try { drawFrame(sc); } finally { ctx = cvCtx; }
+/* ---------- きれい画質：画面を GPU の中で組み立てる（glfx.scene）。2Dの画面をまるごと送らない ----------
+   地形の帯・地層は1回だけ絵にして少しずつ送る（STRIP 行ずつ、見えそうになる前に）。遠景は画面に止まった1枚。
+   ちり・胞子・粒・予測線・風の筋は GPU で丸と線として描く。溶岩はシェーダーで描く。
+   それ以外（キャラ・障害物・結晶・ガチャ所・文字）は Kabe でそのまま描いた小さい絵を使う。形が変わらない物は1回だけ送る。
+   世界の物は画面のピクセルにそろえて置く（カメラのずれを整数ピクセルにする）。 */
+const GLW = { k: 0, bands: new Map(), strata: new Map(), far: null, strip: null, WX: 0, WY: 0 };
+const STRIP = 128, CHUNK = 512;   // 送る単位（行）、地層の1枚の高さ（行）
+function glReset() {
+  const S = glfx && glfx.scene; if (!S) return;
+  for (const m of [GLW.bands, GLW.strata]) { for (const L of m.values()) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; } m.clear(); }
+  if (GLW.far) { S.delTex(GLW.far); GLW.far = null; }
+  GLW.k = 0; S.clearCache();
 }
-function drawFrame(sc) {
+// 1枚の絵（幅は画面と同じ）を作って、テクスチャを用意する。render(g) で描く（g は端末ピクセルの canvas）
+function glLayer(hRows, render) {
+  const S = glfx.scene, w = glcv.width, h = Math.ceil(hRows / STRIP) * STRIP;
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  render(c.getContext('2d'));
+  return { src: c, tex: S.tex(w, h), n: h / STRIP, done: 0, w, h };
+}
+// まだ送っていない分を送る（max 行の単位まで。全部送ったら元の canvas は捨てる）
+function glFeed(L, max) {
+  const S = glfx.scene;
+  if (L.done === 0 && max >= L.n) { S.upload(L.tex, 0, 0, L.src); L.done = L.n; }
+  while (L.done < L.n && max-- > 0) {
+    if (!GLW.strip || GLW.strip.width !== L.w) { GLW.strip = document.createElement('canvas'); GLW.strip.width = L.w; GLW.strip.height = STRIP; }
+    const g = GLW.strip.getContext('2d'); g.clearRect(0, 0, L.w, STRIP);
+    g.drawImage(L.src, 0, L.done * STRIP, L.w, STRIP, 0, 0, L.w, STRIP);
+    S.upload(L.tex, 0, L.done * STRIP, GLW.strip); L.done++;
+  }
+  if (L.done >= L.n && L.src) { L.src.width = L.src.height = 0; L.src = null; }
+}
+// 見える物は今すぐ全部、先読みの物は1フレームに1単位だけ送る。範囲から離れた物は捨てる
+function glKeep(map, vis0, vis1, pre0, pre1, make) {
+  const S = glfx.scene;
+  for (let i = vis0; i <= vis1; i++) { let L = map.get(i); if (!L) { L = make(i); if (!L) continue; map.set(i, L); } glFeed(L, 1e9); }
+  let budget = 1;
+  for (let i = vis1 + 1; i <= pre1 && budget > 0; i++) { let L = map.get(i); if (!L) { L = make(i); if (!L) continue; map.set(i, L); } if (L.done < L.n) { glFeed(L, 1); budget--; } }
+  for (let i = vis0 - 1; i >= pre0 && budget > 0; i--) { let L = map.get(i); if (!L) { L = make(i); if (!L) continue; map.set(i, L); } if (L.done < L.n) { glFeed(L, 1); budget--; } }
+  for (const [i, L] of map) if (i < pre0 - 1 || i > pre1 + 1) { S.delTex(L.tex); if (L.src) L.src.width = L.src.height = 0; map.delete(i); }
+}
+// 地形の帯 b（16行）：世界の y を k 倍した行にそろえて描く（隣の帯とすき間なくつながる）
+function glBand(b, k) {
+  if (world.rows.length < (b + 1) * BAND + 2) return null;
+  const r0 = b * BAND, pad = 2 * CELL, yTop = -(r0 + BAND) * CELL - pad, top = Math.floor(yTop * k), bot = Math.ceil((yTop + BAND * CELL + pad * 2) * k);
+  const L = glLayer(bot - top, g => { g.setTransform(k, 0, 0, k, 0, -top); Kabe.terrain(g, PAL, bandGrid(r0), 0, 0, -(r0 + BAND) * CELL); });
+  L.top = top; return L;
+}
+// 地層 c 枚目：奥の層の座標 s（画面の y ＋ カメラ×0.5）を k 倍した行の c×CHUNK から CHUNK 行
+function glStrata(c, k) {
+  return Object.assign(glLayer(CHUNK, g => {
+    g.fillStyle = PAL.bgTop; g.fillRect(0, 0, g.canvas.width, g.canvas.height);
+    g.setTransform(k, 0, 0, k, 0, -c * CHUNK); Kabe.bgStrata(g, PAL, 0, W, c * CHUNK / k, (c + 1) * CHUNK / k, 0);
+  }), { top: c * CHUNK });
+}
+const RGB = h => glfx.hexRgb(h);
+// 世界の点で描く：丸・線・小さい絵
+const wdisc = (x, y, r, col, a) => { const k = GLW.k; glfx.scene.disc(x * k + GLW.WX, y * k + GLW.WY, r * k, RGB(col), a); };
+const wseg = (x0, y0, x1, y1, r, col, a) => { const k = GLW.k; glfx.scene.seg(x0 * k + GLW.WX, y0 * k + GLW.WY, x1 * k + GLW.WX, y1 * k + GLW.WY, r * k, RGB(col), a); };
+// key あり＝同じ絵を使い回す（keep で次のフレームにも残す）。key なし＝毎フレーム、位置の端数まで正確に描く
+const wspr = (key, x, y, bb, fn, a, keep) => glfx.scene.sprite(key, keep !== false, x, y, GLW.WX, GLW.WY, bb, g => { ctx = g; fn(); }, a == null ? 1 : a, !key);
+// おばけの絵が入る範囲（ポーズの点から求める。体の傾き・つぶれ・向き・壁の回転も入れる）
+function ghostBB(Q, face, outer) {
+  let x0 = -17, x1 = 17, y0 = -18, y1 = 18;
+  for (const p of Q.scarf.concat(Q.hands, Q.feet || [])) { x0 = Math.min(x0, p[0] - 5); x1 = Math.max(x1, p[0] + 5); y0 = Math.min(y0, p[1] - 5); y1 = Math.max(y1, p[1] + 5); }
+  if (Q.zzz) y0 = Math.min(y0, -34);
+  const ct = Math.cos(Q.tilt), st = Math.sin(Q.tilt), sx = 1 - Q.sq * 0.6, sy = 1 + Q.sq;
+  let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
+  for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) {
+    let x = px * sx, y = py * sy; [x, y] = [x * ct - y * st, x * st + y * ct]; x *= face;
+    if (outer) { x *= outer.sx; y *= outer.sy; const c = Math.cos(outer.rot), s = Math.sin(outer.rot); [x, y] = [x * c - y * s, x * s + y * c]; }
+    bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y);
+  }
+  return [bx0 - 3, by0 - 3, bx1 + 3, by1 + 3];
+}
+function drawGL() {
+  const S = glfx.scene, k = S.begin();
+  if (GLW.k !== k) { glReset(); GLW.k = k; }
+  const t = G ? G.time : 0;
+  // 背景：地層（奥の層）→ 遠景 → ちり。画面に止まっていて、揺れない
+  if (!PERF.off.bg) {
+    const OFF = Math.round(cam.y * 0.5 * k), c0 = Math.floor(OFF / CHUNK), c1 = Math.floor((OFF + glcv.height) / CHUNK);
+    glKeep(GLW.strata, c0, c1, c0 - 1, c1 + 1, c => glStrata(c, k));
+    for (let c = c0; c <= c1; c++) { const L = GLW.strata.get(c); if (L) S.quad(L.tex, 0, 0, L.w, CHUNK, 0, L.top - OFF); }
+    if (!GLW.far) { const c = document.createElement('canvas'); c.width = glcv.width; c.height = glcv.height; const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); Kabe.bgFar(g, PAL, 0, 0, W, H); GLW.far = S.tex(c.width, c.height); S.upload(GLW.far, 0, 0, c); c.width = c.height = 0; }
+    S.quad(GLW.far, 0, 0, GLW.far.w, GLW.far.h, 0, 0);
+    const D = Kabe.bgDust(PAL, 0, 0, W, H, t), ink = RGB(PAL.uiInk);
+    for (let i = 0; i < D.length; i += 4) S.disc(D[i] * k, D[i + 1] * k, D[i + 2] * k, ink, D[i + 3]);
+  }
+  // 世界：カメラ＋揺れ（整数ピクセルにそろえる）
+  const shx = cam.shake ? (Math.random() - 0.5) * cam.shake : 0, shy = cam.shake ? (Math.random() - 0.5) * cam.shake : 0;
+  GLW.WX = Math.round(shx * k); GLW.WY = Math.round((-cam.y + shy) * k);
+  const b0 = Math.floor(-(cam.y + H) / CELL / BAND) - 1, b1 = Math.floor(-cam.y / CELL / BAND) + 1;
+  if (!PERF.off.terrain) {
+    glKeep(GLW.bands, b0, b1, b0 - 1, b1 + 2, b => glBand(b, k));
+    for (let b = b0; b <= b1; b++) { const L = GLW.bands.get(b); if (L) S.quad(L.tex, 0, 0, L.w, L.h, GLW.WX, L.top + GLW.WY); }
+  }
+  if (!PERF.off.sprites) {
+    sporesGL(); obstaclesGL(); stationsGL(); gemsGL();
+    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); }
+    particlesGL(); lavaGL();
+  }
+  S.end();
+  ctx = cvCtx;
+}
+function sporesGL() {
+  const t = G.time;
+  for (const [n, depth, size, al] of [[26, 0.35, 0.8, 0.35], [14, 0.75, 1.3, 0.55]]) {
+    for (let i = 0; i < n; i++) {
+      const h1 = Kabe.hash(i, depth * 10, 3), h2 = Kabe.hash(i, depth * 10, 7), h3 = Kabe.hash(i, depth * 10, 11);
+      const x = ((h1 * W + Math.sin(t * 0.4 + i) * 14) % W + W) % W;
+      const sy = ((h2 * (H + 40) - cam.y * depth - t * (6 + h3 * 10)) % (H + 40) + H + 40) % (H + 40) - 20;
+      const tw = 0.6 + 0.4 * Math.sin(t * (1.5 + h3) + i);
+      wdisc(x, sy + cam.y, size * (0.7 + h3 * 0.6), PAL.glow, al * tw);
+    }
+  }
+}
+function obstaclesGL() {
+  const t = G.time, yTop = cam.y - 60, yBot = cam.y + H + 60, vis = y => y > yTop && y < yBot;
+  for (let r = Math.max(0, Math.floor(-yBot / CELL)); r <= Math.ceil(-yTop / CELL); r++) for (let c = 0; c < COLS; c++) {
+    const ch = raw(world, c, r);
+    if (ch !== 'p' && ch !== 'q') continue;
+    const o = ch === 'q' ? { offset: OB.popOff } : undefined, st = Kabe.popState(t, o), dir = spikeRect(world, c, r)[4] || 'L', x = c * CELL, y = -(r + 1) * CELL;
+    const still = st.amount === 0 || st.amount === 1;   // 出きった・引っ込んだ形は使い回す。動いている間は毎回描く
+    wspr(still ? `pop|${dir}|${st.amount}` : null, x, y, [-7, -7, 25, 25], () => Kabe.popSpike(ctx, PAL, x, y, dir, t, o));
+  }
+  for (const f of world.fans) {
+    if (!vis(f.y)) continue;
+    const dir = f.dir > 0 ? 'R' : 'L';
+    for (const l of Kabe.fanStreaks(f.x, f.y, dir, f.reach, t)) wseg(l[0], l[1], l[2], l[3], 0.7, '#ffffff', l[4]);
+    wspr(`fan|${dir}`, f.x, f.y, [-17, -17, 17, 17], () => Kabe.fanBody(ctx, PAL, f.x, f.y, dir));
+    const bl = Kabe.fanBlade(f.x, f.y, dir, t); wseg(bl[0], bl[1], bl[2], bl[3], 0.75, PAL.metalLight, 1);
+    wspr(`fanbolt|${dir}`, f.x, f.y, [-13, -13, 13, 13], () => Kabe.fanBolt(ctx, PAL, f.x, f.y, dir));
+  }
+  for (const o of world.obs) {
+    if (!vis(o.yMid) && !(o.axis && o.cx != null)) continue;
+    if (o.axis && o.cx != null) {
+      const ex = o.axis === 'x' ? o.w / 2 : 0, ey = o.axis === 'y' ? o.h / 2 : 0, x0 = o.x0 - ex, y0 = o.y0 + ey, x1 = o.x1 + ex, y1 = o.y1 - ey, dx = x1 - x0, dy = y1 - y0;
+      wspr(`track|${dx}|${dy}`, x0, y0, [Math.min(0, dx) - 5, Math.min(0, dy) - 5, Math.max(0, dx) + 5, Math.max(0, dy) + 5], () => Kabe.track(ctx, PAL, x0, y0, x1, y1));
+      const bx = o.cx - o.w / 2, by = o.cy - o.h / 2;
+      wspr(`ibox|${o.w}|${o.h}|${o.axis}`, bx, by, [-7, -7, o.w + 7, o.h + 7], () => Kabe.ironBox(ctx, PAL, bx, by, o.w, o.h, o.axis));
+    } else if (o.type === 'spin') {
+      const a = Kabe.spinAngle(t, o.speed), c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
+      const hx = Math.max(o.len * c + 2.8 * s, 6) + 4, hy = Math.max(o.len * s + 2.8 * c, 6) + 4;
+      wspr(null, o.x, o.y, [-hx, -hy, hx, hy], () => Kabe.spinner(ctx, PAL, o.x, o.y, o.len, a));
+    } else if (o.type === 'shutter') {
+      const st = Kabe.shutterState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.3 < 0.15, still = st.close === 0 || st.close === 1;
+      wspr(still ? `shut|${o.x1 - o.x0}|${st.close}|${lit}` : null, o.x0, o.y, [-8, -21, o.x1 - o.x0 + 8, 11], () => Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset }));
+    }
+  }
+}
+function stationsGL() {
+  for (const s of world.stations) {
+    if (s.y < cam.y - 80 || s.y > cam.y + H + 60) continue;
+    wspr(s.used ? 'house0' : null, s.x, s.y, [-40, -82, 40, 6], () => Kabe.gachaHouse(ctx, PAL, s.x, s.y, G.time, !s.used));
+    if (s.used) continue;
+    const ty = s.y - 76 + Math.sin(G.time * 2) * 1.5;
+    wspr('lbl|ガチャ所', s.x, ty, [-36, -10, 36, 10], () => {
+      ctx.font = `800 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const tw = ctx.measureText('ガチャ所').width + 14; pill(s.x - tw / 2, ty - 8, tw, 16); ctx.fillStyle = PAL.glow; ctx.fillText('ガチャ所', s.x, ty + 0.5);
+    });
+  }
+}
+function gemsGL() {
+  const t = G.time, yTop = cam.y - 30, yBot = cam.y + H + 30;
+  for (const g of world.gems) {
+    if (g.got || g.y < yTop || g.y > yBot) continue;
+    const y = g.y + Math.sin(t * 2 + g.seed) * 2;
+    wspr(null, g.x, y, [-12.5, -12.5, 12.5, 12.5], () => Kabe.mote(ctx, PAL, g.x, y, t, 1, g.seed));
+  }
+}
+function predictGL() {
+  const v = gemVal('predict'); if (!v || state !== 'play') return;
+  let pts = null, faint = false;
+  if (canAct(P)) pts = predictPath(false);
+  else if (v.air && (P.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { pts = predictPath(true); faint = true; }
+  if (!pts) return;
+  pts.forEach(([x, y, end], i) => { const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4)); wdisc(x, y, end ? 3 : 1.6, PAL.glow, end ? 0.9 : a); });
+}
+function playerGL() {
+  const p = P, t = G.time;
+  if (!live) updatePose(1);
+  const Q = live, face = p.side ? -p.side : (p.face || 1);
+  let wob = 0;
+  if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  // 残像：向きごとに1枚描いて、各位置に薄く置く
+  if (!calm) for (const a of trail) wspr(`trail|${a.face}`, a.x, a.y, ghostBB(Q, a.face), () => Kabe.ghost(ctx, PAL, 'sheet', 'live', a.x, a.y, t, a.face, 1), 0.22 * a.life / 0.22, false);
+  const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;
+  const ax = p.x + wob, ay = p.y - breathe * 10, rot = p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0;
+  const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0, sx = 1 + p.squash * 0.35 - st - breathe, sy = 1 - p.squash * 0.3 + st + breathe;
+  wspr(null, ax, ay, ghostBB(Q, face, { rot, sx, sy }), () => {
+    ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
+    ctx.translate(ax, ay); if (rot) ctx.rotate(rot); ctx.scale(sx, sy);
+    Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, face, 1);
+  });
+  if (air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) wdisc(p.x, p.y + 19, 1.6, p.air > 0 ? PAL.playerShade : PAL.glow, 1);
+}
+function particlesGL() {
+  for (const q of particles) {
+    const a = Math.max(0, q.life / q.max);
+    if (q.kind === 'dust') wdisc(q.x, q.y, q.r * (1.6 - a * 0.6), PAL.terrainLight, a * 0.85);
+    else if (q.kind === 'gem') wdisc(q.x, q.y, 1.8, PAL.glow, a);
+    else if (q.kind === 'line') wseg(q.x, q.y, q.x + q.dx * 12 * a, q.y + q.dy * 12 * a, 0.7, PAL.playerBody, a * 0.8);
+    else if (q.kind === 'cloud') wdisc(q.x, q.y, q.r * (1.8 - a * 0.8), PAL.playerBody, a * 0.7);
+    else if (q.kind === 'pebble') wdisc(q.x, q.y, q.r, PAL.terrainShade, Math.min(1, a * 2));
+    else if (q.kind === 'ember') { const fl = 0.6 + 0.4 * Math.sin(G.time * 12 + q.ph); wdisc(q.x + Math.sin(G.time * 3 + q.ph) * 3, q.y, q.r, PAL.riseTop, a * fl); }
+    else if (q.kind === 'spark') wdisc(q.x, q.y, 2, PAL.hazard, a);
+    else if (q.kind === 'puff') wdisc(q.x, q.y, q.r * (1.5 - a * 0.5), q.r > 5 ? PAL.scarf : PAL.playerBody, a);
+  }
+  for (const f of floaters) {
+    cvCtx.font = `800 15px ${FONT}`; const hw = cvCtx.measureText(f.text).width / 2 + 4;
+    wspr(`txt|${f.text}`, f.x, f.y, [-hw, -13, hw, 13], () => { ctx.font = `800 15px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = PAL.glow; ctx.fillText(f.text, f.x, f.y); }, Math.min(1, f.life));
+  }
+}
+function lavaGL() {
+  const y = G.lavaY, bottom = cam.y + H + 20;
+  if (y > bottom) return;
+  const k = GLW.k, t = G.time, TAU = Math.PI * 2, md = v => ((v % TAU) + TAU) % TAU;
+  glfx.scene.lava({ ly: (y * k + GLW.WY) / k, ox: GLW.WX / k, p1: md(t * 2.2), p2: md(-t * 1.4), p3: md(t * 1.6), cL: RGB(PAL.riseLight), cR: RGB(PAL.rise), cT: RGB(PAL.riseTop) });
+  const kind = (Kabe.MOTIF[PAL.id] || Kabe.MOTIF.underground).rise, still = kind !== 'storm';
+  for (const c of Kabe.riseCrusts(PAL, 0, y, W, bottom - y, t)) {
+    if (c.cy > bottom) continue;
+    wspr(still ? `crust|${c.i}|${c.cw}` : null, c.cx, c.cy, [-c.cw / 2 - 3, -8, c.cw / 2 + 4, 9], () => Kabe.riseCrust(ctx, PAL, c, t));
+  }
+}
+function draw() {
+  // きれい画質は GPU の中で組み立てる（D・V のチェック表示のときだけ、2Dで描いて送る前のやり方）
+  if (FX.ok && glfx.scene && world && !debug && !showCheck) {
+    try { drawGL(); } finally { ctx = cvCtx; }
+    renderFx(null); fxShown();
+    return;
+  }
+  drawFrame();
+}
+// シェーダーの絵を見せて、HUD は別の canvas に描く
+function fxShown() {
+  const k = scale * dpr;
+  glcv.hidden = false; hudcv.hidden = false; showCv(false);
+  ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
+  if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); }
+  ctx = cvCtx;
+}
+function drawFrame() {
   const k = scale * dpr;
   ctx.setTransform(k, 0, 0, k, 0, 0);
   if (!world) return;
@@ -1155,10 +1380,7 @@ function drawFrame(sc) {
   }
   ctx.restore();
   if (FX.ok) {   // シェーダーで仕上げ、HUD は別の canvas へ
-    renderFx(sc); glcv.hidden = false; hudcv.hidden = false; showCv(false);
-    const main = ctx; ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
-    if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); }
-    ctx = main;
+    renderFx(cv); fxShown();
     return;
   }
   glcv.hidden = true; hudcv.hidden = true; showCv(true);
@@ -1267,14 +1489,220 @@ const glfx = (() => {
   const hexRgb = h => { let c = rgbCache.get(h); if (!c) { const n = parseInt(h.replace('#', '').slice(0, 6), 16); c = [(n >> 16 & 255) / 255, (n >> 8 & 255) / 255, (n & 255) / 255]; rgbCache.set(h, c); } return c; };
   const lightsA = new Float32Array(N * 4), colsA = new Float32Array(N * 3);
   const pass = (P, target, w, h) => { gl.useProgram(P.p); gl.bindFramebuffer(gl.FRAMEBUFFER, target); gl.viewport(0, 0, w, h); };
+  /* ---------- 画面を GPU の中で組み立てる（2Dの画面をまるごと送らない） ----------
+     地形・背景は1回だけ絵にして置き、丸・線・溶岩は GPU で直接描く。毎フレーム形が変わる物（キャラなど）だけ、
+     小さい絵を1枚の下書き（staging）にまとめて描いて送る。形が変わらない物は一度送ったら置き場（cache）に写して使い回す。
+     座標は画面のピクセル（上が0）。でき上がりは sceneT に入り、上下の向きは 2D canvas を送ったときと同じ。 */
+  const HP = '#ifdef GL_FRAGMENT_PRECISION_HIGH\nprecision highp float;\n#else\nprecision mediump float;\n#endif\n';
+  const progA = (vs, fs, names) => {
+    const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+    names.forEach((n, i) => gl.bindAttribLocation(p, i, n)); gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    const u = {}; return { p, n: names.length, u: n => u[n] ?? (u[n] = gl.getUniformLocation(p, n)) };
+  };
+  const POS = 'uniform vec2 res; vec4 at(vec2 a){ return vec4(a / res * 2.0 - 1.0, 0.0, 1.0); }\n';
+  let GS = null;
+  try {
+    // 絵を貼る：テクスチャの色（前もってアルファを掛けた形）× 濃さ
+    const SPR = progA(POS + 'attribute vec2 a; attribute vec2 uv; attribute float al; varying vec2 vu; varying float va; void main(){ vu = uv; va = al; gl_Position = at(a); }',
+      HP + 'uniform sampler2D tx; varying vec2 vu; varying float va; void main(){ gl_FragColor = texture2D(tx, vu) * va; }', ['a', 'uv', 'al']);
+    // 丸と線：線分 seg（はし2つ）から半径 r の内側を塗る（ふちは1ピクセルでなめらかに）。点は両はしが同じ線分
+    const SHP = progA(POS + 'attribute vec2 a; attribute vec4 seg; attribute float r; attribute vec4 col; varying vec2 vp, vd; varying float vr; varying vec4 vc; void main(){ vp = a - seg.xy; vd = seg.zw - seg.xy; vr = r; vc = col; gl_Position = at(a); }',
+      HP + `varying vec2 vp, vd; varying float vr; varying vec4 vc;
+      void main(){ float l2 = dot(vd, vd), h = l2 > 0.0 ? clamp(dot(vp, vd) / l2, 0.0, 1.0) : 0.0;
+        float cov = clamp(vr - length(vp - vd * h) + 0.5, 0.0, 1.0) * min(1.0, vr * 2.0);
+        gl_FragColor = vec4(vc.rgb * vc.a, vc.a) * cov; }`, ['a', 'seg', 'r', 'col']);
+    // 溶岩（Kabe.rise と同じ形）：表面の上の照り返し → 明るい波 → 本体 → 表面の線。波は4pxごとの点を結んだ折れ線
+    const LAVA = progA(POS + 'attribute vec2 a; void main(){ gl_Position = at(a); }',
+      HP + `uniform float k, ly, ox, p1, p2, p3; uniform vec3 cL, cR, cT;
+      float S(float x){ return ly + 5.0 + sin(x * 0.045 + p1) * 3.0 + sin(x * 0.11 + p2) * 1.5; }
+      float Lw(float x){ return S(x) - 3.0 + sin(x * 0.07 + p3) * 2.0; }
+      vec4 over(vec4 a, vec4 b){ return a + b * (1.0 - a.a); }
+      void main(){
+        vec2 q = gl_FragCoord.xy / k; float x = q.x - ox, x0 = floor(x / 4.0) * 4.0, f = (x - x0) / 4.0;
+        float s0 = S(x0), s1 = S(x0 + 4.0), sv = mix(s0, s1, f), ss = (s1 - s0) / 4.0;
+        float l0 = Lw(x0), l1 = Lw(x0 + 4.0), lv = mix(l0, l1, f), ls = (l1 - l0) / 4.0;
+        vec4 c = vec4(0.0);
+        if (q.y > ly - 40.0 && q.y < ly + 6.0) { float a = 0.4 * (q.y - (ly - 40.0)) / 46.0; c = vec4(cL * a, a); }
+        c = over(vec4(cL, 1.0) * clamp((q.y - lv) * k / sqrt(1.0 + ls * ls) + 0.5, 0.0, 1.0), c);
+        float d = (q.y - sv) * k / sqrt(1.0 + ss * ss);
+        c = over(vec4(cR, 1.0) * clamp(d + 0.5, 0.0, 1.0), c);
+        c = over(vec4(cT, 1.0) * clamp(k - abs(d) + 0.5, 0.0, 1.0), c);
+        gl_FragColor = c; }`, ['a']);
+    const ntex = (w, h) => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); for (const [p, v] of [[gl.TEXTURE_MIN_FILTER, gl.NEAREST], [gl.TEXTURE_MAG_FILTER, gl.NEAREST], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, v); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); return { t, w, h }; };
+    const fbo = t => { const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0); const ok = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE; gl.bindFramebuffer(gl.FRAMEBUFFER, null); if (!ok) throw new Error('fbo'); return f; };
+    const AT = 2048, frame = ntex(AT, AT), frameF = fbo(frame.t), cache = ntex(AT, AT);
+    const scn = { t: tex(), f: null, w: 0, h: 0 };
+    const bufs = { spr: gl.createBuffer(), shp: gl.createBuffer(), lava: gl.createBuffer() };
+    let vS = new Float32Array(6 * 5 * 512), vH = new Float32Array(6 * 11 * 1024), nS = 0, nH = 0;
+    const grow = (a, need) => { if (need <= a.length) return a; const b = new Float32Array(Math.max(need, a.length * 2)); b.set(a); return b; };
+    const stats = { up: 0, spr: 0, n: 0, area: 0 };
+    let k = 1, W2 = 1, H2 = 1, cmds = [], pend = new Map(), cmap = new Map(), shelves = [], shelfY = 0, cacheReset = false, maxAttr = 1;
+    const staging = new Map();
+    // 下書きの canvas は大きさ（幅128・高さ64きざみ）ごとに作り置き、最近使った8枚まで残す（送る量は下書きの大きさで決まる）
+    const stage = (w, h) => {
+      const key = w + 'x' + h; let s = staging.get(key);
+      if (s) staging.delete(key);
+      else { const c = document.createElement('canvas'); c.width = w; c.height = h; s = { c, g: c.getContext('2d') }; }
+      staging.set(key, s);
+      if (staging.size > 8) { const [k0, s0] = staging.entries().next().value; s0.c.width = s0.c.height = 0; staging.delete(k0); }
+      return s;
+    };
+    const alloc = (w, h) => {
+      for (const s of shelves) if (h <= s.h && h * 2 > s.h && s.x + w <= AT) { const r = { x: s.x, y: s.y }; s.x += w + 1; return r; }
+      if (shelfY + h > AT) return null;
+      const s = { x: w + 1, y: shelfY, h }; shelfY += h + 1; shelves.push(s); return { x: 0, y: s.y };
+    };
+    const clearCache = () => { cmap.clear(); shelves = []; shelfY = 0; cacheReset = false; };
+    // 頂点の並べ方（プログラムごと）
+    const layouts = { spr: [2, 2, 1], shp: [2, 4, 1, 4], lava: [2] };
+    const useLayout = (P, name) => {
+      gl.useProgram(P.p); gl.bindBuffer(gl.ARRAY_BUFFER, bufs[name]);
+      const L = layouts[name], stride = L.reduce((a, b) => a + b, 0) * 4; let off = 0;
+      L.forEach((n, i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, n, gl.FLOAT, false, stride, off); off += n * 4; });
+      for (let i = L.length; i < maxAttr; i++) gl.disableVertexAttribArray(i);
+      maxAttr = Math.max(maxAttr, L.length);
+      gl.uniform2f(P.u('res'), W2, H2);
+    };
+    const quadOut = (x0, y0, x1, y1) => x1 <= 0 || y1 <= 0 || x0 >= W2 || y0 >= H2;
+    GS = {
+      stats,
+      // 毎フレームのはじめ：画面の大きさに合わせる。k（1 css px あたりのピクセル）を返す
+      begin() {
+        W2 = glcv.width; H2 = glcv.height; const k2 = W2 / W;
+        if (k2 !== k) { k = k2; clearCache(); }
+        if (cacheReset) clearCache();
+        if (scn.w !== W2 || scn.h !== H2) { scn.w = W2; scn.h = H2; gl.bindTexture(gl.TEXTURE_2D, scn.t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W2, H2, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); if (scn.f) gl.deleteFramebuffer(scn.f); scn.f = fbo(scn.t); }
+        cmds = []; pend = new Map(); stats.up = 0; stats.spr = 0; stats.n = 0; stats.area = 0;
+        return k;
+      },
+      tex: (w, h) => ntex(w, h),
+      delTex: o => gl.deleteTexture(o.t),
+      // canvas の中身をテクスチャの (x, y) へ送る（送った量を数える）
+      upload(o, x, y, c) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, o.t); gl.texSubImage2D(gl.TEXTURE_2D, 0, x, y, gl.RGBA, gl.UNSIGNED_BYTE, c); stats.up += c.width * c.height; },
+      // テクスチャ o の (sx, sy, w, h) を画面の (dx, dy) に貼る
+      quad(o, sx, sy, w, h, dx, dy, a) { if (quadOut(dx, dy, dx + w, dy + h)) return; cmds.push({ k: 's', o, sx, sy, w, h, dx, dy, a: a == null ? 1 : a }); },
+      // 丸（x, y, 半径 r）と線（x0, y0 → x1, y1、太さの半分 r）。色は [r, g, b]、濃さ a
+      seg(x0, y0, x1, y1, r, c, a) { if (a <= 0 || quadOut(Math.min(x0, x1) - r - 1, Math.min(y0, y1) - r - 1, Math.max(x0, x1) + r + 1, Math.max(y0, y1) + r + 1)) return; cmds.push({ k: 'h', x0, y0, x1, y1, r, c, a }); },
+      disc(x, y, r, c, a) { this.seg(x, y, x, y, r, c, a); },
+      lava(u) { cmds.push({ k: 'l', u }); },
+      // 小さい絵：key があれば同じ絵を使い回す（cache＝次のフレームにも残す）。(ax, ay) は世界の点、(OX, OY) は世界→画面のずれ（整数ピクセル）
+      //   bb は点からの範囲（css px）。exact＝点の位置の端数もそのまま描く（毎フレーム描き直す物）。snap＝点を一番近いピクセルにそろえる（使い回す物）
+      sprite(key, keep, ax, ay, OX, OY, bb, draw, a, exact) {
+        let rec = key && (cmap.get(key) || pend.get(key));
+        const ox = rec ? rec.ox : Math.ceil(-bb[0] * k) + 1, oy = rec ? rec.oy : Math.ceil(-bb[1] * k) + 1;
+        const w = rec ? rec.w : ox + Math.ceil(bb[2] * k) + 1, h = rec ? rec.h : oy + Math.ceil(bb[3] * k) + 1;
+        const fx = ax * k, fy = ay * k, bx = exact ? Math.floor(fx) : Math.round(fx), by = exact ? Math.floor(fy) : Math.round(fy);
+        const dx = bx + OX - ox, dy = by + OY - oy;
+        if (quadOut(dx, dy, dx + w, dy + h) || a <= 0) return;
+        if (!rec) {
+          rec = { key, keep: !!key && keep, w, h, ox, oy, fx: exact ? fx - bx : 0, fy: exact ? fy - by : 0, ax, ay, draw, o: null, x: 0, y: 0 };
+          if (key) pend.set(key, rec); else pend.set(Symbol(), rec);
+        }
+        cmds.push({ k: 's', rec, dx, dy, a: a == null ? 1 : a });
+      },
+      // 下書きに描いて送り、使い回す物は置き場へ写し、全部を順に sceneT へ描く
+      end() {
+        gl.activeTexture(gl.TEXTURE0);
+        const list = [...pend.values()].filter(r => !r.o);
+        stats.n = list.length; stats.area = list.reduce((a, r) => a + r.w * r.h, 0);
+        if (list.length) {
+          list.sort((p, q) => q.h - p.h);
+          let best = null;
+          for (const lim of [256, 384, 512, 768, 1024, 1536, 2048]) {
+            let x = 0, y = 0, rowH = 0, uw = 0, ok = true;
+            const pos = [];
+            for (const r of list) {
+              if (r.w > lim) { ok = false; break; }
+              if (x + r.w > lim) { y += rowH + 1; x = 0; rowH = 0; }
+              pos.push([x, y]); x += r.w + 1; rowH = Math.max(rowH, r.h); uw = Math.max(uw, x);
+            }
+            if (!ok) continue;
+            const uh = y + rowH, bw = Math.ceil(Math.max(1, uw) / 128) * 128, bh = Math.ceil(Math.max(1, uh) / 64) * 64;
+            if (bw > AT || bh > AT) continue;
+            if (!best || bw * bh < best.bw * best.bh) best = { bw, bh, pos };
+          }
+          if (best) {
+            const { c, g } = stage(best.bw, best.bh);
+            g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, best.bw, best.bh);
+            list.forEach((r, i) => {
+              r.x = best.pos[i][0]; r.y = best.pos[i][1]; r.o = frame;
+              g.save(); g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
+              g.setTransform(k, 0, 0, k, r.x + r.ox + r.fx - r.ax * k, r.y + r.oy + r.fy - r.ay * k);
+              r.draw(g); g.restore();
+            });
+            this.upload(frame, 0, 0, c); stats.spr = best.bw * best.bh;
+            // 使い回す物は置き場へ写す（GPU の中だけ）
+            gl.bindFramebuffer(gl.FRAMEBUFFER, frameF); gl.bindTexture(gl.TEXTURE_2D, cache.t);
+            for (const r of list) {
+              if (!r.keep) continue;
+              const s = alloc(r.w, r.h); if (!s) { cacheReset = true; continue; }
+              gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, s.x, s.y, r.x, r.y, r.w, r.h);
+              cmap.set(r.key, { w: r.w, h: r.h, ox: r.ox, oy: r.oy, o: cache, x: s.x, y: s.y });
+            }
+          }
+        }
+        // sceneT に順に描く。同じ種類・同じテクスチャが続くあいだはまとめて1回で描く
+        gl.bindFramebuffer(gl.FRAMEBUFFER, scn.f); gl.viewport(0, 0, W2, H2);
+        gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+        gl.activeTexture(gl.TEXTURE0);
+        let kind = '', curT = null;
+        const flush = () => {
+          if (kind === 's' && nS) { useLayout(SPR, 'spr'); gl.bindTexture(gl.TEXTURE_2D, curT.t); gl.uniform1i(SPR.u('tx'), 0); gl.bufferData(gl.ARRAY_BUFFER, vS.subarray(0, nS), gl.DYNAMIC_DRAW); gl.drawArrays(gl.TRIANGLES, 0, nS / 5); }
+          if (kind === 'h' && nH) { useLayout(SHP, 'shp'); gl.bufferData(gl.ARRAY_BUFFER, vH.subarray(0, nH), gl.DYNAMIC_DRAW); gl.drawArrays(gl.TRIANGLES, 0, nH / 11); }
+          nS = 0; nH = 0;
+        };
+        for (const c of cmds) {
+          if (c.k === 's') {
+            const r = c.rec, o = r ? r.o : c.o; if (!o) continue;
+            if (kind !== 's' || curT !== o) { flush(); kind = 's'; curT = o; }
+            const sx = r ? r.x : c.sx, sy = r ? r.y : c.sy, w = r ? r.w : c.w, h = r ? r.h : c.h;
+            const u0 = sx / o.w, v0 = sy / o.h, u1 = (sx + w) / o.w, v1 = (sy + h) / o.h, x0 = c.dx, y0 = c.dy, x1 = c.dx + w, y1 = c.dy + h, a = c.a;
+            vS = grow(vS, nS + 30);
+            vS.set([x0, y0, u0, v0, a, x1, y0, u1, v0, a, x0, y1, u0, v1, a, x0, y1, u0, v1, a, x1, y0, u1, v0, a, x1, y1, u1, v1, a], nS); nS += 30;
+          } else if (c.k === 'h') {
+            if (kind !== 'h') { flush(); kind = 'h'; }
+            const m = c.r + 1.5, x0 = Math.min(c.x0, c.x1) - m, y0 = Math.min(c.y0, c.y1) - m, x1 = Math.max(c.x0, c.x1) + m, y1 = Math.max(c.y0, c.y1) + m;
+            const t = [c.x0, c.y0, c.x1, c.y1, c.r, c.c[0], c.c[1], c.c[2], c.a];
+            vH = grow(vH, nH + 66);
+            for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x0, y1], [x1, y0], [x1, y1]]) { vH[nH++] = px; vH[nH++] = py; for (let i = 0; i < 9; i++) vH[nH++] = t[i]; }
+          } else if (c.k === 'l') {
+            flush(); kind = 'l';
+            const u = c.u, top = Math.max(0, Math.floor((u.ly - 40) * k + 0));
+            if (top >= H2) continue;
+            useLayout(LAVA, 'lava');
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, top, W2, top, 0, H2, 0, H2, W2, top, W2, H2]), gl.DYNAMIC_DRAW);
+            gl.uniform1f(LAVA.u('k'), k); gl.uniform1f(LAVA.u('ly'), u.ly); gl.uniform1f(LAVA.u('ox'), u.ox);
+            gl.uniform1f(LAVA.u('p1'), u.p1); gl.uniform1f(LAVA.u('p2'), u.p2); gl.uniform1f(LAVA.u('p3'), u.p3);
+            gl.uniform3fv(LAVA.u('cL'), u.cL); gl.uniform3fv(LAVA.u('cR'), u.cR); gl.uniform3fv(LAVA.u('cT'), u.cT);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+          }
+        }
+        flush();
+        gl.disable(gl.BLEND);
+        // 後処理のための元の形に戻す（全画面の四角だけ）
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        for (let i = 1; i < maxAttr; i++) gl.disableVertexAttribArray(i);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        cmds = []; pend = new Map();
+        return scn;
+      },
+      clearCache,
+      sceneTex: () => scn.t,
+    };
+  } catch (e) { console.warn('gscene', e.message); GS = null; }
   return {
+    scene: GS,
+    // src：2D canvas（送ってから仕上げる）か null（GPU の中で組み立てた画面 GS をそのまま仕上げる）
     render(src, lights, u) {
       const W2 = glcv.width, H2 = glcv.height, w4 = Math.max(1, W2 >> 2), h4 = Math.max(1, H2 >> 2);
       if (w4 !== bw || h4 !== bh) sizeFb(w4, h4);
-      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sceneT);
+      const sT = src ? sceneT : GS.sceneTex();
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sT);
       // 絵の入れ物は大きさが変わったときだけ作り、ふだんは中身だけ入れ替える
-      if (src.width !== sw || src.height !== sh2) { sw = src.width; sh2 = src.height; gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); }
-      else if (!PERF.off.upload) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      if (src && (src.width !== sw || src.height !== sh2)) { sw = src.width; sh2 = src.height; gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src); }
+      else if (src) gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, gl.RGBA, gl.UNSIGNED_BYTE, src);
       if (!PERF.off.bloom) {
       pass(P1, fb[0].f, w4, h4); gl.uniform1i(P1.u('s'), 0); gl.uniform2f(P1.u('px'), 1 / W2 * 2, 1 / H2 * 2); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       for (let i = 0; i < 2; i++) {
@@ -1290,7 +1718,7 @@ const glfx = (() => {
       }
       if (PERF.off.comp) return;
       pass(P3, null, W2, H2); gl.uniform1f(P3.u('lite'), PERF.off.emb ? 1 : 0);
-      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sceneT); gl.uniform1i(P3.u('scene'), 0);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, sT); gl.uniform1i(P3.u('scene'), 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, fb[0].t); gl.uniform1i(P3.u('bloom'), 1);
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, fb[2].t); gl.uniform1i(P3.u('atm'), 2);
       gl.activeTexture(gl.TEXTURE0);
@@ -1341,15 +1769,13 @@ function collectLights() {
   const px = P.x, py = P.y - cy;
   return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
 }
-function renderFx(sc) {
+function renderFx(src) {
   const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
   const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
-  const src = !sc ? cv : sc.mode === 'bmp' ? sc.c.transferToImageBitmap() : sc.c;
   glfx.render(src, collectLights(), {
     t: G.time, amb: FX.ambient, bloomK: FX.bloom, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94],
   });
-  if (src.close) src.close();   // bmp：渡し終わった画像はすぐ返す
 }
 
 /* ---------- 光と影：洞窟を少し暗くして、光るものだけ明るく抜く（おばけ・結晶・キノコ・ガチャ所・溶岩） ---------- */
@@ -1858,28 +2284,24 @@ if (PERF.on) {
   box.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:99;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:rgba(10,8,14,.82);color:#fff;font:600 12px/1.3 system-ui;display:flex;flex-wrap:wrap;gap:4px;justify-content:center';
   const info = document.createElement('div'); info.style.cssText = 'width:100%;text-align:center;font:700 13px/1.4 ui-monospace,monospace';
   box.appendChild(info);
-  const items = [['upload', '転送'], ['comp', '仕上げ'], ['lights', '点光源'], ['emb', '凹凸+色ずれ'], ['bloom', 'ブルーム'], ['atm', '筋+霧'], ['bg', '背景'], ['terrain', '地形'], ['sprites', '動くもの'], ['hud', 'HUD']];
+  const items = [['comp', '仕上げ'], ['lights', '点光源'], ['emb', '凹凸+色ずれ'], ['bloom', 'ブルーム'], ['atm', '筋+霧'], ['bg', '背景'], ['terrain', '地形'], ['sprites', '動くもの'], ['hud', 'HUD']];
   const btn = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.style.cssText = 'font:inherit;padding:5px 8px;border-radius:8px;border:0;background:#3a3445;color:#fff'; b.onclick = e => { e.stopPropagation(); fn(b); }; box.appendChild(b); return b; };
   for (const [key, label] of items) btn(label, b => { PERF.off[key] = !PERF.off[key]; b.style.background = PERF.off[key] ? '#b5562d' : '#3a3445'; b.style.textDecoration = PERF.off[key] ? 'line-through' : ''; });
-  // 渡し方（見た目は同じ）。押すと切り替わる。URL の &up=cpu などでも選べる
-  const modeBtns = [];
-  const paintModes = () => modeBtns.forEach(b => { b.style.background = b.dataset.m === PERF.mode ? '#3a8f86' : '#3a3445'; });
-  for (const m of ['gpu', 'cpu', 'bmp']) {
-    const b = btn('渡し方 ' + m.toUpperCase() + (m === 'bmp' && !canBmp ? '（非対応）' : ''), () => { if (m === 'bmp' && !canBmp) return; PERF.mode = m; clearBands(); scene.mode = ''; paintModes(); });
-    b.dataset.m = m; modeBtns.push(b);
-  }
-  paintModes();
   box.addEventListener('pointerdown', e => e.stopPropagation());
   document.body.appendChild(box);
   let next = 0;
   perfTick = (ms, now) => {
     PERF.js += (ms - PERF.js) * 0.05;
+    if (glfx && glfx.scene) PERF.up += (glfx.scene.stats.up - PERF.up) * 0.05;
     if (now < next) return; next = now + 400;
-    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'} ・ 渡し方 ${PERF.mode.toUpperCase()} ・ v${VERSION}`;
+    const st = glfx && glfx.scene ? glfx.scene.stats : null;
+    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'}${st ? ` ・ 送信 ${Math.round(PERF.up / 1000)}k/f` : ''} ・ v${VERSION}`;
   };
 }
 resize(); renderBest(); newGame();
 if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS Rounded 1c"`).catch(() => {});
+// 文字の絵は使い回すので、フォントが届いたら描き直す
+if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
 window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, GEMS };
 })();

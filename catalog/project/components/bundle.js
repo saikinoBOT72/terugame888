@@ -100,21 +100,22 @@ window.Kabe = (function () {
   var dustCache = {};
   function dustTable(n) {
     var D = [];
-    for (var k = 0; k < n; k++) D.push({ b: Math.min(31, Math.floor(hash(k, 9) * 32)), x: hash(k, 5), y: hash(k, 6), v: 1 + hash(k, 7), s: 0.7 + hash(k, 8) });
+    for (var k = 0; k < n; k++) D.push({ h9: hash(k, 9), b: Math.min(31, Math.floor(hash(k, 9) * 32)), x: hash(k, 5), y: hash(k, 6), v: 1 + hash(k, 7), s: 0.7 + hash(k, 8) });
     return D.sort(function (p, q) { return p.b - q.b; });
   }
-  function background(g, P, x, y, w, h, t, scroll) {
-    scroll = scroll || 0;
-    var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, P.bgTop); gr.addColorStop(1, P.bgBottom);
-    g.fillStyle = gr; g.fillRect(x, y, w, h);
-    var m = MOTIF[P.id] || MOTIF.underground, bh = 46, off = scroll * 0.5;
-    // 帯の番号は画面ではなく世界で数える（スクロールしても色と形が入れ替わらない）
-    for (var i = Math.floor(off / bh) - 1; i * bh - off < h + bh; i++) {
-      var yy = y + i * bh - off; g.fillStyle = (i & 1) ? P.strataA : P.strataB;
+  // 地層の帯：s は奥の層の座標（画面の y ＋ スクロール×0.5）。s0〜s1 にかかる帯を yy ＝ oy ＋ i×46 に描く（帯の番号は世界で数える）
+  function bgStrata(g, P, x, w, s0, s1, oy) {
+    var m = MOTIF[P.id] || MOTIF.underground, bh = 46;
+    for (var i = Math.floor(s0 / bh) - 1; i * bh < s1 + bh; i++) {
+      var yy = oy + i * bh; g.fillStyle = (i & 1) ? P.strataA : P.strataB;
       g.beginPath(); g.moveTo(x, yy + bh + 6);
       for (var xx = 0; xx <= w; xx += 24) g.lineTo(x + xx, yy + Math.sin(xx * 0.04 + i * 1.7) * (m.far === 'cloud' ? 6 : 4));
       g.lineTo(x + w, yy + bh + 6); g.closePath(); g.fill();
     }
+  }
+  // 遠景（画面に止まっている）
+  function bgFar(g, P, x, y, w, h) {
+    var m = MOTIF[P.id] || MOTIF.underground;
     g.fillStyle = P.far;
     for (var j = 0; j < Math.ceil(w / 70) + 1; j++) {
       var sx = x + j * 70 + hash(j, 1) * 30, sw = 14 + hash(j, 2) * 18, sh = 26 + hash(j, 3) * 40;
@@ -130,6 +131,21 @@ window.Kabe = (function () {
         if (hash(j, 7) > 0.6) { var py = y + hash(j, 8) * h, pr = 5 + hash(j, 9) * 9; ell(g, sx, py, pr, pr); g.fill(); g.strokeStyle = P.far; g.lineWidth = 1.2; ell(g, sx, py, pr * 1.7, pr * 0.45, -0.3); g.stroke(); }
       }
     }
+  }
+  // 細かい粒の一覧：[x, y, 半径, 濃さ] を4つずつ（WebGL で描くとき用）
+  function bgDust(P, x, y, w, h, t) {
+    var m = MOTIF[P.id] || MOTIF.underground, n = Math.floor(w * h / 900), a0 = m.far === 'planet' ? 0.25 : 0.05, a1 = m.far === 'planet' ? 0.4 : 0.08, sp = m.far === 'planet' ? 0.2 : 1;
+    var D = dustCache[n] || (dustCache[n] = dustTable(n)), out = new Float32Array(n * 4);
+    for (var k = 0; k < n; k++) { var d = D[k]; out[k * 4] = x + d.x * w; out[k * 4 + 1] = y + ((d.y * h - t * 5 * d.v * sp) % h + h) % h; out[k * 4 + 2] = d.s; out[k * 4 + 3] = a0 + d.h9 * a1; }
+    return out;
+  }
+  function background(g, P, x, y, w, h, t, scroll) {
+    scroll = scroll || 0;
+    var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, P.bgTop); gr.addColorStop(1, P.bgBottom);
+    g.fillStyle = gr; g.fillRect(x, y, w, h);
+    var m = MOTIF[P.id] || MOTIF.underground, off = scroll * 0.5;
+    bgStrata(g, P, x, w, off, off + h, y - off);
+    bgFar(g, P, x, y, w, h);
     // 細かい粒：濃さを32段に分けて、同じ濃さの粒は1回で塗る（1粒ずつ塗るより速い。濃さの差は目に見えない）。粒ごとの乱数は先に作っておく
     g.fillStyle = P.uiInk;
     var n = Math.floor(w * h / 900), a0 = m.far === 'planet' ? 0.25 : 0.05, a1 = m.far === 'planet' ? 0.4 : 0.08, sp = m.far === 'planet' ? 0.2 : 1;
@@ -346,30 +362,59 @@ window.Kabe = (function () {
 
   // 扇風機：壁の面 (x, y) から dir（'R' 右へ・'L' 左へ・'T' 上へ・'B' 下へ）に風を出す。痛くない、押すだけ。reach 風の届く長さ
   var FAN_BAND = 12;   // 風の幅の半分
-  function fan(g, P, x, y, dir, reach, t, on) {
-    on = on !== false;
-    var rot = { R: 0, L: Math.PI, B: Math.PI / 2, T: -Math.PI / 2 }[dir] || 0, c = Math.cos(rot), s = Math.sin(rot);
-    if (on) {
-      g.save(); g.translate(x, y); g.rotate(rot); g.lineCap = 'round'; g.lineWidth = 1.4;
-      for (var i = 0; i < 7; i++) {
-        var q = (t * (0.9 + hash(i, 3, 1) * 0.5) + hash(i, 1, 2)) % 1, sx = 9 + q * (reach - 24), sy = (hash(i, 2, 3) * 2 - 1) * (FAN_BAND - 2), len = 8 + hash(i, 5, 4) * 8;
-        g.strokeStyle = 'rgba(255,255,255,' + (Math.sin(q * Math.PI) * 0.6).toFixed(3) + ')'; g.beginPath(); g.moveTo(sx, sy); g.lineTo(sx + len, sy); g.stroke();
-      }
-      g.restore();
+  function fanRot(dir) { return { R: 0, L: Math.PI, B: Math.PI / 2, T: -Math.PI / 2 }[dir] || 0; }
+  // 風の筋：[x0, y0, x1, y1, 濃さ] を7本（白、太さ 1.4、端は丸）
+  function fanStreaks(x, y, dir, reach, t) {
+    var rot = fanRot(dir), c = Math.cos(rot), s = Math.sin(rot), out = [];
+    for (var i = 0; i < 7; i++) {
+      var q = (t * (0.9 + hash(i, 3, 1) * 0.5) + hash(i, 1, 2)) % 1, sx = 9 + q * (reach - 24), sy = (hash(i, 2, 3) * 2 - 1) * (FAN_BAND - 2), len = 8 + hash(i, 5, 4) * 8;
+      out.push([x + c * sx - s * sy, y + s * sx + c * sy, x + c * (sx + len) - s * sy, y + s * (sx + len) + c * sy, +(Math.sin(q * Math.PI) * 0.6).toFixed(3)]);
     }
+    return out;
+  }
+  // 箱と吹き出し口の線（動かない所）
+  function fanBody(g, P, x, y, dir) {
+    var rot = fanRot(dir), c = Math.cos(rot), s = Math.sin(rot);
     // 箱は回さずに描く（影はいつも右下）
     var hx = x + c * 3 - Math.abs(s) * 11 - Math.abs(c) * 4, hy = y + s * 3 - Math.abs(c) * 11 - Math.abs(s) * 4, hw = Math.abs(c) * 8 + Math.abs(s) * 22, hh = Math.abs(s) * 8 + Math.abs(c) * 22;
     metalSolid(g, P, function () { rr(g, hx, hy, hw, hh, 2.5); }, 1.2);
     var fx = x + c * 7.6, fy = y + s * 7.6;   // 吹き出し口の面
     g.strokeStyle = P.ink; g.lineWidth = 0.9; g.lineCap = 'round';
     [-5.5, 5.5].forEach(function (k) { g.beginPath(); g.moveTo(fx - s * k - c * 1.6, fy + c * k - s * 1.6); g.lineTo(fx - s * k, fy + c * k); g.stroke(); });
-    var sp = Math.sin(t * (on ? 26 : 0)) * 6.5;
-    g.strokeStyle = P.metalLight; g.lineWidth = 1.5;
-    g.beginPath(); g.moveTo(fx + c * 1.2 - s * sp, fy + s * 1.2 + c * sp); g.lineTo(fx + c * 1.2 + s * sp, fy + s * 1.2 - c * sp); g.stroke();
-    bolt(g, P, fx + c * 1.2, fy + s * 1.2, 1.5);
+  }
+  // 回る羽根の線：[x0, y0, x1, y1]（metalLight、太さ 1.5、端は丸）
+  function fanBlade(x, y, dir, t, on) {
+    var rot = fanRot(dir), c = Math.cos(rot), s = Math.sin(rot), fx = x + c * 7.6, fy = y + s * 7.6, sp = Math.sin(t * (on !== false ? 26 : 0)) * 6.5;
+    return [fx + c * 1.2 - s * sp, fy + s * 1.2 + c * sp, fx + c * 1.2 + s * sp, fy + s * 1.2 - c * sp];
+  }
+  function fanBolt(g, P, x, y, dir) { var rot = fanRot(dir), c = Math.cos(rot), s = Math.sin(rot); bolt(g, P, x + c * 8.8, y + s * 8.8, 1.5); }
+  function fan(g, P, x, y, dir, reach, t, on) {
+    on = on !== false;
+    if (on) {
+      g.save(); g.lineCap = 'round'; g.lineWidth = 1.4;
+      fanStreaks(x, y, dir, reach, t).forEach(function (l) { g.strokeStyle = 'rgba(255,255,255,' + l[4] + ')'; g.beginPath(); g.moveTo(l[0], l[1]); g.lineTo(l[2], l[3]); g.stroke(); });
+      g.restore();
+    }
+    fanBody(g, P, x, y, dir);
+    var b = fanBlade(x, y, dir, t, on);
+    g.strokeStyle = P.metalLight; g.lineWidth = 1.5; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[2], b[3]); g.stroke();
+    fanBolt(g, P, x, y, dir);
   }
 
   /* ---------- 迫ってくるもの（地下は溶岩。ほかのゾーンは仮） ---------- */
+  // 溶岩の表面の下に浮かぶもの（かさぶた・稲妻・点）。riseCrusts で位置、riseCrust で1つ描く
+  function riseCrusts(P, x, y, w, h, t) {
+    var out = [];
+    for (var i = 0; i < Math.ceil(w / 40); i++) out.push({ i: i, cx: x + ((hash(i, 1) * w + t * 6 * (i % 2 ? 1 : -1)) % w + w) % w, cy: y + 14 + hash(i, 2) * Math.max(4, h - 24), cw: 9 + hash(i, 3) * 8 });
+    return out;
+  }
+  function riseCrust(g, P, c, t) {
+    var m = MOTIF[P.id] || MOTIF.underground, i = c.i, cx = c.cx, cy = c.cy, cw = c.cw;
+    if (m.rise === 'lava' || m.rise === 'mud') { g.fillStyle = mix(P.rise, '#000000', 0.3); rr(g, cx - cw / 2, cy - 2, cw, 4, 2); g.fill(); if (m.rise === 'lava') { g.strokeStyle = P.riseTop; g.lineWidth = 0.8; g.beginPath(); g.moveTo(cx - cw * 0.2, cy - 1.5); g.lineTo(cx, cy + 0.2); g.lineTo(cx + cw * 0.25, cy - 1); g.stroke(); } }
+    else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
+    else { g.fillStyle = alpha(P.riseTop, 0.6); ell(g, cx, cy, 1, 1); g.fill(); }
+  }
   function rise(g, P, x, y, w, h, t) {
     var m = MOTIF[P.id] || MOTIF.underground;
     var gl = g.createLinearGradient(0, y - 40, 0, y + 6); gl.addColorStop(0, alpha(P.riseLight, 0)); gl.addColorStop(1, alpha(P.riseLight, 0.4)); g.fillStyle = gl; g.fillRect(x, y - 40, w, 46);
@@ -377,12 +422,7 @@ window.Kabe = (function () {
     var xx;
     g.fillStyle = P.riseLight; g.beginPath(); g.moveTo(x, y + h); for (xx = 0; xx <= w; xx += 4) g.lineTo(x + xx, surf(xx) - 3 + Math.sin(xx * 0.07 + t * 1.6) * 2); g.lineTo(x + w, y + h); g.closePath(); g.fill();
     g.fillStyle = P.rise; g.beginPath(); g.moveTo(x, y + h); for (xx = 0; xx <= w; xx += 4) g.lineTo(x + xx, surf(xx)); g.lineTo(x + w, y + h); g.closePath(); g.fill();
-    for (var i = 0; i < Math.ceil(w / 40); i++) {
-      var cx = x + ((hash(i, 1) * w + t * 6 * (i % 2 ? 1 : -1)) % w + w) % w, cy = y + 14 + hash(i, 2) * Math.max(4, h - 24), cw = 9 + hash(i, 3) * 8;
-      if (m.rise === 'lava' || m.rise === 'mud') { g.fillStyle = mix(P.rise, '#000000', 0.3); rr(g, cx - cw / 2, cy - 2, cw, 4, 2); g.fill(); if (m.rise === 'lava') { g.strokeStyle = P.riseTop; g.lineWidth = 0.8; g.beginPath(); g.moveTo(cx - cw * 0.2, cy - 1.5); g.lineTo(cx, cy + 0.2); g.lineTo(cx + cw * 0.25, cy - 1); g.stroke(); } }
-      else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
-      else { g.fillStyle = alpha(P.riseTop, 0.6); ell(g, cx, cy, 1, 1); g.fill(); }
-    }
+    riseCrusts(P, x, y, w, h, t).forEach(function (c) { riseCrust(g, P, c, t); });
     g.strokeStyle = P.riseTop; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); for (xx = 0; xx <= w; xx += 4) g.lineTo(x + xx, surf(xx)); g.stroke();
   }
 
@@ -773,10 +813,10 @@ window.Kabe = (function () {
     sheetPath: sheetPath,
     pal: pal, mix: mix, alpha: alpha, hash: hash,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
-    grid: grid, background: background, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
+    grid: grid, background: background, bgStrata: bgStrata, bgFar: bgFar, bgDust: bgDust, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
-    spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, FAN_BAND: FAN_BAND,
-    rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
+    spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
+    rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet

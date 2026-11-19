@@ -15,6 +15,7 @@
 
 `index.html` の区切り（`grep -n "^/\* ===" index.html`）：動きの数値 → 地形 → 動き（`physStep`、ゲームとチェックで共通）→ 到達チェック → ゲーム → 見た目（2D）→ シェーダー（`glfx`）→ 効果音。
 画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。ガチャの演出は #gShow。
+きれい画質は 2D の画面を送らず、GPU の中で組み立てる（`drawGL` → `glfx.scene`）。地形・地層は1回だけ絵にして少しずつ送り、丸・線・溶岩は GPU で描き、キャラなど動く物だけ小さい絵にまとめて送る。#cv に描くのは「かるい」と D・V の表示のときだけ。描く物を足したら `drawGL` 側にも足す。`?perf` で1フレームに送った量（送信 k/f）が見られる。
 
 ## GitHub Pages（だれでも遊べる）
 - https://saikinobot72.github.io/terugame888/ （本編）、`/pools.html`、`/simulator.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
