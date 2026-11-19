@@ -26,6 +26,9 @@
   section { margin-top: 26px; }
   h2 { font-size: 18px; margin: 0 0 2px; font-weight: 800; }
   h2 .range { color: var(--glow); margin-right: 8px; }
+  h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; }
+  a.play { margin-left: auto; font-size: 13px; font-weight: 800; text-decoration: none; color: var(--ink, #2b2235); background: var(--glow); border-radius: 999px; padding: 4px 14px; }
+  a.play:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
   .sub { color: var(--ui-muted); font-size: 12px; margin: 0 0 10px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; align-items: start; }
   .card { background: rgba(0,0,0,.2); border-radius: 14px; padding: 8px; display: grid; gap: 6px; }
@@ -119,6 +122,8 @@ POOLS.forEach((pool, i) => {
   const sec = document.createElement('section'), h = document.createElement('h2'), r = document.createElement('span'), sub = document.createElement('p'), grid = document.createElement('div');
   const to = POOLS[i + 1] ? POOLS[i + 1].from + 'm' : '';
   r.className = 'range'; r.textContent = `${pool.from}m〜${to}`; h.append(r, pool.name);
+  const play = document.createElement('a'); play.className = 'play'; play.href = pool.from ? `index.html?from=${pool.from}` : 'index.html'; play.textContent = 'ここから遊ぶ ▶';
+  play.setAttribute('aria-label', `${pool.from}mからテストプレイ`); h.append(play);
   sub.className = 'sub'; sub.textContent = `パーツ ${pool.pieces.length}こ${i === POOLS.length - 1 ? '（これより上はこのプールが続く）' : ''}`;
   grid.className = 'grid';
   pool.pieces.forEach(id => grid.append(card(id, inPool(id).filter(n => n !== pool.name).map(n => 'ほかに：' + n))));

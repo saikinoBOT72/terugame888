@@ -96,6 +96,45 @@ window.Kabe = (function () {
     space: { grain: 'crater', lip: 'dust', under: 'crystal', decor: 'crystal', far: 'planet', rise: 'void' }
   };
 
+  function motifOf(P) { return P.motif || MOTIF[P.id] || MOTIF.underground; }
+  // ゾーンの中の段（100mごと）。同じゾーンのまま、色（col）と飾り（motif）を少しずつ変える。amb は明るさの倍率
+  var STAGES = {
+    underground: [
+      { name: '地底の洞窟' },
+      { name: '根っこの坑道', amb: 0.96, motif: { hangRate: 0.85 },
+        col: { bgTop: '#2e2420', bgBottom: '#403026', far: '#271e1a', strataA: '#372a23', strataB: '#3f3028', terrain: '#c39572', terrainLight: '#e6c29d', terrainShade: '#a07658',
+          terrainDeep: '#9c765b', terrainLine: '#b38664', terrainGrain: '#d8b18c', accent: '#a9d36e', accentShade: '#86b350', glow: '#c8ec8a' } },
+      { name: '古い機械の縦穴', amb: 0.94, motif: { under: 'chain', decor: 'lamp', far: 'pipe', lip: 'plain', hangRate: 0.35 },
+        col: { bgTop: '#1f2630', bgBottom: '#2b3542', far: '#1a2029', strataA: '#26303b', strataB: '#2c3743', terrain: '#a9a49c', terrainLight: '#d4cfc4', terrainShade: '#8a857e',
+          terrainDeep: '#868079', terrainLine: '#9b958d', terrainGrain: '#c2bcb1', accent: '#7fb8d6', accentShade: '#5d97b5', glow: '#9ad8ff' } },
+      { name: '地上へのさけ目', amb: 1.1, motif: { far: 'beam', lip: 'grass', hangRate: 0.5 },
+        col: { bgTop: '#3a3f5c', bgBottom: '#4a4660', far: '#333654', strataA: '#413f5c', strataB: '#48456a', terrain: '#d6b48e', terrainLight: '#f2dcbc', terrainShade: '#b48f6d',
+          terrainDeep: '#b0907a', terrainLine: '#c6a27f', terrainGrain: '#e6cdaa', accent: '#9cd67e', accentShade: '#78b65c', glow: '#fff0c2' } }
+    ]
+  };
+  var stageCache = {};
+  function stagePal(id, i) {
+    var list = STAGES[id] || [{}]; i = Math.max(0, Math.min(list.length - 1, i | 0));
+    var key = id + '|' + i; if (stageCache[key]) return stageCache[key];
+    var st = list[i], P = {}, base = pal(id), k;
+    for (k in base) P[k] = base[k];
+    for (k in (st.col || {})) P[k] = st.col[k];
+    P.motif = {}; for (k in MOTIF[id] || MOTIF.underground) P.motif[k] = (MOTIF[id] || MOTIF.underground)[k];
+    for (k in (st.motif || {})) P.motif[k] = st.motif[k];
+    P.amb = st.amb || 1; P.stage = i; P.stageName = st.name || '';
+    return (stageCache[key] = P);
+  }
+  function hex2(n) { n = Math.round(Math.max(0, Math.min(255, n))); return (n < 16 ? '0' : '') + n.toString(16); }
+  function mixHex(a, b, t) { var A = hexToRgb(a), B = hexToRgb(b); return '#' + hex2(A[0] + (B[0] - A[0]) * t) + hex2(A[1] + (B[1] - A[1]) * t) + hex2(A[2] + (B[2] - A[2]) * t); }
+  // 2つの段の色を混ぜる（飾りは半分を過ぎたら次の段のもの）
+  function blendPal(A, B, t) {
+    if (t <= 0) return A; if (t >= 1) return B;
+    var P = {}, k; for (k in A) P[k] = A[k];
+    for (k in A) if (typeof A[k] === 'string' && A[k][0] === '#' && typeof B[k] === 'string' && B[k][0] === '#') P[k] = mixHex(A[k], B[k], t);
+    P.motif = t < 0.5 ? A.motif : B.motif; P.amb = A.amb + (B.amb - A.amb) * t; P.stage = A.stage + t;
+    return P;
+  }
+
   /* ---------- 背景：帯2枚＋遠景＋ただよう粒 ---------- */
   var dustCache = {};
   function dustTable(n) {
@@ -105,7 +144,7 @@ window.Kabe = (function () {
   }
   // 地層の帯：s は奥の層の座標（画面の y ＋ スクロール×0.5）。s0〜s1 にかかる帯を yy ＝ oy ＋ i×46 に描く（帯の番号は世界で数える）
   function bgStrata(g, P, x, w, s0, s1, oy) {
-    var m = MOTIF[P.id] || MOTIF.underground, bh = 46;
+    var m = motifOf(P), bh = 46;
     for (var i = Math.floor(s0 / bh) - 1; i * bh < s1 + bh; i++) {
       var yy = oy + i * bh; g.fillStyle = (i & 1) ? P.strataA : P.strataB;
       g.beginPath(); g.moveTo(x, yy + bh + 6);
@@ -115,11 +154,22 @@ window.Kabe = (function () {
   }
   // 遠景（画面に止まっている）
   function bgFar(g, P, x, y, w, h) {
-    var m = MOTIF[P.id] || MOTIF.underground;
+    var m = motifOf(P);
     g.fillStyle = P.far;
     for (var j = 0; j < Math.ceil(w / 70) + 1; j++) {
       var sx = x + j * 70 + hash(j, 1) * 30, sw = 14 + hash(j, 2) * 18, sh = 26 + hash(j, 3) * 40;
-      if (m.far === 'stalactite') {
+      if (m.far === 'pipe') {   // 古い機械：縦の管とつなぎ目、ときどき横の管
+        var pw = 6 + hash(j, 2) * 8; g.fillRect(sx - pw / 2, y, pw, h);
+        for (var fy = y + hash(j, 3) * 60; fy < y + h; fy += 70 + hash(j, 4) * 50) g.fillRect(sx - pw / 2 - 2, fy, pw + 4, 5);
+        if (hash(j, 5) > 0.55) { var hy = y + hash(j, 6) * h; g.fillRect(sx, hy, 40 + hash(j, 7) * 30, 5); }
+        continue;
+      }
+      if (m.far === 'beam' && j === 0) {   // さけ目から差しこむ光の帯（先に描く）
+        g.save(); g.fillStyle = alpha(P.glow, 0.06);
+        for (var bj = 0; bj < 3; bj++) { var bx = x + w * (0.15 + bj * 0.32) + hash(bj, 11) * 30, bw = 18 + hash(bj, 12) * 26; g.beginPath(); g.moveTo(bx, y); g.lineTo(bx + bw, y); g.lineTo(bx + bw + h * 0.35, y + h); g.lineTo(bx + h * 0.35 - bw * 0.5, y + h); g.closePath(); g.fill(); }
+        g.restore(); g.fillStyle = P.far;
+      }
+      if (m.far === 'stalactite' || m.far === 'beam') {
         var down = hash(j, 4) < 0.5, yb = down ? y : y + h, tip = down ? yb + sh : yb - sh;
         g.beginPath(); g.moveTo(sx - sw / 2, yb); g.quadraticCurveTo(sx - sw * 0.3, (yb + tip) / 2, sx - 1.5, tip + (down ? -2 : 2)); g.quadraticCurveTo(sx, tip, sx + 1.5, tip + (down ? -2 : 2)); g.quadraticCurveTo(sx + sw * 0.3, (yb + tip) / 2, sx + sw / 2, yb); g.closePath(); g.fill();
       } else if (m.far === 'hill') {
@@ -134,7 +184,7 @@ window.Kabe = (function () {
   }
   // 細かい粒の一覧：[x, y, 半径, 濃さ] を4つずつ（WebGL で描くとき用）
   function bgDust(P, x, y, w, h, t) {
-    var m = MOTIF[P.id] || MOTIF.underground, n = Math.floor(w * h / 900), a0 = m.far === 'planet' ? 0.25 : 0.05, a1 = m.far === 'planet' ? 0.4 : 0.08, sp = m.far === 'planet' ? 0.2 : 1;
+    var m = motifOf(P), n = Math.floor(w * h / 900), a0 = m.far === 'planet' ? 0.25 : 0.05, a1 = m.far === 'planet' ? 0.4 : 0.08, sp = m.far === 'planet' ? 0.2 : 1;
     var D = dustCache[n] || (dustCache[n] = dustTable(n)), out = new Float32Array(n * 4);
     for (var k = 0; k < n; k++) { var d = D[k]; out[k * 4] = x + d.x * w; out[k * 4 + 1] = y + ((d.y * h - t * 5 * d.v * sp) % h + h) % h; out[k * 4 + 2] = d.s; out[k * 4 + 3] = a0 + d.h9 * a1; }
     return out;
@@ -143,7 +193,7 @@ window.Kabe = (function () {
     scroll = scroll || 0;
     var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, P.bgTop); gr.addColorStop(1, P.bgBottom);
     g.fillStyle = gr; g.fillRect(x, y, w, h);
-    var m = MOTIF[P.id] || MOTIF.underground, off = scroll * 0.5;
+    var m = motifOf(P), off = scroll * 0.5;
     bgStrata(g, P, x, w, off, off + h, y - off);
     bgFar(g, P, x, y, w, h);
     // 細かい粒：濃さを32段に分けて、同じ濃さの粒は1回で塗る（1粒ずつ塗るより速い。濃さの差は目に見えない）。粒ごとの乱数は先に作っておく
@@ -175,7 +225,7 @@ window.Kabe = (function () {
   function block(g, P, G, c, r, x, y) {
     var e = G.exp(c, r), k = 6, rad = [e.t && e.l ? k : 0, e.t && e.r ? k : 0, e.b && e.r ? k : 0, e.b && e.l ? k : 0];
     var o0 = e.l ? 0 : 0.6, o1 = e.r ? 0 : 0.6, o2 = e.t ? 0 : 0.6, o3 = e.b ? 0 : 0.6, d = G.depth(c, r);
-    var m = MOTIF[P.id] || MOTIF.underground;
+    var m = motifOf(P);
     g.save(); rr(g, x - o0, y - o2, CELL + o0 + o1, CELL + o2 + o3, rad);
     g.fillStyle = d === 0 ? P.terrain : d === 1 ? mix(P.terrain, P.terrainDeep, 0.55) : P.terrainDeep; g.fill(); g.clip();
     g.fillStyle = d ? 'rgba(0,0,0,.07)' : P.terrainLine; g.fillRect(x - 1, y + 4 + ((r * 7) % 9), CELL + 2, 1.4);
@@ -187,7 +237,7 @@ window.Kabe = (function () {
     g.restore();
   }
   function lip(g, P, x, y, c, r) {
-    var m = MOTIF[P.id] || MOTIF.underground, i;
+    var m = motifOf(P), i;
     if (m.lip === 'cloud') {
       g.fillStyle = P.accentShade; for (i = 0; i < 4; i++) { ell(g, x + 2 + i * 4.7, y + 0.5, 3.2, 2.6); g.fill(); }
       g.fillStyle = P.accent; for (i = 0; i < 4; i++) { ell(g, x + 1.6 + i * 4.7, y - 0.3, 3, 2.4); g.fill(); }
@@ -215,12 +265,17 @@ window.Kabe = (function () {
     if (up) { g.strokeStyle = P.accent; g.lineWidth = 1.8; g.lineCap = 'round'; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(a[2], a[3]); g.stroke(); }
   }
   function hang(g, P, x, y, len, s) {   // 下の面から垂れるもの（根・霧・結晶）
-    var m = MOTIF[P.id] || MOTIF.underground, sw = (hash(s, 1) - 0.5) * 6;
+    var m = motifOf(P), sw = (hash(s, 1) - 0.5) * 6;
     if (m.under === 'root') {
       g.beginPath(); g.moveTo(x - 1.6, y); g.quadraticCurveTo(x + sw - 1, y + len * 0.5, x + sw * 0.4, y + len); g.quadraticCurveTo(x + sw + 1, y + len * 0.5, x + 1.6, y); g.closePath();
       g.fillStyle = P.terrainShade; g.fill();
       g.strokeStyle = P.terrainLine; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath(); g.moveTo(x + sw * 0.45, y + len * 0.45); g.quadraticCurveTo(x + sw * 0.5 + 3, y + len * 0.5, x + sw * 0.5 + 4.5, y + len * 0.68); g.stroke();
       if (hash(s, 2) > 0.5) { g.fillStyle = P.accent; ell(g, x + sw * 0.5 + 5, y + len * 0.7, 1.8, 1, 0.8); g.fill(); }
+    } else if (m.under === 'chain') {   // 古い機械：さびた鎖と小さなかぎ
+      var n2 = Math.max(2, Math.round(len / 4.5)), cx2 = x;
+      g.lineWidth = 1.1; g.strokeStyle = P.metalShade;
+      for (var li = 0; li < n2; li++) { var ly = y + 2 + li * 4.2; if (li % 2) { g.beginPath(); g.moveTo(cx2, ly - 2); g.lineTo(cx2, ly + 2); g.stroke(); } else { ell(g, cx2, ly, 1.4, 2.4); g.stroke(); } }
+      g.strokeStyle = P.metal; g.lineWidth = 1.2; var hy2 = y + 2 + n2 * 4.2; g.beginPath(); g.moveTo(cx2, hy2 - 1.5); g.lineTo(cx2, hy2 + 1); g.arc(cx2 + 1.8, hy2 + 1, 1.8, Math.PI, Math.PI * 0.1, true); g.stroke();
     } else if (m.under === 'mist') {
       g.fillStyle = alpha('#ffffff', 0.35); for (var i = 0; i < 3; i++) { ell(g, x + sw * i * 0.2, y + 2 + i * len * 0.3, 3 - i * 0.6, 2 - i * 0.4); g.fill(); }
     } else if (m.under === 'crystal') {
@@ -228,13 +283,20 @@ window.Kabe = (function () {
     }
   }
   function decor(g, P, x, y, s, t, seed) {   // 上の面の飾り（光るもの）
-    var m = MOTIF[P.id] || MOTIF.underground, pulse = 0.85 + Math.sin(t * 2 + seed) * 0.15;
+    var m = motifOf(P), pulse = 0.85 + Math.sin(t * 2 + seed) * 0.15;
     var gl = g.createRadialGradient(x, y - 5 * s, 1, x, y - 5 * s, 15 * s); gl.addColorStop(0, alpha(P.glow, 0.32 * pulse)); gl.addColorStop(1, alpha(P.glow, 0));
     g.fillStyle = gl; ell(g, x, y - 5 * s, 15 * s, 15 * s); g.fill();
     if (m.decor === 'mushroom') {
       solid(g, function () { g.beginPath(); g.moveTo(x - 1.4 * s, y); g.quadraticCurveTo(x - 1.8 * s, y - 3 * s, x - 1 * s, y - 5 * s); g.lineTo(x + 1 * s, y - 5 * s); g.quadraticCurveTo(x + 1.8 * s, y - 3 * s, x + 1.4 * s, y); g.closePath(); }, P.terrainLight, P.terrainShade, null, 0.3 * s);
       solid(g, function () { g.beginPath(); g.moveTo(x - 5 * s, y - 4.4 * s); g.bezierCurveTo(x - 5 * s, y - 9.5 * s, x + 5 * s, y - 9.5 * s, x + 5 * s, y - 4.4 * s); g.quadraticCurveTo(x, y - 3.2 * s, x - 5 * s, y - 4.4 * s); g.closePath(); }, P.glow, mix(P.glow, '#000000', 0.25), null, 0.7 * s);
       g.fillStyle = 'rgba(255,255,255,.8)'; ell(g, x - 2 * s, y - 7 * s, 0.9 * s, 0.7 * s); g.fill();
+    } else if (m.decor === 'lamp') {   // 古い機械：細い柱の上の小さな灯り
+      solid(g, function () { rr(g, x - 0.9 * s, y - 7 * s, 1.8 * s, 7 * s, 0.6 * s); }, P.metal, P.metalShade, P.ink, 0.4, 0.8);
+      solid(g, function () { rr(g, x - 2.4 * s, y - 1.2 * s, 4.8 * s, 1.4 * s, 0.6 * s); }, P.metal, P.metalShade, P.ink, 0.3, 0.8);
+      g.fillStyle = P.glow; ell(g, x, y - 9 * s, 2.5 * s, 2.7 * s); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.85)'; ell(g, x - 0.7 * s, y - 9.8 * s, 0.9 * s, 0.9 * s); g.fill();
+      g.strokeStyle = P.ink; g.lineWidth = 0.8; ell(g, x, y - 9 * s, 2.5 * s, 2.7 * s); g.stroke();
+      g.beginPath(); g.moveTo(x - 2.5 * s, y - 9 * s); g.lineTo(x + 2.5 * s, y - 9 * s); g.moveTo(x, y - 11.7 * s); g.lineTo(x, y - 6.3 * s); g.stroke();
     } else if (m.decor === 'flower') {
       g.strokeStyle = P.accentShade; g.lineWidth = 1.1 * s; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x - 1 * s, y - 3 * s, x, y - 6 * s); g.stroke();
       for (var i = 0; i < 5; i++) { var a = i / 5 * Math.PI * 2 + t * 0.2; g.fillStyle = P.glow; ell(g, x + Math.cos(a) * 2.2 * s, y - 7 * s + Math.sin(a) * 2.2 * s, 1.6 * s, 1.6 * s); g.fill(); }
@@ -263,7 +325,7 @@ window.Kabe = (function () {
     for (r = 0; r < G.rows; r++) for (c = 0; c < G.cols; c++) {
       if (G.tile(c, r) !== '#') continue; var e = G.exp(c, r), x = ox + c * CELL, y = oy + r * CELL;
       if (e.t) { lip(g, P, x, y, c, r); if (hash(c, r, 12) < 0.25) decor(g, P, x + 5 + hash(c, r, 13) * 8, y - 0.5, 1, t, c + r); }
-      if (e.b && hash(c, r, 17) < 0.45) hang(g, P, x + 4 + hash(c, r, 18) * 10, y + CELL - 1, 7 + hash(c, r, 19) * 12, c * 31 + r);
+      if (e.b && hash(c, r, 17) < (motifOf(P).hangRate || 0.45)) hang(g, P, x + 4 + hash(c, r, 18) * 10, y + CELL - 1, 7 + hash(c, r, 19) * 12, c * 31 + r);
     }
     for (r = 0; r < G.rows; r++) for (c = 0; c < G.cols; c++) if (G.raw(c, r) === '^') spike(g, P, ox + c * CELL, oy + r * CELL, G.spikeDir(c, r));
   }
@@ -410,13 +472,13 @@ window.Kabe = (function () {
     return out;
   }
   function riseCrust(g, P, c, t) {
-    var m = MOTIF[P.id] || MOTIF.underground, i = c.i, cx = c.cx, cy = c.cy, cw = c.cw;
+    var m = motifOf(P), i = c.i, cx = c.cx, cy = c.cy, cw = c.cw;
     if (m.rise === 'lava' || m.rise === 'mud') { g.fillStyle = mix(P.rise, '#000000', 0.3); rr(g, cx - cw / 2, cy - 2, cw, 4, 2); g.fill(); if (m.rise === 'lava') { g.strokeStyle = P.riseTop; g.lineWidth = 0.8; g.beginPath(); g.moveTo(cx - cw * 0.2, cy - 1.5); g.lineTo(cx, cy + 0.2); g.lineTo(cx + cw * 0.25, cy - 1); g.stroke(); } }
     else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
     else { g.fillStyle = alpha(P.riseTop, 0.6); ell(g, cx, cy, 1, 1); g.fill(); }
   }
   function rise(g, P, x, y, w, h, t) {
-    var m = MOTIF[P.id] || MOTIF.underground;
+    var m = motifOf(P);
     var gl = g.createLinearGradient(0, y - 40, 0, y + 6); gl.addColorStop(0, alpha(P.riseLight, 0)); gl.addColorStop(1, alpha(P.riseLight, 0.4)); g.fillStyle = gl; g.fillRect(x, y - 40, w, 46);
     var surf = function (xx) { return y + 5 + Math.sin(xx * 0.045 + t * 2.2) * 3 + Math.sin(xx * 0.11 - t * 1.4) * 1.5; };
     var xx;
@@ -878,7 +940,7 @@ window.Kabe = (function () {
   return {
     CELL: CELL, ZONES: ZONES, MOTIF: MOTIF, POSES: POSES, POSE_ORDER: POSE_ORDER, POSE_MORE: POSE_MORE, GHOSTS: GHOSTS,
     sheetPath: sheetPath,
-    pal: pal, mix: mix, alpha: alpha, hash: hash,
+    pal: pal, mix: mix, alpha: alpha, hash: hash, STAGES: STAGES, stagePal: stagePal, blendPal: blendPal, motifOf: motifOf,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, bgStrata: bgStrata, bgFar: bgFar, bgDust: bgDust, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
