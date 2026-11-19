@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ja" data-theme="underground">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!--BODY-START-->
+<title>プール一覧</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<link rel="stylesheet" href="catalog/project/tokens.css">
+<style>
+  /* プールとパーツの一覧。色はカタログのトークン（ゾーンを切り替えられる） */
+  body { margin: 0; background: var(--ui-panel); color: var(--ui-ink); font-family: var(--font-round); }
+  main { max-width: 1040px; margin: 0 auto; padding: 16px 16px 40px; box-sizing: border-box; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; justify-content: space-between; }
+  h1 { font-size: 24px; margin: 0; font-weight: 800; }
+  a.back { color: var(--glow); font-size: 13px; text-decoration: none; font-weight: 800; }
+  a.back:focus-visible, .bar button:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+  .lead { color: var(--ui-muted); font-size: 13px; margin: 6px 0 10px; line-height: 1.6; }
+  .bar { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bar button { font: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 5px 12px; background: rgba(255,255,255,.07); color: var(--ui-muted); cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ui-muted); margin: 10px 0 0; padding: 0; list-style: none; }
+  .legend code { color: var(--ui-ink); font-weight: 800; }
+  section { margin-top: 26px; }
+  h2 { font-size: 18px; margin: 0 0 2px; font-weight: 800; }
+  h2 .range { color: var(--glow); margin-right: 8px; }
+  .sub { color: var(--ui-muted); font-size: 12px; margin: 0 0 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; align-items: start; }
+  .card { background: rgba(0,0,0,.2); border-radius: 14px; padding: 8px; display: grid; gap: 6px; }
+  .card canvas { width: 100%; height: auto; display: block; border-radius: 8px; }
+  .card .name { display: flex; justify-content: space-between; gap: 6px; font-weight: 800; font-size: 13px; }
+  .card .name .st { color: var(--gem-gold); letter-spacing: -1px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tags span { font-size: 10.5px; border-radius: 999px; padding: 1px 7px; background: rgba(255,255,255,.08); color: var(--ui-muted); }
+  .tags span.pool { color: var(--glow); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>プール一覧</h1>
+    <a class="back" href="index.html">← ゲームにもどる</a>
+  </header>
+  <p class="lead">高さ100mごとに、そのプールのパーツからランダムにつながります（上に行くほど★の多いパーツが出やすい）。障害物は動いて見えます。<br>ガチャ所は25mごとに差し込み、結晶はパーツを置くときに壁ぎわへ自動で散らします。</p>
+  <div class="bar" id="bar" aria-label="ゾーンの色"></div>
+  <ul class="legend">
+    <li><code>#</code> 壁</li><li><code>^</code> トゲ</li><li><code>/ \</code> 斜め</li><li><code>p q</code> 出入りトゲ</li><li><code>&gt; &lt;</code> 扇風機</li>
+    <li><code>X</code> 往復ブロック</li><li><code>Y</code> 上下ブロック</li><li><code>T</code> 回る棒</li><li><code>=</code> シャッター</li>
+  </ul>
+  <div id="root"></div>
+</main>
+<script src="catalog/project/components/bundle.js"></script>
+<script src="data/pieces.js"></script>
+<script>
+(function () {
+'use strict';
+const K = Kabe, { PIECES, POOLS } = KABE_DATA, CELL = 18, PX_PER_M = 120;
+const OB = { boxX: [26, 18], boxY: [20, 26], spin: 40, popOff: 1.6 };   // 本編の OB と同じ大きさ
+let zone = 'underground';
+const bar = document.getElementById('bar');
+K.ZONES.forEach(z => {
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = z.name; b.setAttribute('aria-pressed', z.id === zone);
+  b.onclick = () => { zone = z.id; [...bar.children].forEach(x => x.setAttribute('aria-pressed', x === b)); };
+  bar.append(b);
+});
+const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め' };
+
+// パーツ1つを描く。rows は上の行から
+function prepare(pc) {
+  const rows = pc.rows.slice().reverse(), h = rows.length, at = (c, r) => (rows[r] || '')[c] || '.';
+  const map = rows.map(r => r.replace(/[^#.^/\\]/g, '.'));
+  const grid = K.grid(map, '.'), obs = [];
+  rows.forEach((row, r) => [...row].forEach((ch, c) => {
+    const x = c * CELL, y = r * CELL;
+    if (ch === 'p' || ch === 'q') obs.push({ k: 'pop', x, y, q: ch === 'q', dir: at(c - 1, r) === '#' ? 'L' : at(c + 1, r) === '#' ? 'R' : at(c, r + 1) === '#' ? 'B' : 'T' });
+    if (ch === '>' || ch === '<') { const d = ch === '>' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'fan', x: fx, y: y + CELL / 2, dir: d > 0 ? 'R' : 'L', reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx) }); }
+    if (ch === 'X' && at(c - 1, r) !== 'X') { let e = c; while (at(e + 1, r) === 'X') e++; obs.push({ k: 'x', x0: (c + 0.5) * CELL, x1: (e + 0.5) * CELL, y: y + CELL / 2, period: (e - c) * CELL / 45 + 1, off: c * 0.7 + r * 0.3 }); }
+    if (ch === 'Y' && at(c, r - 1) !== 'Y') { let e = r; while (at(c, e + 1) === 'Y') e++; obs.push({ k: 'y', x: (c + 0.5) * CELL, y0: (e + 0.5) * CELL, y1: (r + 0.5) * CELL, period: (e - r) * CELL / 45 + 1, off: c * 0.5 + r * 0.3 }); }
+    if (ch === 'T') obs.push({ k: 'spin', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 1.5 : -1.5 });
+    if (ch === '=' && at(c - 1, r) !== '=') { let e = c; while (at(e + 1, r) === '=') e++; obs.push({ k: 'shut', x0: x, x1: (e + 1) * CELL, y: y + CELL / 2, off: r * 0.7 }); }
+  }));
+  if (pc.id === 'gacha') { const r = rows.findIndex(row => row.startsWith('###')); obs.push({ k: 'house', x: 4.5 * CELL, y: r * CELL }); }
+  const kinds = [...new Set(rows.join('').split('').filter(ch => NAMES[ch]).map(ch => NAMES[ch]))];
+  return { w: 20 * CELL, h: h * CELL, grid, obs, kinds };
+}
+function draw(g, P, d, t) {
+  K.background(g, P, 0, 0, d.w, d.h, t, 0);
+  K.terrain(g, P, d.grid, t);
+  for (const o of d.obs) {
+    if (o.k === 'pop') K.popSpike(g, P, o.x, o.y, o.dir, t, o.q ? { offset: OB.popOff } : undefined);
+    else if (o.k === 'fan') K.fan(g, P, o.x, o.y, o.dir, o.reach, t);
+    else if (o.k === 'x') { const [w, h] = OB.boxX, cx = o.x0 + (o.x1 - o.x0) * K.slide(t, o.period, o.off); K.track(g, P, o.x0 - w / 2, o.y, o.x1 + w / 2, o.y); K.ironBox(g, P, cx - w / 2, o.y - h / 2, w, h, 'x'); }
+    else if (o.k === 'y') { const [w, h] = OB.boxY, cy = o.y0 + (o.y1 - o.y0) * K.slide(t, o.period, o.off); K.track(g, P, o.x, o.y0 + h / 2, o.x, o.y1 - h / 2); K.ironBox(g, P, o.x - w / 2, cy - h / 2, w, h, 'y'); }
+    else if (o.k === 'spin') K.spinner(g, P, o.x, o.y, OB.spin, K.spinAngle(t, o.speed));
+    else if (o.k === 'shut') K.shutter(g, P, o.x0, o.x1, o.y, t, { offset: o.off });
+    else if (o.k === 'house') K.gachaHouse(g, P, o.x, o.y, t, true);
+  }
+}
+const cards = [];
+function card(id, pools, noStar) {
+  const pc = PIECES[id], d = prepare(pc), el = document.createElement('figure'); el.className = 'card'; el.style.margin = 0;
+  const cv = K.canvas(d.w, d.h, 1, id), name = document.createElement('figcaption'), tags = document.createElement('div');
+  name.className = 'name'; const nm = document.createElement('span'); nm.textContent = id; const st = document.createElement('span'); st.className = 'st';
+  st.textContent = noStar ? '' : '★'.repeat(pc.diff); st.setAttribute('aria-label', `難しさ${pc.diff}`); name.append(nm, st);
+  tags.className = 'tags';
+  const tg = (txt, cls) => { const s = document.createElement('span'); s.textContent = txt; if (cls) s.className = cls; tags.append(s); };
+  tg(`${(pc.rows.length * CELL / PX_PER_M).toFixed(1)}m`);
+  d.kinds.forEach(k => tg(k));
+  if (pools) pools.forEach(n => tg(n, 'pool'));
+  el.append(cv.c, name, tags);
+  cards.push({ cv, d });
+  return el;
+}
+const root = document.getElementById('root');
+const inPool = id => POOLS.filter(p => p.pieces.includes(id)).map(p => p.name);
+POOLS.forEach((pool, i) => {
+  const sec = document.createElement('section'), h = document.createElement('h2'), r = document.createElement('span'), sub = document.createElement('p'), grid = document.createElement('div');
+  const to = POOLS[i + 1] ? POOLS[i + 1].from + 'm' : '';
+  r.className = 'range'; r.textContent = `${pool.from}m〜${to}`; h.append(r, pool.name);
+  sub.className = 'sub'; sub.textContent = `パーツ ${pool.pieces.length}こ${i === POOLS.length - 1 ? '（これより上はこのプールが続く）' : ''}`;
+  grid.className = 'grid';
+  pool.pieces.forEach(id => grid.append(card(id, inPool(id).filter(n => n !== pool.name).map(n => 'ほかに：' + n))));
+  sec.append(h, sub, grid); root.append(sec);
+});
+const used = new Set(POOLS.flatMap(p => p.pieces)), special = ['z1_start', 'gacha'], rest = Object.keys(PIECES).filter(id => !used.has(id) && !special.includes(id));
+[['特別なパーツ', 'いちばん下のスタートと、25mごとのガチャ所', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
+  if (!ids.length) return;
+  const sec = document.createElement('section'), h = document.createElement('h2'), sub = document.createElement('p'), grid = document.createElement('div');
+  h.textContent = title; sub.className = 'sub'; sub.textContent = note; grid.className = 'grid';
+  ids.forEach(id => grid.append(card(id, null, ids === special))); sec.append(h, sub, grid); root.append(sec);
+});
+// 画面に見えているカードだけ動かす
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let drawn = false;
+function tick(now) {
+  const t = now / 1000, P = K.pal(zone), vh = innerHeight;
+  for (const { cv, d } of cards) {
+    const r = cv.c.getBoundingClientRect(); if ((r.bottom < 0 || r.top > vh) && drawn) continue;
+    const g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, d.w, d.h); draw(g, P, d, t);
+  }
+  drawn = true;
+  if (!reduce) requestAnimationFrame(tick); else setTimeout(() => requestAnimationFrame(tick), 500);
+}
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
