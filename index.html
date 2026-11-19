@@ -2,7 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="壁蹴りタワー">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#1b1426">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
 <!--BODY-START-->
 <title>壁蹴りタワー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,7 +32,11 @@
     color-scheme: dark;
   }
   [hidden] { display: none !important; }
-  html, body { height: 100%; margin: 0; }
+  html, body { height: 100%; margin: 0; overscroll-behavior: none; }
+  /* アプリのように：ダブルタップのズーム・長押しの拡大鏡やメニュー・文字の選択を止める */
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; touch-action: manipulation; }
+  *, *::before, *::after { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-user-drag: none; }
+  img, canvas { -webkit-user-drag: none; }
   html { box-sizing: border-box; }
   body {
     background: var(--cave); color: var(--cream); overflow: hidden;
@@ -232,7 +245,8 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.21a';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22a';
+const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -646,7 +660,7 @@ function newGame() {
   world = newWorld();
   placePiece('z1_start');
   P = newBody(2 * CELL + HB, -HB, -1);
-  P.squash = 0; live = null;
+  P.squash = 0; live = null; resetAnim();
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
@@ -671,7 +685,7 @@ function tryAct() {
     const from = P.side, fx = P.x + P.side * HB, fy = P.y;
     if (from && turn >= 2 && dir === from) wallHop(P);   // 壁側を押した：壁ぞいに跳び上がる
     else kick(world, P, P.ground ? dir : 0);
-    inputBuf = 0; P.squash = -0.28; sfx.kick(); G.kickT = 0.14;
+    inputBuf = 0; P.squash = -0.28; sfx.kick(); G.kickT = 0.14; A.kickPose = Math.random() < 0.45 ? 'kick2' : 'kick'; A.rot = 0; A.flip = 0;
     kickLines(P.x, P.y, P.vx, P.vy);
     if (from) dust(fx, fy, -from, 7); else dust(P.x, P.y + HB, 0, 7);
     return;
@@ -686,6 +700,7 @@ function tryAct() {
     if (triple) { P.air = 0; G.tripleCd = gemVal('triple').cd; }
     if (turn >= 3 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * 0.7); P.face = dir; }
     G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
+    startFlip();
   }
 }
 
@@ -695,6 +710,7 @@ function hurt(dirX, cause, wallSpike = false) {
   G.stop = 0.08; G.flash = 1;   // ヒットストップと白い光
   for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'spark', x: P.x, y: P.y, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, life: 0.5, max: 0.5 }); }
   P.side = 0; P.ground = false; P.vx = dirX * MOVE.kickVx * 0.8; P.vy = -220;
+  A.flip = 0; A.hurtSpin = 0.5; A.hurtDir = -Math.sign(dirX || 1); A.dizzyT = 1.8;
   if (cause === 'spike' && wallSpike) P.air = MOVE.airJumps;   // 壁のトゲ＝壁に一回ついたとみなし、2段ジャンプを回復
   if (G.hp <= 0) { G.cause = cause; die(); }
 }
@@ -711,7 +727,7 @@ function update(dt) {
   const wasAir = !canAct(P);
   updateObstacles();
   if (P.on && P.on.carry && canAct(P)) { P.x += P.on.dx; P.y += P.on.dy; }   // 動く箱に運ばれる
-  const ev = physStep(world, P, dt);
+  const vy0 = P.vy, ev = physStep(world, P, dt);
   G.tripleCd = Math.max(0, G.tripleCd - dt);
   const hv = gemVal('hover');
   if (canAct(P)) G.hoverLeft = hv ? hv.t : 0;
@@ -735,7 +751,12 @@ function update(dt) {
   if (ev === 'wall' || ev === 'floor') {
     if (wasAir) {
       P.squash = 0.32; sfx.land(); dust(P.x + (P.side || 0) * HB, P.y + (P.side ? 0 : HB), -(P.side || 0), 4);
-      if (ev === 'floor') { G.landT = 0.14; dust(P.x, P.y + HB, 1, 4); dust(P.x, P.y + HB, -1, 4); }
+      A.flip = 0; A.rot = 0;
+      if (ev === 'floor') {
+        const heavy = vy0 > 430;   // 速く落ちてきたら「どすん」
+        G.landT = heavy ? 0.34 : 0.14; A.heavy = heavy ? 0.34 : 0; if (heavy) { P.squash = 0.5; shake(2.5); }
+        dust(P.x, P.y + HB, 1, heavy ? 8 : 4); dust(P.x, P.y + HB, -1, heavy ? 8 : 4);
+      } else A.grabT = 0.13;
     }
     if (inputBuf > 0) tryAct();
   }
@@ -918,45 +939,123 @@ function bandCanvas(b) {
 /* ---------- プレイヤー（B1「ふんわり」） ---------- */
 // カタログのポーズへ少しずつ寄せる（マフラーとすそが体より遅れてついてくる）
 let live = null;
-function poseId() {
-  if (state === 'dying' || G.inv > INVINCIBLE - 0.45) return 'hurt';
-  if (P.side) return P.slideTo > 0 ? 'slide' : G.clingT > CLING.hold ? 'wobble' : 'cling';
-  if (P.ground) return G.cheerT > 0 ? 'cheer' : G.landT > 0 ? 'land' : G.standT > 6 ? 'sleep' : 'stand';
-  if (G.kickT > 0) return 'kick';
-  if (G.airT > 0) return 'air';
-  if (G.hovering) return 'hover';
-  return P.vy > 230 ? 'fall' : 'jump';
+// 動きの差分（同じ場面でもポーズを選び分ける・宙返り・向き替え・まばたき・待ちの動作）
+function resetAnim() {
+  Object.assign(A, { faceS: 1, blink: 0, blinkNext: 2, flip: 0, flipDur: 0.42, flipKind: '', flipDir: 1, rot: 0, kickPose: 'kick', heavy: 0, grabT: 0,
+    dizzyT: 0, hurtSpin: 0, hurtDir: 1, cheerPose: 'cheer', cheerPrev: 0, hopY: 0, idleSeed: Math.random() * 100, happyPrev: 0, fistT: 0 });
 }
+const rnd01 = n => { const v = Math.sin(n * 91.7 + 13.1) * 43758.5; return v - Math.floor(v); };
+// 2段ジャンプのとき：前宙・くるり・そのまま を選ぶ
+function startFlip() {
+  const r = Math.random();
+  A.flipKind = r < 0.5 ? 'flip' : r < 0.8 ? 'twirl' : '';
+  A.flipDur = A.flipKind === 'flip' ? 0.42 : 0.4; A.flip = A.flipKind ? A.flipDur : 0; A.flipDir = P.face || 1;
+}
+// 床で止まっているときの動作（2秒から、1.5秒ごとに選ぶ。6.5秒でうとうと）
+const IDLE = ['look', 'stretch', 'wave', 'lookUp', 'hop', 'look'];
+function idlePose() {
+  const st = G.standT; if (st < 2) return 'stand';
+  if (st > 6.5) return 'sleep';
+  const slot = Math.floor((st - 2) / 1.5), k = ((st - 2) % 1.5) / 1.5;
+  const id = IDLE[Math.floor(rnd01(slot + A.idleSeed) * IDLE.length)];
+  if (id === 'hop') { A.hopY = -Math.abs(Math.sin(k * Math.PI * 3)) * 4 * (1 - k); return k < 0.85 ? 'cheer' : 'stand'; }
+  if (id === 'look' || k > 0.88) return 'stand';
+  return id;
+}
+function poseId() {
+  A.hopY = 0;
+  if (state === 'dying' || G.inv > INVINCIBLE - 0.45) return 'hurt';
+  if (P.side) return P.slideTo > 0 ? 'slide' : A.grabT > 0 ? 'grab' : G.clingT > CLING.hold ? 'wobble' : G.clingT > 0.9 ? 'clingUp' : 'cling';
+  if (P.ground) {
+    if (G.cheerT > 0) return A.cheerPose === 'twirl' ? 'cheer' : A.cheerPose;
+    if (G.landT > 0) return A.heavy > 0 ? 'landHeavy' : 'land';
+    if (A.fistT > 0) return 'fist';
+    if (A.dizzyT > 0) return 'dizzy';
+    return idlePose();
+  }
+  if (G.kickT > 0) return A.kickPose;
+  if (G.airT > 0) return A.flipKind || 'air';
+  if (G.hovering) return 'hover';
+  if (P.vy > 520) return 'panic';
+  if (P.vy > 230) return 'fall';
+  if (Math.abs(P.vy) < 70 && G.kickT <= 0) return 'apex';
+  return 'jump';
+}
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 // ポーズは急に変えない：手・傾き・つぶれ・目線・マフラー・すそを少しずつ寄せる（カタログの GhostMoves）
 function updatePose(dt) {
+  // タイマー
+  for (const k of ['heavy', 'grabT', 'dizzyT', 'hurtSpin', 'fistT']) A[k] = Math.max(0, A[k] - dt);
+  if (!P.ground) A.dizzyT = Math.min(A.dizzyT, 1.8);
+  if (G.cheerT > A.cheerPrev + 0.05) A.cheerPose = ['cheer', 'fist', 'twirl'][Math.floor(Math.random() * 3)];
+  A.cheerPrev = G.cheerT;
+  if (G.happyT > A.happyPrev + 0.5 && P.ground) A.fistT = 0.6;   // 節目の高さを床で迎えたらガッツポーズ
+  A.happyPrev = G.happyT;
+  // まばたき（たまに2回）
+  A.blink = Math.max(0, A.blink - dt); A.blinkNext -= dt;
+  if (A.blinkNext <= 0) { A.blink = 0.1; A.blinkNext = Math.random() < 0.22 ? 0.22 : 1.6 + Math.random() * 3; }
+  // 宙返り・くるり・ダメージの回転
+  let rot = 0, spinFace = 1;
+  if (A.flip > 0) {
+    A.flip = Math.max(0, A.flip - dt); const k = 1 - A.flip / A.flipDur, e = 1 - (1 - k) ** 2.2;
+    if (A.flipKind === 'flip') rot = A.flipDir * e * Math.PI * 2;
+    else spinFace = Math.cos(e * Math.PI * 4);
+  }
+  if (A.hurtSpin > 0) rot += A.hurtDir * (1 - (A.hurtSpin / 0.5) ** 1.5) * Math.PI * 2 * (A.hurtSpin > 0 ? 1 : 0);
+  if (state === 'dying') rot = 0;
+  if (P.ground && G.cheerT > 0 && A.cheerPose === 'twirl') spinFace = Math.cos((1 - G.cheerT) * Math.PI * 4);
+  A.rot = rot;
+  // 向き替え：紙をめくるように横につぶれて裏返る
+  const face = P.side ? -P.side : (P.face || 1);
+  A.faceS = P.side ? face : A.faceS + clampN(face - A.faceS, -dt * 13, dt * 13);   // 壁ではすぐ向く
+  A.faceDraw = (Math.abs(A.faceS) < 0.12 ? Math.sign(A.faceS || face) * 0.12 : A.faceS) * spinFace;
+  if (Math.abs(A.faceDraw) < 0.1) A.faceDraw = 0.1 * Math.sign(A.faceDraw || 1);
+
   const id = poseId(), Q = Kabe.POSES[id];
   if (!live) live = Object.assign({}, Q, { scarf: Q.scarf.map(p => p.slice()), hands: Q.hands.map(p => p.slice()), look: Q.look.slice(), hem: Q.hem || 0 });
   const keep = { scarf: live.scarf, hands: live.hands, look: live.look, hem: live.hem, tilt: live.tilt, sq: live.sq };
   live = Kabe.POSES.live = Object.assign({}, Q, keep, { id });
-  const k = Math.min(1, dt * 10), kh = Math.min(1, dt * 18);
-  live.scarf.forEach((p, i) => { const kk = k * (1 - i * 0.14); p[0] += (Q.scarf[i][0] - p[0]) * kk; p[1] += (Q.scarf[i][1] - p[1]) * kk; });
+  const k = Math.min(1, dt * 10), kh = Math.min(1, dt * 18), t = G.time;
+  // マフラー：ポーズの形に、速さで流される分とはためきを足す
+  const air = !canAct(P), sp = Math.hypot(P.vx, P.vy), fs = Math.sign(A.faceDraw) || 1;
+  const dvx = air ? clampN(P.vx * fs, -300, 300) * 0.006 : 0, dvy = air ? clampN(P.vy, -420, 700) * 0.009 : 0, flut = air ? Math.min(1, sp / 450) : 0.15;
+  live.scarf.forEach((p, i) => {
+    const kk = k * (1 - i * 0.14), tx = Q.scarf[i][0] - dvx * i, ty = Q.scarf[i][1] - dvy * i + Math.sin(t * 15 - i * 1.2) * flut * i * 0.7;
+    p[0] += (tx - p[0]) * kk; p[1] += (ty - p[1]) * kk;
+  });
   live.hands.forEach((p, i) => { p[0] += (Q.hands[i][0] - p[0]) * kh; p[1] += (Q.hands[i][1] - p[1]) * kh; });
-  live.hem += ((Q.hem || 0) - live.hem) * k * 0.7;
+  live.hem += ((Q.hem || 0) + (air ? clampN(P.vy / 260, -1.4, 1.8) : 0) - live.hem) * k * 0.7;
   live.tilt += (Q.tilt - live.tilt) * kh; live.sq += (Q.sq - live.sq) * kh;
   if (id === 'hover') {   // ホバリング：手をぱたぱた、体はふわふわ左右にゆれ、すそが波打つ
-    const f = Math.sin(G.time * 16);
+    const f = Math.sin(t * 16);
     live.hands = live.hands.map((h, i) => [h[0], h[1] + f * 3.2 - (i ? 0.6 : 0)]);
-    live.tilt = Q.tilt + Math.sin(G.time * 4) * 0.08; live.sq = Q.sq + f * 0.03; live.hem = (Q.hem || 0) + Math.sin(G.time * 9) * 0.8;
-  }
+    live.tilt = Q.tilt + Math.sin(t * 4) * 0.08; live.sq = Q.sq + f * 0.03; live.hem = (Q.hem || 0) + Math.sin(t * 9) * 0.8;
+  } else if (id === 'panic') {   // わたわた：手をばたばた
+    live.hands = live.hands.map((h, i) => [h[0] + Math.cos(t * 21 + i * 2) * 1.6, h[1] + Math.sin(t * 22 + i * Math.PI) * 3.4]);
+    live.tilt = Q.tilt + Math.sin(t * 11) * 0.06;
+  } else if (id === 'wave') {   // 手をふる
+    live.hands = live.hands.map((h, i) => i ? [h[0] + Math.sin(t * 12) * 2.6, h[1] + Math.cos(t * 12) * 0.8] : h);
+    live.tilt = Q.tilt + Math.sin(t * 6) * 0.04;
+  } else if (id === 'sleep') live.tilt = Q.tilt + Math.sin(t * 1.3) * 0.06;   // こっくり
+  else if (id === 'dizzy') live.tilt = Q.tilt + Math.sin(t * 4.5) * 0.12;
+  else if (id === 'stretch') { const f = Math.sin(t * 3) * 0.5 + 0.5; live.sq = Q.sq - f * 0.04; live.hands = live.hands.map(h => [h[0], h[1] - f * 1.2]); }
+  else if (id === 'fist' || (id === 'cheer' && G.cheerT > 0)) { const f = Math.abs(Math.sin(t * 9)); live.hands = live.hands.map((h, i) => (i || id === 'cheer') ? [h[0], h[1] - f * 2] : h); }
   // 立って2秒たつと、きょろきょろ
   let look = Q.look;
   if (id === 'stand' && G.standT > 2) look = [Math.sin(G.standT * 1.3) > 0 ? 1 : -0.9, Math.sin(G.standT * 0.7) * 0.4];
+  if (id === 'jump' || id === 'apex') look = [1, clampN(P.vy / 300, -0.8, 0.8)];   // 進む先を見る
   live.look[0] += (look[0] - live.look[0]) * kh; live.look[1] += (look[1] - live.look[1]) * kh;
   // 表情の上書き：うれしい（結晶・節目）、こわい（溶岩が近い）
-  if (id !== 'hurt' && id !== 'sleep') {
+  if (id !== 'hurt' && id !== 'sleep' && id !== 'dizzy') {
     if (G.happyT > 0) live.expr = 'happy';
     else if (state === 'play' && G.lavaDelay <= 0 && (G.lavaY - P.y) / PX_PER_M < 2.5) { live.expr = 'worried'; live.sweat = true; }
   }
+  live.blink = A.blink > 0;
 }
 function drawPlayer() {
   const p = P, t = G.time;
   if (!live) updatePose(1);
-  const face = p.side ? -p.side : (p.face || 1);
+  const face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
   ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
   let wob = 0;
   if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
@@ -964,8 +1063,9 @@ function drawPlayer() {
   if (!calm) for (const a of trail) { ctx.globalAlpha = 0.22 * a.life / 0.22; ctx.save(); ctx.translate(a.x, a.y); Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, a.face, 1); ctx.restore(); }
   ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
   const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;   // 立っているときは息をする
-  ctx.save(); ctx.translate(p.x + wob, p.y - breathe * 10);
+  ctx.save(); ctx.translate(p.x + wob, p.y - breathe * 10 + A.hopY);
   if (p.side) ctx.rotate(Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI));
+  if (A.rot) ctx.rotate(A.rot);
   const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0;
   ctx.scale(1 + p.squash * 0.35 - st - breathe, 1 - p.squash * 0.3 + st + breathe);
   Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, face, 1);
@@ -1173,6 +1273,7 @@ function ghostBB(Q, face, outer) {
   let x0 = -17, x1 = 17, y0 = -18, y1 = 18;
   for (const p of Q.scarf.concat(Q.hands, Q.feet || [])) { x0 = Math.min(x0, p[0] - 5); x1 = Math.max(x1, p[0] + 5); y0 = Math.min(y0, p[1] - 5); y1 = Math.max(y1, p[1] + 5); }
   if (Q.zzz) y0 = Math.min(y0, -34);
+  if (Q.dizzy) y0 = Math.min(y0, -22);
   const ct = Math.cos(Q.tilt), st = Math.sin(Q.tilt), sx = 1 - Q.sq * 0.6, sy = 1 + Q.sq;
   let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
   for (const [px, py] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) {
@@ -1289,13 +1390,13 @@ function predictGL() {
 function playerGL() {
   const p = P, t = G.time;
   if (!live) updatePose(1);
-  const Q = live, face = p.side ? -p.side : (p.face || 1);
+  const Q = live, face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
   let wob = 0;
   if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
   // 残像：向きごとに1枚描いて、各位置に薄く置く
   if (!calm) for (const a of trail) wspr(`trail|${a.face}`, a.x, a.y, ghostBB(Q, a.face), () => Kabe.ghost(ctx, PAL, 'sheet', 'live', a.x, a.y, t, a.face, 1), 0.22 * a.life / 0.22, false);
   const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;
-  const ax = p.x + wob, ay = p.y - breathe * 10, rot = p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0;
+  const ax = p.x + wob, ay = p.y - breathe * 10 + A.hopY, rot = (p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0) + A.rot;
   const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0, sx = 1 + p.squash * 0.35 - st - breathe, sy = 1 - p.squash * 0.3 + st + breathe;
   wspr(null, ax, ay, ghostBB(Q, face, { rot, sx, sy }), () => {
     ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
@@ -2246,6 +2347,16 @@ $('btnToTitle').onclick = () => { state = 'title'; newGame(); renderBest(); show
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
 $('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); showOnly('pause'); } };
 // 振り向きの水晶があるときは、画面の左半分＝左へ、右半分＝右へ
+/* iPhone の機能を止める：ピンチ・ダブルタップのズーム、長押しの拡大鏡とメニュー（ボタンの押下はそのまま） */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchstart', e => { if (e.touches.length > 1 || !e.target.closest('button, a, input, select, textarea, label, .scroll')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1 || !e.target.closest('.scroll')) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => { const now = e.timeStamp; if (now - lastTouchEnd < 320 && !e.target.closest('button, a, input, select, textarea, label')) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+document.addEventListener('selectstart', e => e.preventDefault());
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); press(e.clientX - r.left < r.width / 2 ? -1 : 1); });
 addEventListener('pointerup', release); addEventListener('pointercancel', release);
 addEventListener('keyup', e => { if ([' ', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) release(); });

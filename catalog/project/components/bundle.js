@@ -444,10 +444,26 @@ window.Kabe = (function () {
     hover: { name: 'ホバリング', tilt: 0.04, sq: 0.05, hands: [[-13, -2], [13, -3]], feet: [[-4, 11], [4, 11]], scarf: [[-4, -1], [-11, -3], [-18, -2], [-24, 2], [-29, 7]], expr: 'happy', look: [1, 0.2], hem: 1.6 },
     sleep: { name: 'うとうと', tilt: 0.12, sq: 0.06, hands: [[-8, 6.5], [8.5, 6.5]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-10, 3], [-13, 9], [-14, 16], [-13, 22]], expr: 'sleep', look: [0.4, 0.6], hem: 0.3, zzz: true },
     cheer: { name: 'やったー', tilt: 0, sq: -0.08, hands: [[-10, -12], [10.5, -12]], feet: [[-5, 13], [5, 13]], scarf: [[-4, -1], [-11, 0], [-17, 4], [-21, 10], [-23, 16]], expr: 'happy', look: [0.6, -0.6], hem: -0.6 }
+,
+    // ここから：同じ場面の言い換え（本編がその場でどれかを選ぶ）と、つなぎの一瞬
+    kick2: { name: '蹴った瞬間2', tilt: 0.4, sq: -0.18, hands: [[-11, 5], [12.5, -6]], feet: [[-8, 11], [-2, 13]], scarf: [[-4, -1], [-13, 1], [-23, 3], [-33, 6], [-41, 10]], expr: 'brave', look: [1, -0.4], hem: -2.6 },
+    grab: { name: '壁に着いた', tilt: -0.16, sq: 0.12, hands: [[-12, -7], [-12, 4]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, -5], [-13, -10], [-15, -16], [-14, -22]], expr: 'squint', look: [1, -0.2], wall: true, hem: 1.2 },
+    clingUp: { name: '壁で見上げる', tilt: -0.04, sq: -0.02, hands: [[-11.5, -9], [-11.5, 2]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, 5], [-10, 12], [-8, 19], [-9, 26]], expr: 'normal', look: [0.5, -1], wall: true, hem: -0.4 },
+    apex: { name: 'てっぺん', tilt: 0.06, sq: 0.03, hands: [[-10.5, -1], [10.5, -2]], feet: [[-5, 12], [5, 12]], scarf: [[-4, -1], [-10, 1], [-15, 5], [-19, 10], [-21, 16]], expr: 'calm', look: [1, 0.5], hem: 0.4 },
+    flip: { name: '宙返り', tilt: 0, sq: 0.08, hands: [[-4, 6], [5, 5.5]], feet: [[-3, 10], [3, 10]], scarf: [[-4, -1], [-10, -5], [-17, -7], [-24, -6], [-30, -3]], expr: 'squint', look: [1, 0.3], hem: -1.2 },
+    twirl: { name: 'くるり', tilt: 0, sq: -0.05, hands: [[-13, -1], [13, -2]], feet: [[-4, 12], [4, 12]], scarf: [[-4, -1], [-11, -1], [-17, 2], [-22, 7], [-25, 13]], expr: 'happy', look: [0.4, -0.2], hem: -1.4 },
+    panic: { name: 'わたわた', tilt: -0.1, sq: -0.07, hands: [[-11.5, -11], [11, -12]], feet: [[-5, 13], [5, 13]], scarf: [[-4, -1], [-7, -8], [-9, -16], [-8, -24], [-10, -31]], expr: 'worried', look: [0, 0.9], hem: 2.6, sweat: true },
+    landHeavy: { name: 'どすん', tilt: 0, sq: -0.14, hands: [[-13.5, 3], [13.5, 3]], feet: [[-7, 12.5], [7, 12.5]], scarf: [[-4, -1], [-10, -4], [-15, -6], [-19, -4], [-22, 0]], expr: 'squint', look: [1, 0.7], hem: 1.8 },
+    dizzy: { name: 'くらくら', tilt: -0.14, sq: 0.03, hands: [[-10, 2.5], [10, 3.5]], feet: [[-5, 12.5], [5, 12.5]], scarf: [[-4, -1], [-10, 3], [-13, 9], [-14, 15], [-13, 21]], expr: 'dizzy', look: [0, 0], hem: 0.6, dizzy: true },
+    stretch: { name: 'のび', tilt: 0, sq: -0.13, hands: [[-6, -15.5], [6.5, -15.5]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-10, 3], [-13, 9], [-14, 15], [-13, 21]], expr: 'calm', look: [0, -0.6], hem: -0.5 },
+    wave: { name: '手をふる', tilt: -0.05, sq: 0, hands: [[-8.5, 4], [11.5, -10]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-11, 2], [-15, 8], [-17, 15], [-16, 21]], expr: 'happy', look: [0, 0.1], hem: 0 },
+    lookUp: { name: '見上げる', tilt: -0.12, sq: 0.02, hands: [[-9, 4], [8, -3.5]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-11, 2], [-15, 8], [-17, 15], [-16, 21]], expr: 'normal', look: [0.4, -1], hem: 0.2 },
+    fist: { name: 'ガッツポーズ', tilt: 0.06, sq: -0.07, hands: [[-9.5, 4], [10, -13.5]], feet: [[-5, 13], [5, 13]], scarf: [[-4, -1], [-12, 0], [-18, 3], [-23, 8], [-26, 14]], expr: 'brave', look: [1, -0.4], hem: -0.5 }
   };
   for (var mk in MORE) POSES[mk] = MORE[mk];
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
-  var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer'];
+  var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer',
+    'kick2', 'grab', 'clingUp', 'apex', 'flip', 'twirl', 'panic', 'landHeavy', 'dizzy', 'stretch', 'wave', 'lookUp', 'fist'];
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
   function scarfTail(g, P, pts, t, w0) {
     w0 = w0 || 3.4;
@@ -484,20 +500,21 @@ window.Kabe = (function () {
     solid(g, function () { ell(g, x0 + 1.2, cy + 0.6, 2.3, 2.1); }, P.scarf, P.scarfShade, P.playerLine, 0.7, 1.0);
   }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
-  function lineEyes(g, P, eyes, expr, look, t) {
-    var blink = expr === 'normal' && (t % 3.4) < 0.12;
+  function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
+    var blink = blinkNow != null ? blinkNow && /^(normal|brave|calm|worried|surprised)$/.test(expr) : expr === 'normal' && (t % 3.4) < 0.12;
     g.strokeStyle = P.playerLine; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 1.25;
     eyes.forEach(function (e, i) {
       var x = e[0] + look[0] * 0.6, y = e[1] + look[1] * 0.6;
-      g.beginPath();
-      if (expr === 'hurt') { var s = i ? -1 : 1; g.moveTo(x - 1.2 * s, y - 1.5); g.lineTo(x + 1 * s, y); g.lineTo(x - 1.2 * s, y + 1.5); }
+      g.lineWidth = 1.25; g.beginPath();
+      if (blink) { g.moveTo(x - 1.2, y + 0.4); g.lineTo(x + 1.2, y + 0.4); }
+      else if (expr === 'hurt') { var s = i ? -1 : 1; g.moveTo(x - 1.2 * s, y - 1.5); g.lineTo(x + 1 * s, y); g.lineTo(x - 1.2 * s, y + 1.5); }
       else if (expr === 'happy') { g.moveTo(x - 1.4, y + 0.8); g.lineTo(x, y - 0.8); g.lineTo(x + 1.4, y + 0.8); }
       else if (expr === 'surprised') { g.arc(x, y, 1.25, 0, Math.PI * 2); }
       else if (expr === 'sleep') { g.moveTo(x - 1.5, y - 0.2); g.quadraticCurveTo(x, y + 1.4, x + 1.5, y - 0.2); }
       else if (expr === 'squint') { g.moveTo(x - 1.4, y); g.lineTo(x + 1.4, y); }
       else if (expr === 'calm') { g.moveTo(x - 1.4, y - 0.2); g.quadraticCurveTo(x, y - 1.2, x + 1.4, y - 0.2); }
+      else if (expr === 'dizzy') { g.lineWidth = 0.9; for (var sa = 0; sa <= 1.001; sa += 0.1) { var ang = sa * Math.PI * 2.6 + t * 8 * (i ? -1 : 1), rad = 0.2 + sa * 1.55; if (sa === 0) g.moveTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); else g.lineTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); } }
       else if (expr === 'worried') { g.moveTo(x, y - 0.9); g.lineTo(x, y + 1.5); var d = i ? 1 : -1; g.moveTo(x - 1.5 * d, y - 2.6); g.lineTo(x + 0.9 * d, y - 3.4); }
-      else if (blink) { g.moveTo(x - 1.2, y + 0.4); g.lineTo(x + 1.2, y + 0.4); }
       else if (expr === 'brave') { g.moveTo(x - 0.4, y - 1.8); g.lineTo(x + 0.4, y + 1.6); }
       else { g.moveTo(x, y - 1.7); g.lineTo(x, y + 1.7); }
       g.stroke();
@@ -542,7 +559,7 @@ window.Kabe = (function () {
       g.save(); body(); g.clip(); g.fillStyle = P.playerShade;
       g.beginPath(); g.moveTo(-20, o.hemY - 1.2); g.quadraticCurveTo(0, o.hemY - 3, 20, o.hemY - 1.2); g.lineTo(20, 30); g.lineTo(-20, 30); g.closePath(); g.fill(); g.restore();
       shine(g, -o.half * 0.5, o.top + 4.5, 2.4, 1.3, 0.9);
-      lineEyes(g, P, o.eyes, Q.expr, Q.look, t); cheeks(g, P, o.cheeks);
+      lineEyes(g, P, o.eyes, Q.expr, Q.look, t, Q.blink); cheeks(g, P, o.cheeks);
       if (Q.sweat) {   // 汗：額の横に小さなしずく（揺れる）
         var sy = o.top + 5 + Math.sin(t * 6) * 0.6;
         solid(g, function () { g.beginPath(); g.moveTo(o.half - 0.5, sy - 3); g.quadraticCurveTo(o.half + 2.2, sy + 0.5, o.half + 0.8, sy + 1.6); g.quadraticCurveTo(o.half - 1.6, sy + 1.4, o.half - 0.5, sy - 3); g.closePath(); }, '#ffffff', P.playerShade, P.playerLine, 0.4, 0.8);
@@ -554,6 +571,13 @@ window.Kabe = (function () {
           g.globalAlpha = Math.min(1, (1 - zk) * 2.2); g.beginPath(); g.moveTo(zx - zs, zy - zs); g.lineTo(zx + zs, zy - zs); g.lineTo(zx - zs, zy + zs); g.lineTo(zx + zs, zy + zs); g.stroke();
         }
         g.globalAlpha = 1;
+      }
+      if (Q.dizzy) {   // くらくら：頭の上を小さな星が3つ回る（player の色と線だけ）
+        for (var di = 0; di < 3; di++) {
+          var da = t * 5 + di * 2.09, dx = Math.cos(da) * 9, dy = o.top - 3 + Math.sin(da) * 2.6, ds = 1.9 + Math.sin(da) * 0.5;
+          if (Math.sin(da) < -0.2) continue;   // 頭の向こう側は隠れる
+          solid(g, function () { g.beginPath(); for (var k = 0; k < 10; k++) { var r5 = k % 2 ? ds * 0.45 : ds, a5 = -Math.PI / 2 + k * Math.PI / 5; g.lineTo(dx + Math.cos(a5) * r5, dy + Math.sin(a5) * r5); } g.closePath(); }, '#ffffff', P.playerShade, P.playerLine, 0.3, 0.7);
+        }
       }
       scarfWrap(g, P, 0, o.scarfY, o.scarfW, 3.2);
       if (o.sleeves) sleeve(g, P, shoulder(Q.hands[1][0]), 0.5, Q.hands[1][0], Q.hands[1][1], 2.1);
