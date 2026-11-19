@@ -17,6 +17,7 @@
 `index.html` の区切り（`grep -n "^/\* ===" index.html`）：動きの数値 → 地形 → 動き（`physStep`、ゲームとチェックで共通）→ 到達チェック → ゲーム → 見た目（2D）→ シェーダー（`glfx`）→ 効果音。
 画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。ガチャの演出は #gShow（2D）を `showFx` が別の WebGL canvas（.gshowfx）で仕上げる。
 きれい画質は 2D の画面を送らず、GPU の中で組み立てる（`drawGL` → `glfx.scene`）。地形・地層は1回だけ絵にして少しずつ送り、丸・線・溶岩は GPU で描き、キャラなど動く物だけ小さい絵にまとめて送る。#cv に描くのは「かるい」と D・V の表示のときだけ。描く物を足したら `drawGL` 側にも足す。`?perf` で1フレームに送った量（送信 k/f）が見られる。
+軽さの決まり：毎フレーム描き直して送ってよいのはオバケだけ。動く物は1回描いて GPU で回す（`wspr` の rot）か、動きを段階に分けて絵を使い回す。小さく動く粒は GPU の点（`wdisc`）。背景3枚は半分の解像度。点光源と影は1/4の「光の地図」。HUD は表示が変わったときだけ描く。`?perf` の下の段に、1フレームの内訳（動き・組み立て・送る・仕上げ・HUD）が出る。
 
 ## GitHub Pages（だれでも遊べる）
 - https://saikinobot72.github.io/terugame888/ （本編）、`/pools.html`、`/simulator.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。

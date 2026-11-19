@@ -537,8 +537,8 @@ window.Kabe = (function () {
     st.amount = a; st.hurt = st.s === 'out' && a > 0.5; return st;
   }
   // (x, y) はトゲのマスの左上。dir は spike と同じ（生える壁の側）
-  function popSpike(g, P, x, y, dir, t, o) {
-    var st = popState(t, o);
+  function popSpike(g, P, x, y, dir, t, o, stOver) {   // stOver：状態を渡す（本編は出る量を段階に分けて絵を使い回す）
+    var st = stOver || popState(t, o);
     g.save(); g.translate(x + CELL / 2, y + CELL / 2); g.rotate({ L: 0, R: Math.PI, T: Math.PI / 2, B: -Math.PI / 2 }[dir] || 0); g.translate(-CELL / 2, -CELL / 2);
     g.save(); g.beginPath(); g.rect(3.2, -4, 20, 26); g.clip(); g.translate(-(1 - st.amount) * 12, 0);
     spikeTooth(g, P, 1); spikeTooth(g, P, 9);
@@ -587,8 +587,8 @@ window.Kabe = (function () {
     st.close = c; return st;
   }
   // x0, x1 は左右の壁の面、y は板の真ん中の高さ
-  function shutter(g, P, x0, x1, y, t, o) {
-    var st = shutterState(t, o), h = 9, len = ((x1 - x0) / 2 - 3) * st.close, lit = st.s === 'warn' && st.e % 0.3 < 0.15;
+  function shutter(g, P, x0, x1, y, t, o, stOver) {   // stOver：状態を渡す（本編は閉じる量を段階に分けて絵を使い回す）
+    var st = stOver || shutterState(t, o), h = 9, len = ((x1 - x0) / 2 - 3) * st.close, lit = st.s === 'warn' && st.e % 0.3 < 0.15;
     [[x0, 1], [x1, -1]].forEach(function (sd) {
       var bx = sd[0], d = sd[1], px = d > 0 ? bx + 3 : bx - 3 - len;
       if (len > 0.5) {
@@ -649,9 +649,11 @@ window.Kabe = (function () {
      痛い所は hazard、本体は metal、縁取りは ink。動きは時間 t だけで決まる（崩れる足場だけは乗ると動き出す） ---------- */
   // 振り子：(x, y) は軸。a は角度（0＝真下）。鎖の先にトゲつきの鉄球
   function pendAngle(t, o) { o = o || {}; return (o.amp || 1.05) * Math.sin((t + (o.offset || 0)) / (o.period || 2.6) * Math.PI * 2); }
-  function pendulum(g, P, x, y, len, a) {
+  // part：'mount'＝軸の金具だけ、'arm'＝鎖と鉄球だけ（本編は a＝0 で1回描いて GPU で回す）
+  function pendulum(g, P, x, y, len, a, part) {
     var bx = x + Math.sin(a) * len, by = y + Math.cos(a) * len, n = Math.max(3, Math.round(len / 5.5)), i;
-    metalSolid(g, P, function () { rr(g, x - 6, y - 5, 12, 7, 2.5); }, 0.8);   // 軸の金具
+    if (part !== 'arm') metalSolid(g, P, function () { rr(g, x - 6, y - 5, 12, 7, 2.5); }, 0.8);   // 軸の金具
+    if (part === 'mount') return;
     g.lineWidth = 1.3; g.strokeStyle = P.metalShade;
     for (i = 1; i < n; i++) { var k = i / n; g.save(); g.translate(x + (bx - x) * k, y + (by - y) * k); g.rotate(-a + (i % 2 ? Math.PI / 2 : 0)); ell(g, 0, 0, 1.5, 2.7); g.stroke(); g.restore(); }
     bolt(g, P, x, y - 1.5, 1.8);
@@ -699,13 +701,17 @@ window.Kabe = (function () {
     if (st.s === 'rise') a = smooth(st.k); else if (st.s === 'up') a = 1; else if (st.s === 'fall') a = 1 - smooth(st.k);
     st.ang = a * Math.PI / 2 * 0.92; st.solid = a === 0; return st;   // 乗れるのは下りきっている間だけ（動いている板は本編で体を押す）
   }
-  function bridge(g, P, x0, y, dir, len, ang, lit) {
+  // part：'plank'＝回る板だけ、'base'＝蝶番の台とランプだけ（本編は板を ang＝0 で1回描いて GPU で回す）
+  function bridge(g, P, x0, y, dir, len, ang, lit, part) {
     g.save(); g.translate(x0, y); g.scale(dir, 1);
-    g.save(); g.rotate(-ang);
+    if (part === 'base') g.save(); else g.save(), g.rotate(-ang);
+    if (part !== 'base') {
     metalSolid(g, P, function () { rr(g, 0, -4.5, len - 1, 9, [0, 3, 3, 0]); }, 1.2);
     g.strokeStyle = P.metalLight; g.lineWidth = 0.7; g.beginPath(); g.moveTo(2, -1.8); g.lineTo(len - 4, -1.8); g.stroke();
     for (var i = 8; i < len - 4; i += 12) bolt(g, P, i, 1.2, 1.1);
+    }
     g.restore();
+    if (part === 'plank') { g.restore(); return; }
     metalSolid(g, P, function () { rr(g, -4, -8, 6, 16, [0, 2, 2, 0]); }, 0.6);   // 蝶番の台
     bolt(g, P, 0, 0, 2.2);
     var lx = 1, ly = -12;
@@ -994,9 +1000,11 @@ window.Kabe = (function () {
   function gemTone(P, star) { return star >= 3 ? [P.gemGold, P.gemGoldShade] : star === 2 ? [P.gemBlue, P.gemBlueShade] : [P.gemMint, P.gemMintShade]; }
 
   // 結晶：ぼんやりした光＋十字のきらめき＋白い芯。s が 1 以上なら、まわりを小さな粒が回る
-  function mote(g, P, x, y, t, s, seed) {
-    s = s || 1; seed = seed || 0;
-    var tw = 0.85 + Math.sin(t * 4 + seed * 2) * 0.15, i;
+  // opt.tw：明るさのゆらぎを決める（本編は段階に分けて絵を使い回す）、opt.noDots：まわりを回る粒を描かない（本編は GPU の点で描く）
+  function moteDots(t, s, seed) { var out = []; for (var i = 0; i < 3; i++) { var a = t * (1.6 + i * 0.4) + seed + i * 2.1, r = (6 + i * 1.5) * s; out.push([Math.cos(a) * r, Math.sin(a) * r * 0.7, 0.9 * s, 0.5 + 0.4 * Math.sin(t * 4 + i + seed)]); } return out; }
+  function mote(g, P, x, y, t, s, seed, opt) {
+    s = s || 1; seed = seed || 0; opt = opt || {};
+    var tw = opt.tw != null ? opt.tw : 0.85 + Math.sin(t * 4 + seed * 2) * 0.15, i;
     var gl = g.createRadialGradient(x, y, 0, x, y, 11 * s); gl.addColorStop(0, alpha(P.glow, 0.55 * tw)); gl.addColorStop(0.45, alpha(P.glow, 0.18 * tw)); gl.addColorStop(1, alpha(P.glow, 0));
     g.fillStyle = gl; ell(g, x, y, 11 * s, 11 * s); g.fill();
     var L = (5 + tw * 2.5) * s, wd = 0.9 * s;
@@ -1005,10 +1013,7 @@ window.Kabe = (function () {
     g.quadraticCurveTo(x - wd, y + wd, x - L, y); g.quadraticCurveTo(x - wd, y - wd, x, y - L * 1.2); g.fill();
     g.fillStyle = P.glow; ell(g, x, y, 2.6 * s, 2.6 * s); g.fill();
     g.fillStyle = '#ffffff'; ell(g, x, y, 1.5 * s, 1.5 * s); g.fill();
-    if (s >= 1) for (i = 0; i < 3; i++) {
-      var a = t * (1.6 + i * 0.4) + seed + i * 2.1, r = (6 + i * 1.5) * s;
-      g.fillStyle = alpha(P.glow, 0.5 + 0.4 * Math.sin(t * 4 + i + seed)); ell(g, x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, 0.9 * s, 0.9 * s); g.fill();
-    }
+    if (s >= 1 && !opt.noDots) moteDots(t, s, seed).forEach(function (d) { g.fillStyle = alpha(P.glow, d[3]); ell(g, x + d[0], y + d[1], d[2], d[2]); g.fill(); });
   }
 
   // 水晶（案A「ガラスの柱」）：六角の柱を半透明にして、面ごとに透け方を変える。印は中に沈んで見える
@@ -1099,7 +1104,9 @@ window.Kabe = (function () {
 
   function glowAt(g, P, x, y, r, a, color) { var gl = g.createRadialGradient(x, y, 1, x, y, r); gl.addColorStop(0, alpha(color || P.glow, a)); gl.addColorStop(1, alpha(color || P.glow, 0)); g.fillStyle = gl; ell(g, x, y, r, r); g.fill(); }
   // ガチャ所（案D「ランタン塔」）：細い土の塔のてっぺんがガラスの灯りで、中を結晶が回る。(x, y) は床の真ん中。lit=false で使ったあと（灯りが消える）
-  function gachaHouse(g, P, x, y, t, lit) {
+  // noMotes：ガラスの中の4つの粒を描かない（本編は GPU の点で描く。houseMotes で位置）
+  function houseMotes(x, y, t) { var out = []; for (var i = 0; i < 4; i++) { var a = t * 1.5 + i * 1.6; out.push([x + Math.cos(a) * 5, y - 40 + Math.sin(a) * 2.5]); } return out; }
+  function gachaHouse(g, P, x, y, t, lit, noMotes) {
     var top = y - 30, i;
     g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
     if (lit) glowAt(g, P, x, top - 12, 38, 0.3 + Math.sin(t * 2) * 0.04);
@@ -1109,7 +1116,7 @@ window.Kabe = (function () {
     g.fillStyle = lit ? P.glow : P.metalLight; ell(g, x + 2.4, y - 5, 0.8, 0.8); g.fill();
     solid(g, function () { rr(g, x - 14, top - 3, 28, 4, 2); }, P.metal, P.metalShade, P.ink, 0.6, 1);   // 手すり
     g.fillStyle = lit ? alpha(P.glow, 0.45) : alpha(P.uiPanel, 0.8); rr(g, x - 9, top - 17, 18, 14, 3); g.fill();   // ガラスの灯り
-    if (lit) for (i = 0; i < 4; i++) { var a = t * 1.5 + i * 1.6; mote(g, P, x + Math.cos(a) * 5, top - 10 + Math.sin(a) * 2.5, t, 0.32, i); }
+    if (lit && !noMotes) houseMotes(x, y, t).forEach(function (m, j) { mote(g, P, m[0], m[1], t, 0.32, j); });
     g.strokeStyle = P.ink; g.lineWidth = 1.1; rr(g, x - 9, top - 17, 18, 14, 3); g.stroke(); g.beginPath(); g.moveTo(x, top - 17); g.lineTo(x, top - 3); g.stroke();
     g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 6.5, top - 14); g.lineTo(x - 6.5, top - 7); g.stroke();
     solid(g, function () { g.beginPath(); g.moveTo(x - 12, top - 16); g.quadraticCurveTo(x, top - 31, x + 12, top - 16); g.closePath(); }, P.metal, P.metalShade, P.ink, 1.2, 1.1);   // 屋根
@@ -1228,7 +1235,7 @@ window.Kabe = (function () {
   return {
     CELL: CELL, ZONES: ZONES, MOTIF: MOTIF, POSES: POSES, POSE_ORDER: POSE_ORDER, POSE_MORE: POSE_MORE, GHOSTS: GHOSTS,
     sheetPath: sheetPath,
-    pal: pal, mix: mix, alpha: alpha, hash: hash, mixHex: mixHex, STAGES: STAGES, stagePal: stagePal, blendPal: blendPal, motifOf: motifOf,
+    pal: pal, mix: mix, alpha: alpha, hash: hash, mixHex: mixHex, moteDots: moteDots, houseMotes: houseMotes, STAGES: STAGES, stagePal: stagePal, blendPal: blendPal, motifOf: motifOf,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, bgStrata: bgStrata, bgFar: bgFar, bgMid: bgMid, midHaze: midHaze, midProps: midProps, midSpins: midSpins, midBlades: midBlades, MID_K: MID_K, bgDust: bgDust, grassBlades: grassBlades, LIVE: LIVE, smooth: smooth, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
