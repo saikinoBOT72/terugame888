@@ -232,7 +232,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.20h';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.20i';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -1875,7 +1875,7 @@ if (PERF.on) {
   perfTick = (ms, now) => {
     PERF.js += (ms - PERF.js) * 0.05;
     if (now < next) return; next = now + 400;
-    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'} ・ 渡し方 ${PERF.mode.toUpperCase()}`;
+    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'} ・ 渡し方 ${PERF.mode.toUpperCase()} ・ v${VERSION}`;
   };
 }
 resize(); renderBest(); newGame();
