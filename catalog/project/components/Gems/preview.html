@@ -1,0 +1,37 @@
+<!-- @dsCard group="ローグライク" height=400 width=760 subtitle="結晶（お金）・水晶6種・装備の枠" -->
+<style>
+.gm-sec { padding: 10px 10px 0; font-size: 12px; color: var(--ui-muted); }
+.gm-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 6px 10px; }
+@media (max-width: 520px) { .gm-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>
+<div class="gm-sec">水晶6種（拡大3倍。色と形でレア度、真ん中の印で効き目）</div>
+<div class="gm-grid" id="gems"></div>
+<div class="gm-sec">結晶（光の粒）と水晶を4ゾーンで実寸</div>
+<div id="zones"></div>
+<div class="gm-sec">装備の枠：Lv1・Lv3・リチャージ中・空き</div>
+<div id="badges"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var gems = document.getElementById('gems');
+Kabe.GEM_ORDER.forEach(function (id) {
+  var k = Kabe.GEM_KINDS[id], fig = document.createElement('figure'); fig.className = 'kabe-fig';
+  var cv = Kabe.canvas(40, 40, 3, k.name), cap = document.createElement('figcaption');
+  cap.textContent = '★'.repeat(k.star) + ' ' + k.name;
+  fig.appendChild(cv.c); fig.appendChild(cap); gems.appendChild(fig);
+  Kabe.animate(function (t) { var P = Kabe.pal('underground'), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, 40, 40); g.fillStyle = P.uiPanel; g.fillRect(0, 0, 40, 40); Kabe.gem(g, P, id, k.star, 20, 21 + Math.sin(t * 2) * 0.8, 1.3, t); });
+});
+var G = Kabe.grid(['#.......', '#.......', '#.......', '#.......', '#.......'], '#');
+Kabe.zoneRow(document.getElementById('zones'), { w: 8 * 18, h: 5 * 18, zoom: 2, label: '結晶と水晶', draw: function (g, P, t) {
+  Kabe.terrain(g, P, G, t);
+  Kabe.mote(g, P, 28, 30 + Math.sin(t * 2) * 2, t, 1, 0);
+  Kabe.mote(g, P, 28, 66 + Math.sin(t * 2 + 2) * 2, t, 1, 3);
+  Kabe.gem(g, P, 'triple', 2, 78, 44, 1, t); Kabe.gem(g, P, 'turn', 3, 112, 44, 1, t);
+  Kabe.ghost(g, P, 'sheet', 'jump', 70, 74, t, 1, 1);
+} });
+Kabe.zoneRow(document.getElementById('badges'), { w: 8 * 18, h: 44, zoom: 2, label: '装備の枠', draw: function (g, P, t) {
+  Kabe.gemBadge(g, P, 'hover', 1, 20, 18, t, { lv: 1 });
+  Kabe.gemBadge(g, P, 'turn', 3, 54, 18, t, { lv: 3 });
+  Kabe.gemBadge(g, P, 'triple', 2, 88, 18, t, { lv: 2, cool: (t * 0.2) % 1 });
+  Kabe.gemBadge(g, P, null, 0, 122, 18, t);
+} });
+</script>

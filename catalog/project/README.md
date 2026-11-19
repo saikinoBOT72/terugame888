@@ -47,7 +47,7 @@
 ## 色
 
 - **ゾーンで変える色**：`bg-*`、`far`、`strata-*`、`terrain*`、`accent*`、`glow`、`ink`、`metal*`、`rise*`、`ui-*`。ゾーンの色はまだ仮で、決まりを守れば変えてよい。
-- **どのゾーンでも変えない色**：プレイヤー（`player-*`）、マフラー（`scarf*`）、危険なもの（`hazard*`）。
+- **どのゾーンでも変えない色**：プレイヤー（`player-*`）、マフラー（`scarf*`）、危険なもの（`hazard*`）、水晶のレア度（`gem-mint`★・`gem-blue`★★・`gem-gold`★★★）。
 - 赤（`scarf`）はマフラーとHPのハートだけ。危険なもの（トゲ・刃）は灰色の金属（`hazard`）。色では目立たせず、とがった形と `ink` の縁取りで危険を伝える。
 - 上空は雲が白に近い。雲の上の面（`terrain-light`）は真っ白にせず、プレイヤーとは縁取りで見分ける。
 - 画面の文字 `ui-ink` は `ui-panel` と `bg-top` の上で、補足の文字 `ui-muted` は `ui-panel` の上で、どのゾーンでも 4.5:1 以上。
@@ -78,6 +78,7 @@
 - `Kabe.pal('underground')` でそのゾーンの色をまとめて取る（`tokens.css` の変数を読む）。
 - `Kabe.terrain(g, P, Kabe.grid(地図), t)` で地形を描く。地図は1文字1マス（`#` 壁、`.` 空間、`^` トゲ、`/` `\` 45度の斜め）。
 - `Kabe.ghost(g, P, 'sheet', 'cling', x, y, t, 向き, 倍率)` でプレイヤー、`Kabe.rise(...)` で迫ってくるもの。
+- ローグライク：`Kabe.mote`（結晶）、`Kabe.gem`（水晶）、`Kabe.gemBadge`（装備の枠）、`Kabe.gachaHouse`（ガチャ所）、`Kabe.gachaOrb`・`Kabe.gemBurst`（ガチャの画面）。決まりは `Gems`・`GachaHouse` の見本。
 - 見本ページは `Kabe.zoneRow(要素, {w, h, draw})` で4ゾーンを並べて描く。
 
 ## キャラ

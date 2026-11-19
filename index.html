@@ -84,16 +84,48 @@
   .ver { position: absolute; left: calc(var(--u) * 10px); bottom: calc(var(--u) * 8px); font-size: calc(var(--u) * 10px); color: var(--dim); opacity: .8; }
   .sub:disabled { opacity: .6; cursor: default; }
   .btn:disabled { opacity: .45; cursor: default; transform: none; }
-  .gems { display: grid; gap: calc(var(--u) * 6px); width: 100%; max-height: calc(var(--u) * 230px); overflow-y: auto; }
-  .gem {
-    font: inherit; text-align: left; color: var(--cream); background: rgba(0,0,0,.18); cursor: pointer;
-    border: 2px solid transparent; border-radius: calc(var(--u) * 12px); padding: calc(var(--u) * 6px) calc(var(--u) * 10px);
-    display: grid; gap: calc(var(--u) * 2px); font-size: calc(var(--u) * 12.5px);
+  /* ガチャ画面：上に玉、下に持っている水晶のカード。水晶の色はレア度（--tone） */
+  .gcard { gap: calc(var(--u) * 8px); padding: calc(var(--u) * 14px) calc(var(--u) * 14px) calc(var(--u) * 16px); }
+  .ghead { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+  .ghead h2 { font-size: calc(var(--u) * 20px); }
+  .coins { display: inline-flex; align-items: center; gap: calc(var(--u) * 2px); background: rgba(0,0,0,.22); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 12px) calc(var(--u) * 2px) calc(var(--u) * 4px); font-weight: 800; font-size: calc(var(--u) * 15px); font-variant-numeric: tabular-nums; }
+  .uic { display: block; }
+  .gstage { width: calc(var(--u) * 288px); height: calc(var(--u) * 118px); border-radius: calc(var(--u) * 14px); background: rgba(0,0,0,.22); }
+  .gresult { min-height: 1.6em; font-weight: 800; color: var(--cream) !important; font-size: calc(var(--u) * 13px); }
+  .gresult .st { color: var(--tone, var(--teal)); margin-right: .3em; }
+  .gresult .tag { color: var(--teal); font-size: .85em; margin-left: .4em; }
+  .btn small { font-size: .72em; font-weight: 800; opacity: .7; margin-left: .35em; }
+  .lavaBtn {
+    font: inherit; font-weight: 800; font-size: calc(var(--u) * 12px); width: 100%; cursor: pointer;
+    color: var(--ink); background: var(--rise); border: 0; border-radius: 999px; padding: calc(var(--u) * 7px) calc(var(--u) * 12px);
+    box-shadow: 0 calc(var(--u) * 3px) 0 color-mix(in srgb, var(--rise) 60%, #000);
   }
-  .gem b { font-weight: 800; } .gem .st { color: var(--teal); margin-right: calc(var(--u) * 6px); }
-  .gem span { color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.45; }
-  .gem.on { border-color: var(--teal); background: rgba(142,227,208,.12); }
-  .gem:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .lavaBtn:active { transform: translateY(calc(var(--u) * 2px)); box-shadow: 0 calc(var(--u) * 1px) 0 color-mix(in srgb, var(--rise) 60%, #000); }
+  .lavaBtn:disabled { background: rgba(0,0,0,.22); color: var(--dim); box-shadow: none; cursor: default; transform: none; font-weight: 500; }
+  .lavaBtn:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+  .ginv { width: 100%; display: grid; gap: calc(var(--u) * 6px); }
+  .ginvHead { display: flex; justify-content: space-between; font-size: calc(var(--u) * 11px); color: var(--dim); }
+  .gtiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--u) * 6px); }
+  .gtile {
+    position: relative; font: inherit; color: var(--cream); cursor: pointer; text-align: center;
+    background: rgba(0,0,0,.2); border: 2px solid transparent; border-radius: calc(var(--u) * 12px);
+    padding: calc(var(--u) * 4px) calc(var(--u) * 2px) calc(var(--u) * 5px); display: grid; justify-items: center; gap: 0;
+  }
+  .gtile .nm { font-weight: 800; font-size: calc(var(--u) * 10.5px); line-height: 1.3; white-space: nowrap; }
+  .gtile .lv { display: flex; gap: calc(var(--u) * 3px); margin-top: calc(var(--u) * 2px); }
+  .gtile .lv i { width: calc(var(--u) * 5px); height: calc(var(--u) * 5px); border-radius: 50%; background: rgba(255,244,230,.22); }
+  .gtile .lv i.f { background: var(--tone); }
+  .gtile.on { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, transparent); }
+  .gtile.on::after { content: '装備'; position: absolute; top: calc(var(--u) * -6px); right: calc(var(--u) * -4px); font-size: calc(var(--u) * 9px); font-weight: 800; color: var(--ink); background: var(--tone); border-radius: 999px; padding: 0 calc(var(--u) * 6px); }
+  .gtile.empty { cursor: default; opacity: .5; border: 2px dashed rgba(255,244,230,.18); background: transparent; min-height: calc(var(--u) * 62px); align-content: center; font-size: calc(var(--u) * 10px); color: var(--dim); }
+  .gtile:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .gdesc { min-height: 2.9em; font-size: calc(var(--u) * 11.5px); line-height: 1.45; text-align: left; width: 100%; }
+  .gdesc b { color: var(--cream); }
+  /* 一時停止・おしまいの画面に出す水晶の行 */
+  .grows { display: grid; gap: calc(var(--u) * 6px); width: 100%; }
+  .grow { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * 8px); align-items: center; text-align: left; background: rgba(0,0,0,.18); border-radius: calc(var(--u) * 12px); padding: calc(var(--u) * 4px) calc(var(--u) * 10px) calc(var(--u) * 4px) calc(var(--u) * 4px); }
+  .grow b { font-size: calc(var(--u) * 12.5px); } .grow b .st { color: var(--tone); margin-right: .3em; }
+  .grow span { display: block; color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.4; }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px);
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
@@ -139,19 +171,26 @@
     <section id="ovPause" class="ov" hidden>
       <div class="card">
         <h2>ひとやすみ</h2>
+        <div class="grows" id="pGems"></div>
         <button class="btn" id="btnResume" type="button">つづける</button>
         <button class="sub" id="btnQuit" type="button">はじめからやり直す</button>
       </div>
     </section>
     <section id="ovGacha" class="ov" hidden>
-      <div class="card">
-        <h2>ガチャ所</h2>
-        <p id="gCrys"></p>
+      <div class="card gcard">
+        <div class="ghead">
+          <h2>ガチャ所</h2>
+          <span class="coins" aria-label="持っている結晶"><canvas class="uic" id="gCoin" data-w="24" data-h="24" aria-hidden="true"></canvas><b id="gCrys">0</b></span>
+        </div>
+        <canvas class="uic gstage" id="gStage" data-w="288" data-h="118" role="img" aria-label="ガチャの玉"></canvas>
+        <p id="gResult" class="gresult" aria-live="polite"></p>
         <button class="btn" id="btnRoll" type="button"></button>
-        <button class="sub" id="btnLava" type="button"></button>
-        <p id="gResult" class="tagline" aria-live="polite"></p>
-        <p class="small">水晶を押して装備（2つまで）</p>
-        <div id="gList" class="gems"></div>
+        <button class="lavaBtn" id="btnLava" type="button"></button>
+        <div class="ginv">
+          <div class="ginvHead"><span>持っている水晶（押して装備）</span><span id="gSlots"></span></div>
+          <div id="gList" class="gtiles"></div>
+          <p id="gDesc" class="gdesc small"></p>
+        </div>
         <button class="sub" id="btnGachaGo" type="button">出発する</button>
       </div>
     </section>
@@ -159,6 +198,7 @@
       <div class="card">
         <h2 id="endTitle">溶岩に呑まれた</h2>
         <dl class="stats" id="endStats"></dl>
+        <div class="grows" id="eGems"></div>
         <button class="btn" id="btnRetry" type="button">もう一度</button>
         <button class="sub" id="btnToTitle" type="button">タイトルへ</button>
       </div>
@@ -170,7 +210,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19g';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.20a';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -189,7 +229,7 @@ const MOVE = {
 const CELL = 18, COLS = 20;          // 1マス18px、横20マス
 const W = CELL * COLS, H = 640;
 const R = 11, HB = 10, HIT = 8;      // 見た目の半径 / 地形との当たり / トゲ・敵との当たり
-const PX_PER_M = 240;                // 1m＝240px（体感に合わせて、はじめの60pxの4倍の長さ。数字は1/4）
+const PX_PER_M = 120;                // 1m＝120px（体感に合わせて、はじめの60pxの2倍の長さ。数字は1/2）
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
 
 const MAX_HP = 3, INVINCIBLE = 1.1;
@@ -198,13 +238,13 @@ const LAVA = { delay: 3, speed: 50 };   // 一定の速さ（px/秒）。追い�
 const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1.6, teeth: 5 };
 const FAN = { acc: 1000, max: 230 };
 // 壁に hold 秒ついていると wobble 秒グラグラして、反対向きに push px/秒で離れて落ちる（すべりの水晶があれば、ゆっくり滑り落ちる）
-const CLING = { hold: 3, wobble: 2, push: 50 };
+const CLING = { hold: 2, wobble: 2, push: 50 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
 // lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate（0.1＝10mで1個）
-const GACHA = { every: 12.5, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 2.5, lavaRate: 0.4 };
+const GACHA = { every: 25, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 5, lavaRate: 0.2 };
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
@@ -221,6 +261,7 @@ const GEMS = {
   turn: { name: '振り向き', short: '振向', star: 3, lv: [{ on: 1 }, { on: 2 }, { on: 3 }],
     desc: v => ['床の上で', '床と壁で', '床・壁・2段ジャンプで'][v.on - 1] + '、画面の押した側（←→キー）へ跳ぶ' + (v.on >= 2 ? '。壁側を押すと壁ぞいに跳び上がる' : '') },
 };
+const GEM_ORDER = Kabe.GEM_ORDER.filter(id => GEMS[id]);   // 並び順はカタログと同じ
 const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒）
 
 /* =====================================================================
@@ -642,7 +683,7 @@ piece('z2_narrow', { diff: 2 }, String.raw`
 ##................##
 `);
 
-// ===== 予備（200mより上で使う。いまはどのプールにも入れていない） =====
+// ===== 200m より上で使う（z2_*） =====
 piece('z2_dense', { diff: 2 }, String.raw`
 ##................##
 ##................##
@@ -705,10 +746,293 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 ##................##
 `);
 
-/* ---------- 高さ100mごとのプール ---------- */
+// ===== 200〜300m のプール「古い機械の縦穴」（上下ブロック Y・回る棒 T の入門） =====
+piece('c_spin', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+##.......T........##
+##................##
+##................##
+##................##
+##................##
+##................##
+##..........T.....##
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('c_lift', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('c_spinpair', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##....T......T....##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##....T......T....##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('c_liftspikes', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^.......Y.......##
+##^.......Y.......##
+##........Y......^##
+##........Y......^##
+##^.......Y.......##
+##^.......Y.......##
+##........Y......^##
+##........Y......^##
+##........Y.......##
+##................##
+##................##
+##................##
+`);
+piece('c_twinlift', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##...Y............##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y.......Y....##
+##...Y............##
+##................##
+##................##
+##................##
+`);
+piece('c_spinfunnel', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##.......T........##
+##................##
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######........######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('c_spinpops', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##p...............##
+##p.......T.......##
+##p...............##
+##...............q##
+##...............q##
+##...............q##
+##.......T........##
+##p...............##
+##p...............##
+##p...............##
+##...............q##
+##...............q##
+##................##
+##................##
+`);
+
+// ===== 300〜400m のプール「地上へのさけ目」（これまでの障害物の組み合わせ） =====
+piece('d_crossfan', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##>...............##
+##................##
+##................##
+##.........T......##
+##................##
+##................##
+##...............<##
+##................##
+##................##
+##^...............##
+##^...............##
+##................##
+##................##
+`);
+piece('d_liftshutter', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##================##
+##................##
+##................##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##.......Y........##
+##................##
+##................##
+##................##
+`);
+piece('d_boxspikes', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^...............##
+##^...............##
+##...XXXXXXXXXX...##
+##...............^##
+##...............^##
+##................##
+##^...............##
+##^...............##
+##...XXXXXXXXXX...##
+##...............^##
+##...............^##
+##................##
+##................##
+`);
+piece('d_sidepops', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.........\......##
+##.........#\.....##
+##.........##\....##
+##.........###\...##
+##.........####\..##
+##.........#####\.##
+##.........######\##
+##p........#########
+##p........#########
+##.........#########
+##........q#########
+##........q#########
+##.........#########
+##.........\########
+##..........\#######
+##...........\######
+##............\#####
+##.............\####
+##..............\###
+##...............\##
+##................##
+##................##
+`);
+piece('d_chimney', { diff: 3 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######p.......######
+######p.......######
+######.......q######
+######.......q######
+######........######
+######p.......######
+######p.......######
+######.......q######
+######.......q######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('d_spinzig', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+#####\............##
+######.....T......##
+#####/............##
+##................##
+##................##
+##................##
+##............/#####
+##......T.....######
+##............\#####
+##................##
+##................##
+##................##
+#####\............##
+######.....T......##
+#####/............##
+##................##
+##................##
+##................##
+`);
+piece('d_gauntlet', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##^...............##
+##^......T........##
+##...............^##
+##...............^##
+##....Y...........##
+##....Y.....T.....##
+##....Y...........##
+##....Y..........^##
+##^...Y..........^##
+##^...............##
+##................##
+##................##
+##................##
+`);
+
+/* ---------- 高さ100mごとのプール（400mより上は最後のプールが続く） ---------- */
 const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_zigzag', 'z1_longwall', 'z1_sideleft'] },
-  { from: 25, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
+  { from: 100, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
+  { from: 200, name: '古い機械の縦穴', pieces: ['c_spin', 'c_lift', 'c_spinpair', 'c_liftspikes', 'c_twinlift', 'c_spinfunnel', 'c_spinpops', 'z2_dense', 'z2_pillarspikes', 'b_boxlane', 'b_shutterpop'] },
+  { from: 300, name: '地上へのさけ目', pieces: ['d_crossfan', 'd_liftshutter', 'd_boxspikes', 'd_sidepops', 'd_chimney', 'd_spinzig', 'd_gauntlet', 'z2_shelfspikes', 'z2_pillarspikes', 'c_spinpops', 'z2_narrow', 'c_spinpair'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
@@ -1014,7 +1338,7 @@ addEventListener('resize', resize);
 let state = 'title', world = null, P = null, G = null, inputBuf = 0, inputDir = 0, holding = false, debug = false, showCheck = false;
 const cam = { y: 0, shake: 0 };
 const checkCache = {};
-let particles = [], floaters = [];
+let particles = [], floaters = [], flyers = [];
 
 function placePiece(id) {
   const pc = PIECES[id], r0 = appendRows(world, pc.rows), r1 = r0 + pc.rows.length - 1;
@@ -1047,7 +1371,7 @@ function nextPiece() {
   const recent = world.placed.slice(-2).map(p => p.id);
   let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
   if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));
-  const within = (m - pool.from) / 25;   // プールの中で上に行くほど難しいパーツが出やすい
+  const within = (m - pool.from) / 100;   // プールの中で上に行くほど難しいパーツが出やすい
   const wt = id => { const d = PIECES[id].diff; return d <= 1 + within * 2.5 ? 1 : 0.25; };
   let r = Math.random() * cands.reduce((s, id) => s + wt(id), 0);
   for (const id of cands) if ((r -= wt(id)) < 0) return id;
@@ -1063,8 +1387,8 @@ function newGame() {
   P = newBody(2 * CELL + HB, -HB, -1);
   P.squash = 0; live = null;
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
-    crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0 };
-  cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = [];
+    crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [] };
+  cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = [];
   bands.clear();
   ensureAhead();
 }
@@ -1136,7 +1460,7 @@ function update(dt) {
   P.squash += (0 - P.squash) * Math.min(1, dt * 10);
   updatePose(dt);
   G.best = Math.max(G.best, heightM());
-  if (Math.floor(G.best / 5) > G.mark) { G.mark = Math.floor(G.best / 5); sfx.tick(); floaters.push({ text: G.mark * 5 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
+  if (Math.floor(G.best / 10) > G.mark) { G.mark = Math.floor(G.best / 10); sfx.tick(); floaters.push({ text: G.mark * 10 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
 
   cam.y += (P.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
   cam.y = Math.min(cam.y, 60 - H);
@@ -1171,6 +1495,7 @@ function pickGems() {
     if (g.got || Math.abs(g.y - P.y) > 24 || Math.hypot(g.x - P.x, g.y - P.y) > R + 6) continue;
     const gain = gemVal('greed') ? gemVal('greed').gain : 1;
     g.got = true; G.crystals += gain; G.got++; sfx.gem();
+    flyers.push({ sx: g.x, sy: g.y - cam.y, t: 0, seed: g.seed });
     floaters.push({ text: '+' + gain, x: g.x, y: g.y - 12, life: 0.9 });
     for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'gem', x: g.x, y: g.y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, life: 0.4, max: 0.4 }); }
   }
@@ -1227,6 +1552,9 @@ function updateEffects(dt) {
   for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= 0.92; q.vy = q.vy * 0.92 + (q.kind === 'puff' ? 30 : 160) * dt; } }
   particles = particles.filter(q => q.life > 0);
   for (const f of floaters) { f.life -= dt; f.y -= 22 * dt; }
+  for (const f of flyers) { f.t += dt; if (f.t >= 0.5 && !f.done) { f.done = true; if (G) G.coinBump = 1; } }
+  flyers = flyers.filter(f => f.t < 0.5);
+  if (G) G.coinBump = Math.max(0, G.coinBump - dt * 4);
   floaters = floaters.filter(f => f.life > 0);
   if (state === 'dying') { G.dieT += dt; if (G.dieT > 1.1) end(); }
 }
@@ -1358,63 +1686,23 @@ function drawObstacles() {
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
 }
-// 結晶（仮の絵。カタログにはまだ無い）：光の粒。ぼんやりした光＋白い芯＋十字のきらめき＋まわりを回る小さな粒
-function lightMote(g, x, y, s, t, seed) {
-  const tw = 0.75 + Math.sin(t * 5 + seed * 2) * 0.25;
-  const gl = g.createRadialGradient(x, y, 0, x, y, 11 * s); gl.addColorStop(0, rgba(PAL.glow, 0.55 * tw)); gl.addColorStop(0.45, rgba(PAL.glow, 0.18 * tw)); gl.addColorStop(1, rgba(PAL.glow, 0));
-  g.fillStyle = gl; g.beginPath(); g.arc(x, y, 11 * s, 0, Math.PI * 2); g.fill();
-  const L = (4.5 + tw * 3) * s, wd = 0.9 * s;   // 十字のきらめき（縦長め）
-  g.fillStyle = rgba('#ffffff', 0.85 * tw); g.beginPath();
-  g.moveTo(x, y - L * 1.2); g.quadraticCurveTo(x + wd, y - wd, x + L, y); g.quadraticCurveTo(x + wd, y + wd, x, y + L * 1.2);
-  g.quadraticCurveTo(x - wd, y + wd, x - L, y); g.quadraticCurveTo(x - wd, y - wd, x, y - L * 1.2); g.fill();
-  g.fillStyle = PAL.glow; g.beginPath(); g.arc(x, y, 2.6 * s, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y, 1.5 * s, 0, Math.PI * 2); g.fill();
-  if (s >= 1) for (let i = 0; i < 3; i++) {   // 回る小さな粒
-    const a = t * (1.6 + i * 0.4) + seed + i * 2.1, r = (6 + i * 1.5) * s;
-    g.fillStyle = rgba(PAL.glow, 0.5 + 0.4 * Math.sin(t * 4 + i + seed));
-    g.beginPath(); g.arc(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, 0.9 * s, 0, Math.PI * 2); g.fill();
-  }
-}
+// 結晶（カタログの Kabe.mote）。ゆっくり上下する
 function drawGems() {
   const t = G.time, yTop = cam.y - 30, yBot = cam.y + H + 30;
   for (const g of world.gems) {
     if (g.got || g.y < yTop || g.y > yBot) continue;
-    lightMote(ctx, g.x, g.y + Math.sin(t * 2 + g.seed) * 2, 1, t, g.seed);
+    Kabe.mote(ctx, PAL, g.x, g.y + Math.sin(t * 2 + g.seed) * 2, t, 1, g.seed);
   }
 }
-// ガチャ所（仮の絵）：小さな家。土壁・鉄の屋根・光る丸窓・アーチの扉・軒先のランタン。使ったら窓の灯りが消える
+// ガチャ所（カタログの Kabe.gachaHouse）。開いているあいだは上に「ガチャ所」の札
 function drawStations() {
-  const t = G.time;
   for (const s of world.stations) {
     if (s.y < cam.y - 80 || s.y > cam.y + H + 60) continue;
-    const x = s.x, y = s.y, w = 46, wh = 30, roofH = 20, top = y - wh, lit = !s.used;
-    // 窓の灯りが外にもれる
-    if (lit) { const gl = ctx.createRadialGradient(x - 10, top + 12, 2, x - 10, top + 12, 34); gl.addColorStop(0, rgba(PAL.glow, 0.3)); gl.addColorStop(1, rgba(PAL.glow, 0)); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x - 10, top + 12, 34, 0, Math.PI * 2); ctx.fill(); }
-    // 煙突
-    Kabe.solid(ctx, () => rr(ctx, x + 10, top - roofH + 2, 7, 14, [2, 2, 0, 0]), PAL.metal, PAL.metalShade, PAL.ink, 0.8, 1);
-    // 壁
-    Kabe.solid(ctx, () => rr(ctx, x - w / 2 + 3, top, w - 6, wh, [0, 0, 3, 3]), PAL.terrainLight, PAL.terrainShade, PAL.ink, 1.4, 1.1);
-    ctx.fillStyle = rgba(PAL.terrainShade, 0.5); for (let i = 1; i < 3; i++) ctx.fillRect(x - w / 2 + 4, top + i * 10, w - 8, 1);   // 板の継ぎ目
-    // 屋根（三角、ふちは丸く）
-    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.moveTo(x - w / 2 - 3, top + 2); ctx.quadraticCurveTo(x - w / 2 - 4, top - 1, x - w / 2, top - 3); ctx.lineTo(x - 2, top - roofH); ctx.quadraticCurveTo(x, top - roofH - 1.5, x + 2, top - roofH); ctx.lineTo(x + w / 2, top - 3); ctx.quadraticCurveTo(x + w / 2 + 4, top - 1, x + w / 2 + 3, top + 2); ctx.closePath(); }, PAL.metal, PAL.metalShade, PAL.ink, 1.6, 1.1);
-    ctx.strokeStyle = PAL.metalLight; ctx.lineWidth = 1; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - w / 2 + 2, top - 4); ctx.lineTo(x - 3, top - roofH + 1.5); ctx.stroke();
-    // 丸窓（中に光の粒）
-    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x - 10, top + 12, 6.5, 0, Math.PI * 2); }, lit ? PAL.glow : PAL.uiPanel, lit ? Kabe.mix(PAL.glow, '#000000', 0.2) : PAL.ink, PAL.ink, 0.8, 0.9);
-    if (lit) lightMote(ctx, x - 10, top + 12, 0.6, t, 1);
-    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x - 16.5, top + 12); ctx.lineTo(x - 3.5, top + 12); ctx.moveTo(x - 10, top + 5.5); ctx.lineTo(x - 10, top + 18.5); ctx.stroke();
-    // アーチの扉と取っ手
-    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x + 3, top + 13); ctx.arc(x + 9, top + 13, 6, Math.PI, 0); ctx.lineTo(x + 15, y); ctx.closePath(); }, PAL.metal, PAL.metalShade, PAL.ink, 0.8, 0.9);
-    ctx.fillStyle = PAL.glow; ctx.beginPath(); ctx.arc(x + 12.5, top + 20, 1.1, 0, Math.PI * 2); ctx.fill();
-    // 軒先のランタン（揺れる）
-    const sw = Math.sin(t * 1.8) * 0.15, lx = x - w / 2 + 1, ly = top + 2;
-    ctx.save(); ctx.translate(lx, ly); ctx.rotate(sw);
-    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 5); ctx.stroke();
-    if (lit) { const lg = ctx.createRadialGradient(0, 9, 1, 0, 9, 10); lg.addColorStop(0, rgba(PAL.glow, 0.4)); lg.addColorStop(1, rgba(PAL.glow, 0)); ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(0, 9, 10, 0, Math.PI * 2); ctx.fill(); }
-    Kabe.solid(ctx, () => rr(ctx, -2.6, 5, 5.2, 7, 2), lit ? PAL.glow : PAL.uiMuted, PAL.metalShade, PAL.ink, 0.6, 0.8);
-    ctx.restore();
-    // 看板
+    Kabe.gachaHouse(ctx, PAL, s.x, s.y, G.time, !s.used);
+    if (s.used) continue;
     ctx.font = `800 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = lit ? PAL.glow : PAL.uiMuted; ctx.fillText(lit ? 'ガチャ' : '閉店', x, top - roofH - 9);
+    const tw = ctx.measureText('ガチャ所').width + 14, ty = s.y - 76 + Math.sin(G.time * 2) * 1.5;
+    pill(s.x - tw / 2, ty - 8, tw, 16); ctx.fillStyle = PAL.glow; ctx.fillText('ガチャ所', s.x, ty + 0.5);
   }
 }
 function drawLava() {
@@ -1449,24 +1737,31 @@ function drawHud() {
   pill(W / 2 - pw / 2, HUD_GAP, pw, 36);
   ctx.fillStyle = PAL.uiInk; ctx.font = `800 15px ${FONT}`; ctx.fillText(label, W / 2, HUD_GAP + 13);
   ctx.fillStyle = PAL.uiMuted; ctx.font = `500 10px ${FONT}`; ctx.fillText(zone, W / 2, HUD_GAP + 27);
-  const time = G.time.toFixed(1) + 's';
-  ctx.font = `500 11px ${FONT}`; const tmw = ctx.measureText(time).width + 20;
-  pill(W - HUD_GAP - tmw, HUD_GAP, tmw, 22);
-  ctx.fillStyle = PAL.uiInk; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 11.5);
-  // 結晶の数（ハートの下）と、装備している水晶（タイムの下）
+  // 結晶の数（ハートの下）。拾うと粒が飛んできて、板が少しふくらむ
+  const bump = 1 + G.coinBump * 0.12;
+  ctx.save(); ctx.translate(HUD_GAP + 32, HUD_GAP + 37); ctx.scale(bump, bump); ctx.translate(-(HUD_GAP + 32), -(HUD_GAP + 37));
   pill(HUD_GAP, HUD_GAP + 26, 64, 22);
-  lightMote(ctx, 22, HUD_GAP + 37, 0.75, G.time, 0);
-  ctx.textAlign = 'left'; ctx.fillStyle = PAL.uiInk; ctx.font = `800 12px ${FONT}`; ctx.fillText(Math.floor(G.crystals), 34, HUD_GAP + 37.5);
-  ctx.textAlign = 'center';
-  G.equip.forEach((id, i) => {
-    let txt = `${GEMS[id].short} Lv${gemLv(id)}`;
-    const cool = id === 'triple' && G.tripleCd > 0; if (cool) txt += ` ${Math.ceil(G.tripleCd)}s`;
-    ctx.font = `800 11px ${FONT}`; const ew = ctx.measureText(txt).width + 18, ey = HUD_GAP + 26 + i * 24;
-    pill(W - HUD_GAP - ew, ey, ew, 20);
-    ctx.fillStyle = cool ? PAL.uiMuted : PAL.glow; ctx.fillText(txt, W - HUD_GAP - ew / 2, ey + 10.5);
-  });
+  Kabe.mote(ctx, PAL, HUD_GAP + 13, HUD_GAP + 37, G.time, 0.7, 0);
+  ctx.textAlign = 'left'; ctx.fillStyle = PAL.uiInk; ctx.font = `800 13px ${FONT}`; ctx.fillText(Math.floor(G.crystals), HUD_GAP + 25, HUD_GAP + 37.5);
+  ctx.restore();
+  for (const f of flyers) {
+    const k = Math.min(1, f.t / 0.5), e = 1 - (1 - k) ** 3;
+    Kabe.mote(ctx, PAL, f.sx + (HUD_GAP + 13 - f.sx) * e, f.sy + (HUD_GAP + 37 - f.sy) * e - Math.sin(k * Math.PI) * 30, G.time, 0.55, f.seed);
+  }
+  // 装備の枠2つ（右上）：リチャージ中・ホバリングの残りは暗い扇形
+  for (let i = 0; i < GACHA.slots; i++) {
+    const id = G.equip[i], x = W - HUD_GAP - 14 - (GACHA.slots - 1 - i) * 32;
+    let cool = 0;
+    if (id === 'triple' && G.tripleCd > 0) cool = G.tripleCd / gemVal('triple').cd;
+    if (id === 'hover' && !canAct(P) && G.hoverLeft < gemVal('hover').t) cool = 1 - G.hoverLeft / gemVal('hover').t;
+    Kabe.gemBadge(ctx, PAL, id || null, id ? GEMS[id].star : 0, x, HUD_GAP + 14, G.time, { lv: id ? gemLv(id) : 0, cool });
+  }
+  const time = G.time.toFixed(1) + 's';
+  ctx.textAlign = 'center'; ctx.font = `500 10px ${FONT}`; const tmw = ctx.measureText(time).width + 16;
+  pill(W - HUD_GAP - tmw, HUD_GAP + 38, tmw, 17);
+  ctx.fillStyle = PAL.uiMuted; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 47);
   if (state === 'play' && G.lavaY > cam.y + H) {
-    const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ 溶岩まで ${m.toFixed(1)}m`, near = m < 1.5;
+    const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ 溶岩まで ${m.toFixed(1)}m`, near = m < 3;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
     pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.rise : null);
     ctx.fillStyle = near ? PAL.ink : PAL.uiInk; ctx.fillText(txt, W / 2, H - HUD_GAP - 10.5);
@@ -1550,77 +1845,148 @@ const sfx = {
   wobble() { tone(140, 0.18, 'triangle', 0.06, 110, 0, 0.003); tone(150, 0.18, 'triangle', 0.05, 115, 0.2, 0.003); },
   tick() { tone(1320, 0.25, 'sine', 0.06, 0, 0, 0.005); },
   gem() { tone(1180, 0.12, 'sine', 0.05, 1560, 0, 0.003); },
-  gacha() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.07, 0, i * 0.07, 0.005)); },
+  gacha(star = 1) {
+    [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.07, 0, i * 0.07, 0.005));
+    if (star >= 2) [1318, 1568].forEach((f, i) => tone(f, 0.3, 'sine', 0.05, 0, 0.3 + i * 0.08, 0.005));
+    if (star >= 3) [2093, 1568, 2093, 2637].forEach((f, i) => tone(f, 0.35, 'sine', 0.045, 0, 0.5 + i * 0.07, 0.005));
+  },
+  spin() { for (let i = 0; i < 8; i++) tone(500 + (i % 2) * 120, 0.06, 'triangle', 0.05, 0, i * 0.11, 0.003); },
+  door() { tone(392, 0.2, 'sine', 0.07, 0, 0, 0.01); tone(523, 0.3, 'sine', 0.06, 0, 0.1, 0.01); },
   start() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.35, 'sine', 0.08, 0, i * 0.1, 0.01)); },
 };
 
 /* ---------- menus & loop ---------- */
 const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
-function renderBest() { const b = store.get('kabe_bestm', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
+function renderBest() { const b = store.get('kabe_best2', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
 function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
-  const m = Math.floor(G.best), best = store.get('kabe_bestm', 0);
-  if (m > best) store.set('kabe_bestm', m);
+  const m = Math.floor(G.best), best = store.get('kabe_best2', 0);
+  if (m > best) store.set('kabe_best2', m);
   $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
   }
+  gemRows($('eGems'), GEM_ORDER.filter(id => G.gems[id]));
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
 }
+/* ---------- 画面の表示に置く小さな絵（canvas に data-w・data-h、draw(g, t) で毎フレーム描く） ---------- */
+const uiDraws = new Map();
+function uiCanvas(c, draw) { uiDraws.set(c, draw); }
+function drawUi(t) {
+  const k = scale * dpr;
+  for (const [c, draw] of uiDraws) {
+    if (!c.isConnected) { uiDraws.delete(c); continue; }
+    if (!c.offsetParent) continue;
+    const w = +c.dataset.w, h = +c.dataset.h;
+    if (c.width !== Math.round(w * k)) { c.width = Math.round(w * k); c.height = Math.round(h * k); c.style.width = `calc(var(--u) * ${w}px)`; c.style.height = `calc(var(--u) * ${h}px)`; }
+    const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, 0); g.clearRect(0, 0, w, h); draw(g, t, w, h);
+  }
+}
+const toneOf = id => Kabe.gemTone(PAL, GEMS[id].star)[0];
+const stars = id => '★'.repeat(GEMS[id].star);
+function gemIcon(id, size) {
+  const c = document.createElement('canvas'); c.className = 'uic'; c.dataset.w = size; c.dataset.h = size; c.setAttribute('aria-hidden', 'true');
+  uiCanvas(c, (g, t, w) => Kabe.gem(g, PAL, id, GEMS[id].star, w / 2, w / 2 + 0.5 + Math.sin(t * 2) * 0.5, w / 22, t));
+  return c;
+}
+// 水晶の行（一時停止・おしまいの画面）
+function gemRows(el, ids) {
+  el.textContent = '';
+  for (const id of ids) {
+    const lv = Math.min(3, G.gems[id]), row = document.createElement('div'); row.className = 'grow'; row.style.setProperty('--tone', toneOf(id));
+    const tx = document.createElement('div'), b = document.createElement('b'), st = document.createElement('i'), d = document.createElement('span');
+    st.className = 'st'; st.style.fontStyle = 'normal'; st.textContent = stars(id);
+    b.append(st, `${GEMS[id].name} Lv${lv}`); d.textContent = GEMS[id].desc(GEMS[id].lv[lv - 1]); tx.append(b, d);
+    row.append(gemIcon(id, 34), tx); el.append(row);
+  }
+}
+
 /* ---------- ガチャ所の画面 ---------- */
+const gacha = { phase: 'idle', t: 0, id: null, sel: null };   // phase: idle → spin（回っている）→ reveal（出た）
+uiCanvas($('gCoin'), (g, t) => Kabe.mote(g, PAL, 12, 12, t, 0.75, 0));
+uiCanvas($('gStage'), (g, t, w, h) => {
+  const cx = w / 2, cy = 56;
+  if (gacha.phase === 'reveal') {
+    const k = Math.min(1, gacha.t / 0.35), id = gacha.id, st = GEMS[id].star;
+    g.globalAlpha = 0.22; Kabe.gachaOrb(g, PAL, cx, cy, t, 0); g.globalAlpha = 1;
+    Kabe.gemBurst(g, PAL, st, cx, cy - 4, t, k);
+    Kabe.gem(g, PAL, id, st, cx, cy - 4 + (1 - k) * 26 + Math.sin(t * 2) * 1.5, 1.2 + k * 1.3, t);
+  } else Kabe.gachaOrb(g, PAL, cx, cy, t, gacha.phase === 'spin' ? Math.min(1, gacha.t * 3) : 0.12);
+});
+function updateGacha(dt) {
+  gacha.t += dt;
+  if (gacha.phase === 'spin' && gacha.t > 0.95) { gacha.phase = 'reveal'; gacha.t = 0; revealGem(); }
+}
 function openGacha() {
   state = 'gacha'; holding = false; inputBuf = 0; $('pauseBtn').hidden = true;
-  $('gResult').textContent = ''; renderGacha(); showOnly('gacha'); sfx.tick();
+  gacha.phase = 'idle'; gacha.t = 0; gacha.sel = G.equip[0] || Object.keys(G.gems)[0] || null;
+  setResult(G.crystals >= GACHA.cost ? `結晶${GACHA.cost}で1回まわせる` : `結晶が${GACHA.cost}あると回せる`);
+  renderGacha(); showOnly('gacha'); sfx.door();
   $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
 }
-function leaveGacha() { showOnly(null); state = 'play'; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
+function leaveGacha() { if (gacha.phase === 'spin') return; showOnly(null); state = 'play'; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
+function setResult(text, id, tag) {
+  const el = $('gResult'); el.textContent = '';
+  if (id) { el.style.setProperty('--tone', toneOf(id)); const st = document.createElement('span'); st.className = 'st'; st.textContent = stars(id); el.append(st); }
+  el.append(text);
+  if (tag) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; el.append(t); }
+}
 function renderGacha() {
-  $('gCrys').textContent = `結晶 ${Math.floor(G.crystals)}`;
-  const b = $('btnRoll'); b.textContent = `回す（結晶${GACHA.cost}）`; b.disabled = G.crystals < GACHA.cost;
+  const spinning = gacha.phase === 'spin';
+  $('gCrys').textContent = Math.floor(G.crystals);
+  const b = $('btnRoll'); b.textContent = gacha.phase === 'reveal' ? 'もう1回' : '回す'; const sm = document.createElement('small'); sm.textContent = `結晶${GACHA.cost}`; b.append(sm);
+  b.disabled = spinning || G.crystals < GACHA.cost;
   const lv = $('btnLava'), gain = lavaGain();
-  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`; lv.disabled = gain <= 0;
+  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づけて 結晶+${gain}` : `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`;
+  lv.disabled = spinning || gain <= 0;
+  $('btnGachaGo').disabled = spinning;
+  $('gSlots').textContent = `装備 ${G.equip.length}/${GACHA.slots}`;
   const list = $('gList'); list.textContent = '';
-  const ids = Object.keys(G.gems);
-  if (!ids.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'まだ水晶がない'; list.append(p); }
+  const ids = GEM_ORDER.filter(id => G.gems[id]);
   for (const id of ids) {
-    const g = GEMS[id], lv = Math.min(3, G.gems[id]), on = G.equip.includes(id);
-    const el = document.createElement('button'); el.type = 'button'; el.className = 'gem' + (on ? ' on' : '');
-    el.setAttribute('aria-pressed', on);
-    const top = document.createElement('div'), st = document.createElement('i'), nm = document.createElement('b'), d = document.createElement('span');
-    st.className = 'st'; st.textContent = '★'.repeat(g.star); st.style.fontStyle = 'normal';
-    nm.textContent = `${g.name}  Lv${lv}${on ? '  装備中' : ''}`; top.append(st, nm);
-    d.textContent = g.desc(g.lv[lv - 1]); el.append(top, d);
+    const lvl = Math.min(3, G.gems[id]), on = G.equip.includes(id);
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'gtile' + (on ? ' on' : ''); el.disabled = spinning;
+    el.style.setProperty('--tone', toneOf(id)); el.setAttribute('aria-pressed', on); el.setAttribute('aria-label', `${GEMS[id].name} レベル${lvl}${on ? ' 装備中' : ''}`);
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = GEMS[id].name;
+    const pips = document.createElement('span'); pips.className = 'lv'; for (let i = 0; i < 3; i++) { const d = document.createElement('i'); if (i < lvl) d.className = 'f'; pips.append(d); }
+    el.append(gemIcon(id, 40), nm, pips);
     el.onclick = () => {
-      if (on) G.equip = G.equip.filter(x => x !== id);
+      if (G.equip.includes(id)) G.equip = G.equip.filter(x => x !== id);
       else { G.equip.push(id); if (G.equip.length > GACHA.slots) G.equip.shift(); }   // いっぱいなら古い方を外す
-      renderGacha();
+      gacha.sel = id; sfx.tick(); renderGacha(); list.querySelector(`[data-id="${id}"]`)?.focus({ preventScroll: true });
     };
-    list.append(el);
+    el.dataset.id = id; list.append(el);
   }
+  if (!ids.length) for (let i = 0; i < 3; i++) { const e = document.createElement('div'); e.className = 'gtile empty'; e.textContent = i === 1 ? 'まだない' : ''; list.append(e); }
+  const d = $('gDesc'), sel = gacha.sel && G.gems[gacha.sel] ? gacha.sel : null; d.textContent = '';
+  if (sel) { const bb = document.createElement('b'); bb.textContent = `${GEMS[sel].name} Lv${Math.min(3, G.gems[sel])}：`; d.append(bb, GEMS[sel].desc(GEMS[sel].lv[Math.min(3, G.gems[sel]) - 1])); }
+  else d.textContent = '結晶で回すと水晶が出る。同じ水晶が出るとレベルが上がる（最大Lv3）。';
 }
 $('btnRoll').onclick = () => {
-  if (G.crystals < GACHA.cost) return;
-  G.crystals -= GACHA.cost;
-  const id = rollGem(), g = GEMS[id], n = G.gems[id] || 0, stars = '★'.repeat(g.star);
-  let msg;
-  if (n >= 3) { G.crystals += GACHA.refund; msg = `${stars} ${g.name}（もうLv3なので結晶${GACHA.refund}に戻した）`; }
+  if (gacha.phase === 'spin' || G.crystals < GACHA.cost) return;
+  G.crystals -= GACHA.cost; gacha.id = rollGem(); gacha.phase = 'spin'; gacha.t = 0;
+  setResult('……'); sfx.spin(); renderGacha();
+};
+function revealGem() {
+  const id = gacha.id, g = GEMS[id], n = G.gems[id] || 0;
+  if (n >= 3) { G.crystals += GACHA.refund; setResult(`${g.name}（Lv3なので結晶${GACHA.refund}に戻した）`, id); }
   else {
-    G.gems[id] = n + 1;
-    msg = n ? `${stars} ${g.name} が Lv${n + 1} になった！` : `${stars} ${g.name} を手に入れた！`;
+    G.gems[id] = n + 1; G.pulls.push(id);
+    setResult(n ? `${g.name} が Lv${n + 1} に` : `${g.name}`, id, n ? 'レベルアップ' : 'NEW');
     if (!n && G.equip.length < GACHA.slots) G.equip.push(id);   // 空き枠があれば自動で装備
   }
-  $('gResult').textContent = msg; sfx.gacha(); renderGacha();
-  if ($('btnRoll').disabled) $('btnGachaGo').focus({ preventScroll: true });
-};
+  gacha.sel = id; sfx.gacha(g.star); renderGacha();
+  $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
+}
 // 溶岩を近づけて結晶にかえる：いまの溶岩までの距離から lavaTo m を引いた分
 const lavaDist = () => (G.lavaY - P.y) / PX_PER_M;
-const lavaGain = () => Math.max(0, Math.floor((lavaDist() - GACHA.lavaTo) * GACHA.lavaRate));
+const lavaGain = () => Math.max(0, Math.floor((lavaDist() - GACHA.lavaTo) * GACHA.lavaRate + 1e-9));
 $('btnLava').onclick = () => {
-  const gain = lavaGain(); if (gain <= 0) return;
+  const gain = lavaGain(); if (gain <= 0 || gacha.phase === 'spin') return;
   G.lavaY = P.y + GACHA.lavaTo * PX_PER_M; G.lavaDelay = 0; G.crystals += gain;
-  $('gResult').textContent = `溶岩が ${GACHA.lavaTo}m まで上がってきた。結晶 +${gain}`; sfx.lava(); cam.shake = 6; renderGacha();
+  setResult(`溶岩が ${GACHA.lavaTo}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); cam.shake = 6; renderGacha();
 };
 $('btnGachaGo').onclick = leaveGacha;
 const muteLabel = () => { $('btnMute').textContent = muted ? '音：オフ' : '音：オン'; };
@@ -1643,7 +2009,7 @@ $('btnUpdate').onclick = async () => {
 $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnQuit').onclick = startGame;
 $('btnToTitle').onclick = () => { state = 'title'; newGame(); renderBest(); showOnly('title'); };
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
-$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; showOnly('pause'); } };
+$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); showOnly('pause'); } };
 // 振り向きの水晶があるときは、画面の左半分＝左へ、右半分＝右へ
 cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); press(e.clientX - r.left < r.width / 2 ? -1 : 1); });
 addEventListener('pointerup', release); addEventListener('pointercancel', release);
@@ -1664,12 +2030,14 @@ function loop(now) {
   const frame = Math.min(0.1, Math.max(0, now - last) / 1000) * MOVE.speed; last = now;
   if (state === 'play') { acc += frame; while (acc >= DT && state === 'play') { update(DT); acc -= DT; } }
   else if (state === 'title') { G.time += frame; updatePose(frame); }
+  else if (state === 'gacha') updateGacha(frame);
   else if (state === 'dying') G.time += frame;
   updateEffects(frame);
   draw();
+  drawUi(now / 1000);
   requestAnimationFrame(loop);
 }
-if (store.get('kabe_bestm', null) == null && store.get('kabe_best', 0)) store.set('kabe_bestm', Math.floor(Math.max(store.get('kabe_best', 0) / 4, store.get('kabe_best4', 0) / 16)));   // 1m の長さを変えたので、前の記録を1/4にして引き継ぐ
+if (store.get('kabe_best2', null) == null && store.get('kabe_best', 0)) store.set('kabe_best2', Math.floor(Math.max(store.get('kabe_best', 0) / 2, store.get('kabe_best4', 0) / 8, store.get('kabe_bestm', 0) * 2)));   // 1m の長さを変えたので、前の記録を1/2にして引き継ぐ
 resize(); renderBest(); newGame();
 if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS Rounded 1c"`).catch(() => {});
 requestAnimationFrame(loop);

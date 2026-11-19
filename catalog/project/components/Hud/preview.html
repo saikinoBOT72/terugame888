@@ -1,7 +1,7 @@
-<!-- @dsCard group="動きと表示" height=230 width=760 subtitle="画面の表示：HPと高さ" -->
+<!-- @dsCard group="動きと表示" height=230 width=760 subtitle="画面の表示：HP・高さ・結晶・装備の枠" -->
 <div id="root"></div>
 <script>
 (function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
 var root = document.getElementById('root');
-Kabe.zoneRow(root, { w: 162, h: 72, zoom: 2, label: '画面の表示', draw: function (g, P, t) { Kabe.hud(g, P, 162, 72, 42); } });
+Kabe.zoneRow(root, { w: 170, h: 72, zoom: 2, label: '画面の表示', draw: function (g, P, t) { Kabe.hud(g, P, 170, 72, 42, { t: t, crystals: 23, gems: [{ kind: 'triple', star: 2, lv: 2, cool: (t * 0.15) % 1 }, { kind: 'hover', star: 1, lv: 1 }] }); } });
 </script>

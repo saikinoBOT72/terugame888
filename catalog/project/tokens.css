@@ -34,6 +34,12 @@
   --hazard: #a3a1ae;
   --hazard-shade: #767483;
   --hazard-light: #dddbe4;
+  --gem-mint: #9ee8c6;
+  --gem-mint-shade: #5fb592;
+  --gem-blue: #aab7ff;
+  --gem-blue-shade: #7180d4;
+  --gem-gold: #ffd36b;
+  --gem-gold-shade: #d29a3a;
 }
 [data-theme="surface"] {
   --bg-top: #8fcbe6;

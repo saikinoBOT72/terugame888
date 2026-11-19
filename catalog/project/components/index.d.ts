@@ -4,6 +4,7 @@ type ZoneId = 'underground' | 'surface' | 'sky' | 'space';
 interface Palette { id: ZoneId; [token: string]: string; }
 type Pose = 'stand' | 'cling' | 'jump' | 'air' | 'hurt';
 type GhostVariant = 'sheet';
+type GemKind = 'greed' | 'hover' | 'slide' | 'triple' | 'predict' | 'turn';
 interface Grid { rows: number; cols: number; }
 declare const Kabe: {
   CELL: 18;
@@ -40,7 +41,25 @@ declare const Kabe: {
   /** プレイヤー（白いおばけ）。face: 1 右向き / -1 左向き */
   ghost(g: CanvasRenderingContext2D, P: Palette, variant: GhostVariant, pose: Pose, x: number, y: number, t: number, face?: 1 | -1, scale?: number): void;
   effects(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number): void;
-  hud(g: CanvasRenderingContext2D, P: Palette, w: number, h: number, meters: number): void;
+  /** 画面の表示の見本。crystals 結晶の数、gems 装備（右上に丸い枠2つ） */
+  hud(g: CanvasRenderingContext2D, P: Palette, w: number, h: number, meters: number, opt?: { hp?: number; crystals?: number; gems?: ({ kind: GemKind; star: number; lv?: number; cool?: number } | null)[]; t?: number }): void;
+  /** 水晶の種類と★の数 */
+  GEM_KINDS: Record<GemKind, { name: string; star: 1 | 2 | 3 }>;
+  GEM_ORDER: GemKind[];
+  /** レア度の色 [ベース, 影] */
+  gemTone(P: Palette, star: number): [string, string];
+  /** 結晶（お金）：glow の光の粒。s が 1 以上ならまわりを小さな粒が回る */
+  mote(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, s?: number, seed?: number): void;
+  /** 水晶。star 2 でかけら1つ、3 でかけら2つ＋きらめき。高さは 18×s */
+  gem(g: CanvasRenderingContext2D, P: Palette, kind: GemKind, star: number, x: number, y: number, s?: number, t?: number): void;
+  /** 装備の枠。kind が null なら空き枠。cool はリチャージの残り 0〜1 */
+  gemBadge(g: CanvasRenderingContext2D, P: Palette, kind: GemKind | null, star: number, x: number, y: number, t: number, opt?: { lv?: number; cool?: number; r?: number }): void;
+  /** ガチャ所の家。(x, y) は床の真ん中。lit=false で使ったあと */
+  gachaHouse(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, lit: boolean): void;
+  /** ガチャの画面の玉。spin 0〜1 で揺れて速く回る */
+  gachaOrb(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number): void;
+  /** 出た水晶のまわりの光。k は 0→1 で広がる */
+  gemBurst(g: CanvasRenderingContext2D, P: Palette, star: number, x: number, y: number, t: number, k: number): void;
   /** 4ゾーンを横に並べて動かす（見本ページ用） */
   zoneRow(root: HTMLElement, opt: { w: number; h: number; zoom?: number; label?: string; bg?: boolean; draw(g: CanvasRenderingContext2D, P: Palette, t: number): void }): void;
   /** キャラ候補1案ぶんの見本 */
