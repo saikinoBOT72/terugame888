@@ -110,6 +110,18 @@ window.Kabe = (function () {
       { name: '地上へのさけ目', amb: 1.1, motif: { far: 'beam', lip: 'grass', hangRate: 0.5 },
         col: { bgTop: '#3a3f5c', bgBottom: '#4a4660', far: '#333654', strataA: '#413f5c', strataB: '#48456a', terrain: '#d6b48e', terrainLight: '#f2dcbc', terrainShade: '#b48f6d',
           terrainDeep: '#b0907a', terrainLine: '#c6a27f', terrainGrain: '#e6cdaa', accent: '#9cd67e', accentShade: '#78b65c', glow: '#fff0c2' } }
+    ],
+    surface: [
+      { name: '草の崖', amb: 1.22, bloom: 0.35, lightK: 0.45 },
+      { name: '風の岩場', amb: 1.22, bloom: 0.35, lightK: 0.45, motif: { decor: 'sprout', hangRate: 0.25 },
+        col: { bgTop: '#a3cfe0', bgBottom: '#e3efe8', far: '#b4cfc0', strataA: '#c8e0da', strataB: '#d2e7df', terrain: '#cdb596', terrainLight: '#ecdcc0', terrainShade: '#a99274',
+          terrainDeep: '#ae9779', terrainLine: '#bba283', terrainGrain: '#ddcbb0', accent: '#9cc46e', accentShade: '#7aa352' } },
+      { name: '古い水路', amb: 1.2, bloom: 0.35, lightK: 0.5, motif: { hangRate: 0.55 },
+        col: { bgTop: '#86c4e4', bgBottom: '#d3ecef', far: '#9fcfc4', strataA: '#b8dde0', strataB: '#c3e4e4', terrain: '#c9b9a0', terrainLight: '#e8dcc6', terrainShade: '#a8987f',
+          terrainDeep: '#a99a84', terrainLine: '#b8a88f', terrainGrain: '#dbcdb6', accent: '#6fc79a', accentShade: '#4fa67a' } },
+      { name: '夕焼けの峰', amb: 1.18, bloom: 0.4, lightK: 0.5, motif: { decor: 'sprout', hangRate: 0.3 },
+        col: { bgTop: '#f0b48c', bgBottom: '#fbe3c2', far: '#e6b9a0', strataA: '#f3cfb4', strataB: '#f6d8bf', terrain: '#d9ad86', terrainLight: '#f4d8b4', terrainShade: '#b78a66',
+          terrainDeep: '#ba9170', terrainLine: '#c89e78', terrainGrain: '#e8c49e', accent: '#a8c86a', accentShade: '#86a64e', glow: '#ffe08a' } }
     ]
   };
   var stageCache = {};
@@ -121,7 +133,7 @@ window.Kabe = (function () {
     for (k in (st.col || {})) P[k] = st.col[k];
     P.motif = {}; for (k in MOTIF[id] || MOTIF.underground) P.motif[k] = (MOTIF[id] || MOTIF.underground)[k];
     for (k in (st.motif || {})) P.motif[k] = st.motif[k];
-    P.amb = st.amb || 1; P.stage = i; P.stageName = st.name || '';
+    P.amb = st.amb || 1; P.bloom = st.bloom == null ? 1 : st.bloom; P.lightK = st.lightK == null ? 1 : st.lightK; P.stage = i; P.stageName = st.name || '';
     return (stageCache[key] = P);
   }
   function hex2(n) { n = Math.round(Math.max(0, Math.min(255, n))); return (n < 16 ? '0' : '') + n.toString(16); }
@@ -131,7 +143,7 @@ window.Kabe = (function () {
     if (t <= 0) return A; if (t >= 1) return B;
     var P = {}, k; for (k in A) P[k] = A[k];
     for (k in A) if (typeof A[k] === 'string' && A[k][0] === '#' && typeof B[k] === 'string' && B[k][0] === '#') P[k] = mixHex(A[k], B[k], t);
-    P.motif = t < 0.5 ? A.motif : B.motif; P.amb = A.amb + (B.amb - A.amb) * t; P.stage = A.stage + t;
+    P.motif = t < 0.5 ? A.motif : B.motif; P.id = t < 0.5 ? A.id : B.id; P.amb = A.amb + (B.amb - A.amb) * t; P.bloom = A.bloom + (B.bloom - A.bloom) * t; P.lightK = A.lightK + (B.lightK - A.lightK) * t; P.stage = A.stage + t;
     return P;
   }
 
@@ -462,6 +474,97 @@ window.Kabe = (function () {
     g.strokeStyle = P.metalLight; g.lineWidth = 1.5; g.lineCap = 'round';
     g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[2], b[3]); g.stroke();
     fanBolt(g, P, x, y, dir);
+  }
+
+  /* ---------- 地上の仕掛け（400m〜）：振り子・筒と鉄球・杭・跳ね橋・バネ・崩れる足場
+     痛い所は hazard、本体は metal、縁取りは ink。動きは時間 t だけで決まる（崩れる足場だけは乗ると動き出す） ---------- */
+  // 振り子：(x, y) は軸。a は角度（0＝真下）。鎖の先にトゲつきの鉄球
+  function pendAngle(t, o) { o = o || {}; return (o.amp || 1.05) * Math.sin((t + (o.offset || 0)) / (o.period || 2.6) * Math.PI * 2); }
+  function pendulum(g, P, x, y, len, a) {
+    var bx = x + Math.sin(a) * len, by = y + Math.cos(a) * len, n = Math.max(3, Math.round(len / 5.5)), i;
+    metalSolid(g, P, function () { rr(g, x - 6, y - 5, 12, 7, 2.5); }, 0.8);   // 軸の金具
+    g.lineWidth = 1.3; g.strokeStyle = P.metalShade;
+    for (i = 1; i < n; i++) { var k = i / n; g.save(); g.translate(x + (bx - x) * k, y + (by - y) * k); g.rotate(-a + (i % 2 ? Math.PI / 2 : 0)); ell(g, 0, 0, 1.5, 2.7); g.stroke(); g.restore(); }
+    bolt(g, P, x, y - 1.5, 1.8);
+    for (i = 0; i < 8; i++) { (function (an) { blade(g, P, function () { g.beginPath(); g.moveTo(bx + Math.cos(an - 0.32) * 8, by + Math.sin(an - 0.32) * 8); g.lineTo(bx + Math.cos(an) * 12.5, by + Math.sin(an) * 12.5); g.lineTo(bx + Math.cos(an + 0.32) * 8, by + Math.sin(an + 0.32) * 8); g.closePath(); }); })(i / 8 * Math.PI * 2 + a); }
+    solid(g, function () { ell(g, bx, by, 9, 9); }, P.hazard, P.hazardShade, P.ink, 1.4, 1.1);
+    shine(g, bx - 3, by - 3.2, 2.6, 1.5, 0.5);
+  }
+  // 筒：(x, y) は壁の面の真ん中、dir は撃つ向き（1＝右へ）。lit：撃つ前に口が光る
+  function cannon(g, P, x, y, dir, lit) {
+    g.save(); g.translate(x, y); g.scale(dir, 1);
+    metalSolid(g, P, function () { g.beginPath(); g.arc(-4, 0, 9, -Math.PI / 2, Math.PI / 2); g.lineTo(-10, 9); g.lineTo(-10, -9); g.closePath(); }, 1);   // 壁にはまった台
+    metalSolid(g, P, function () { rr(g, -2, -5.5, 10, 11, 2); }, 1);   // 筒
+    metalSolid(g, P, function () { rr(g, 6, -7, 4, 14, 1.5); }, 0.6);   // 口の輪
+    g.fillStyle = P.ink; ell(g, 9.6, 0, 1.4, 4.2); g.fill();
+    if (lit) { var gl = g.createRadialGradient(10, 0, 0, 10, 0, 10); gl.addColorStop(0, alpha(P.hazardLight, 0.75)); gl.addColorStop(1, alpha(P.hazardLight, 0)); g.fillStyle = gl; ell(g, 10, 0, 10, 10); g.fill(); }
+    bolt(g, P, -6, -5, 1.3); bolt(g, P, -6, 5, 1.3);
+    g.restore();
+  }
+  function cannonBall(g, P, x, y) { solid(g, function () { ell(g, x, y, 5.5, 5.5); }, P.hazard, P.hazardShade, P.ink, 1, 1); shine(g, x - 1.8, y - 2, 1.6, 1, 0.55); }
+  // 杭：壁の面 (x0, y) から dir の向きへ、長さ len の amount（0〜1）だけ突き出る。lit：出る前の点滅
+  function stakeState(t, o) {
+    o = o || {}; var st = cycleState(t, [['in', o.in || 2.0], ['warn', o.warn || 0.7], ['out', o.out || 1.3]], o.offset), a = 0;
+    if (st.s === 'warn') a = 0.08 + Math.sin(st.e * 30) * 0.03;
+    if (st.s === 'out') a = smooth(st.e / 0.12) * smooth((st.d - st.e) / 0.3);
+    st.amount = a; st.hurt = st.s === 'out' && a > 0.5; return st;
+  }
+  function stake(g, P, x0, y, dir, len, amount, lit) {
+    g.save(); g.translate(x0, y); g.scale(dir, 1);
+    var L = Math.max(0, len * amount - 2);
+    if (L > 0.5) {
+      solid(g, function () { rr(g, -2, -4, L, 8, 1.5); }, P.hazard, P.hazardShade, P.ink, 1, 1);   // 太い軸
+      g.strokeStyle = P.hazardLight; g.lineWidth = 0.9; g.beginPath(); g.moveTo(0, -1.6); g.lineTo(L - 2, -1.6); g.stroke();
+      blade(g, P, function () { g.beginPath(); g.moveTo(L - 2.5, -6); g.lineTo(L + 8, 0); g.lineTo(L - 2.5, 6); g.closePath(); });   // 先
+    }
+    metalSolid(g, P, function () { rr(g, -3, -9, 5, 18, [0, 2, 2, 0]); }, 0.7);   // 壁の口
+    [-5, 5].forEach(function (sy) { g.fillStyle = lit ? P.hazardLight : P.ink; rr(g, -1.4, sy - 1.2, 1.8, 2.4, 0.6); g.fill(); });
+    g.restore();
+  }
+  // 跳ね橋：(x0, y) は壁の面の蝶番、dir は橋の伸びる向き、ang は上がった角度（0＝水平、π/2＝立つ）
+  function bridgeState(t, o) {
+    o = o || {}; var st = cycleState(t, [['down', o.down || 2.2], ['warn', o.warn || 0.7], ['rise', 0.35], ['up', o.up || 1.6], ['fall', 0.35]], o.offset), a = 0;
+    if (st.s === 'rise') a = smooth(st.k); else if (st.s === 'up') a = 1; else if (st.s === 'fall') a = 1 - smooth(st.k);
+    st.ang = a * Math.PI / 2 * 0.92; st.solid = a < 0.15; return st;
+  }
+  function bridge(g, P, x0, y, dir, len, ang, lit) {
+    g.save(); g.translate(x0, y); g.scale(dir, 1);
+    g.save(); g.rotate(-ang);
+    metalSolid(g, P, function () { rr(g, 0, -4.5, len - 1, 9, [0, 3, 3, 0]); }, 1.2);
+    g.strokeStyle = P.metalLight; g.lineWidth = 0.7; g.beginPath(); g.moveTo(2, -1.8); g.lineTo(len - 4, -1.8); g.stroke();
+    for (var i = 8; i < len - 4; i += 12) bolt(g, P, i, 1.2, 1.1);
+    g.restore();
+    metalSolid(g, P, function () { rr(g, -4, -8, 6, 16, [0, 2, 2, 0]); }, 0.6);   // 蝶番の台
+    bolt(g, P, 0, 0, 2.2);
+    var lx = 1, ly = -12;
+    if (lit) { var gl = g.createRadialGradient(lx, ly, 0, lx, ly, 7); gl.addColorStop(0, alpha(P.hazardLight, 0.6)); gl.addColorStop(1, alpha(P.hazardLight, 0)); g.fillStyle = gl; g.fillRect(lx - 7, ly - 7, 14, 14); }
+    solid(g, function () { ell(g, lx, ly, 1.8, 1.8); }, lit ? P.hazardLight : P.metalShade, lit ? P.hazard : mix(P.metalShade, '#000000', 0.3), P.ink, 0.4, 0.8);
+    g.restore();
+  }
+  // バネ：(x, y) はマスの左上（1マスがバネの箱）。k は縮み（0〜1、乗った瞬間に 1）
+  function spring(g, P, x, y, k) {
+    k = k || 0; var top = y + 2 + k * 4, i;
+    metalSolid(g, P, function () { rr(g, x + 1, y + CELL - 6, CELL - 2, 6, 1.5); }, 0.8);   // 台
+    g.strokeStyle = P.metalShade; g.lineWidth = 1.6; g.lineJoin = 'round'; g.beginPath();
+    var y0 = y + CELL - 6, n = 4; g.moveTo(x + 4, y0);
+    for (i = 1; i <= n; i++) g.lineTo(x + (i % 2 ? CELL - 4 : 4), y0 - (y0 - top - 3) * i / n);
+    g.stroke();
+    metalSolid(g, P, function () { rr(g, x, top, CELL, 4, 1.5); }, 0.6);   // 上の板
+    g.fillStyle = P.glow; g.fillRect(x + 3, top + 1, CELL - 6, 1.2);
+  }
+  // 崩れる足場：(x, y) は左上、n マスぶん。shake（0〜1）でゆれてひびが増える
+  function crumble(g, P, x, y, n, shake, t) {
+    var dx = shake > 0 ? Math.sin(t * 60) * shake * 1.2 : 0;
+    g.save(); g.translate(dx, 0);
+    for (var i = 0; i < n; i++) {
+      var cx = x + i * CELL;
+      solid(g, function () { rr(g, cx + 0.5, y + 0.5, CELL - 1, CELL - 1, 2.5); }, P.terrainLight, P.terrainShade, P.ink, 1.4, 1.1);
+      g.strokeStyle = alpha(P.ink, 0.55); g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath();
+      g.moveTo(cx + 5 + hash(i, 1) * 4, y + 2); g.lineTo(cx + 8, y + 8); g.lineTo(cx + 6 + hash(i, 2) * 6, y + 14);
+      if (shake > 0.3) { g.moveTo(cx + 8, y + 8); g.lineTo(cx + 14, y + 6); g.moveTo(cx + 3, y + 11); g.lineTo(cx + 8, y + 9); }
+      g.stroke();
+    }
+    g.restore();
   }
 
   /* ---------- 迫ってくるもの（地下は溶岩。ほかのゾーンは仮） ---------- */
@@ -944,7 +1047,8 @@ window.Kabe = (function () {
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
     grid: grid, background: background, bgStrata: bgStrata, bgFar: bgFar, bgDust: bgDust, block: block, slope: slope, lip: lip, hang: hang, decor: decor, spike: spike, terrain: terrain,
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
-    spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
+    spinAngle: spinAngle, spinner: spinner, pendAngle: pendAngle, pendulum: pendulum, cannon: cannon, cannonBall: cannonBall, stakeState: stakeState, stake: stake,
+    bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,

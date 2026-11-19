@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.24a';
+const VERSION = '2026.11.25b';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -282,6 +282,9 @@ const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1
 const FAN = { acc: 1000, max: 230 };
 // 壁に hold 秒ついていると wobble 秒グラグラして、反対向きに push px/秒で離れて落ちる（すべりの水晶があれば、ゆっくり滑り落ちる）
 const CLING = { hold: 2, wobble: 2, push: 50 };
+// 地上の仕掛け：振り子（鎖の長さ・ゆれの角度・周期・鉄球の当たり）、筒（撃つ間隔・弾の速さ・光る秒・弾の当たり）、
+// バネ（上への速さ）、崩れる足場（ぐらつく秒・消えている秒）
+const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5, ballHit: 5.5, springV: 470, crumbleWarn: 0.7, crumbleGone: 3 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -320,12 +323,15 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
 
-function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every }; }
+function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
+  stakeRow: {}, stakeAmt: null, crumbleAt: {}, broken: new Set(), springs: [], springHit: {} }; }
 // 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
 function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
-const isWall = t => t === '#';
+const SOLIDS = '#SKk%';   // 壁として扱う文字（S バネ、K k 筒、% 崩れる足場）
+const isWall = t => !!t && SOLIDS.includes(t);
 function tile(w, c, r) {
   const t = raw(w, c, r);
+  if (t === 'S' || t === 'K' || t === 'k' || t === '%') return '#';
   if (t === '/') {   // ◢（右下が壁）か ◤（左上が壁）
     const br = isWall(raw(w, c + 1, r)) + isWall(raw(w, c, r - 1)), tl = isWall(raw(w, c - 1, r)) + isWall(raw(w, c, r + 1));
     return br >= tl ? 'BR' : 'TL';
@@ -338,8 +344,8 @@ function tile(w, c, r) {
 }
 const SIDES = { '#': 'LRTB', BR: 'RB', BL: 'LB', TL: 'LT', TR: 'RT' };
 const solidSide = (t, s) => (SIDES[t] || '').includes(s);
-function addEdge(w, ax, ay, bx, by, nx, ny, kind, r) {
-  (w.edges[r] || (w.edges[r] = [])).push({ ax, ay, bx, by, nx, ny, kind, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by) });
+function addEdge(w, ax, ay, bx, by, nx, ny, kind, r, cr) {
+  (w.edges[r] || (w.edges[r] = [])).push({ ax, ay, bx, by, nx, ny, kind, cr, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by) });
 }
 function buildEdges(w, upto) {
   const S = Math.SQRT1_2;
@@ -348,10 +354,13 @@ function buildEdges(w, upto) {
     for (let c = 0; c < COLS; c++) {
       const t = tile(w, c, r), x0 = c * CELL, x1 = x0 + CELL, yT = -(r + 1) * CELL, yB = -r * CELL;
       if (!SIDES[t]) continue;
-      if (solidSide(t, 'L') && !solidSide(tile(w, c - 1, r), 'R')) addEdge(w, x0, yB, x0, yT, -1, 0, 'wall', r);
-      if (solidSide(t, 'R') && !solidSide(tile(w, c + 1, r), 'L')) addEdge(w, x1, yB, x1, yT, 1, 0, 'wall', r);
-      if (solidSide(t, 'T') && !solidSide(tile(w, c, r + 1), 'B')) addEdge(w, x0, yT, x1, yT, 0, -1, 'wall', r);
-      if (solidSide(t, 'B') && !solidSide(tile(w, c, r - 1), 'T')) addEdge(w, x0, yB, x1, yB, 0, 1, 'wall', r);
+      // 崩れる足場（%）：となりが % でない壁なら、その壁の面も作っておく（崩れたあと中に入りこまない）。% どうしの間は作らない
+      const ch = raw(w, c, r), cr = ch === '%' ? crumbleId(w, c, r) : undefined;
+      const nb = (cc, rr2, side) => { const n = raw(w, cc, rr2); if (n === '%' && ch !== '%') return false; return solidSide(tile(w, cc, rr2), side); };
+      if (solidSide(t, 'L') && !nb(c - 1, r, 'R')) addEdge(w, x0, yB, x0, yT, -1, 0, 'wall', r, cr);
+      if (solidSide(t, 'R') && !nb(c + 1, r, 'L')) addEdge(w, x1, yB, x1, yT, 1, 0, 'wall', r, cr);
+      if (solidSide(t, 'T') && !nb(c, r + 1, 'B')) addEdge(w, x0, yT, x1, yT, 0, -1, ch === 'S' ? 'spring' : 'wall', r, cr);
+      if (solidSide(t, 'B') && !nb(c, r - 1, 'T')) addEdge(w, x0, yB, x1, yB, 0, 1, 'wall', r, cr);
       if (t === 'BR') addEdge(w, x0, yB, x1, yT, -S, -S, 'wall', r);
       if (t === 'BL') addEdge(w, x0, yT, x1, yB, S, -S, 'wall', r);
       if (t === 'TL') addEdge(w, x1, yT, x0, yB, S, S, 'wall', r);
@@ -360,6 +369,8 @@ function buildEdges(w, upto) {
   }
   w.edgeRow = Math.max(w.edgeRow, upto);
 }
+// 崩れる足場は横につながった % をひとまとまりにする（左はしのマスで名前をつける）
+function crumbleId(w, c, r) { while (raw(w, c - 1, r) === '%') c--; return r + ':' + c; }
 function appendRows(w, rows) {
   const r0 = w.rows.length;
   for (const row of rows) w.rows.push(row);
@@ -383,6 +394,24 @@ function addObstacles(w, r0, n) {
         w.obs.push({ type: 'boxY', axis: 'y', ...OB.boxY, x0: x, x1: x, y0: y, y1: -(e + 0.5) * CELL, period: (e - r) * CELL / 45 + 1, offset: c * 0.5 + r * 0.3 });
       }
       if (ch === 'T') w.obs.push({ type: 'spin', x, y, len: OB.spin, speed: (c < COLS / 2 ? 1 : -1) * 1.5 });
+      if (ch === 'O') w.obs.push({ type: 'pend', x, y: y - CELL / 2, len: SURF.pendLen, offset: c * 0.31 + r * 0.53, yMid: y + SURF.pendLen / 2 });
+      if (ch === 'K' || ch === 'k') {   // 筒：壁の中から、反対の壁まで鉄球を撃つ
+        const d = ch === 'K' ? 1 : -1, fx = d > 0 ? (c + 1) * CELL : c * CELL; let k = c + d;
+        while (k >= 0 && k < COLS && !isWall(row[k])) k += d;
+        w.obs.push({ type: 'cannon', x: fx, y, dir: d, reach: Math.abs((d > 0 ? k * CELL : (k + 1) * CELL) - fx), offset: c * 0.9 + r * 0.41, yMid: y });
+      }
+      if ((ch === 'Z' || ch === 'B') && row[c - 1] !== ch) {   // 杭・跳ね橋：壁につながった横の並び
+        let e = c; while (row[e + 1] === ch) e++;
+        const d = isWall(row[c - 1]) ? 1 : -1, x0 = d > 0 ? c * CELL : (e + 1) * CELL, len = (e - c + 1) * CELL;
+        const o = { type: ch === 'Z' ? 'stake' : 'bridge', r, c0: c, c1: e, dir: d, x0, y, len, offset: c * 0.4 + r * 0.37, yMid: y };
+        w.obs.push(o); if (ch === 'Z') w.stakeRow[r] = o;
+      }
+      if (ch === '%' && row[c - 1] !== '%') {
+        let e = c; while (row[e + 1] === '%') e++;
+        const o = { type: 'crumble', id: r + ':' + c, r, x: c * CELL, y: -(r + 1) * CELL, n: e - c + 1, t0: null, yMid: y };
+        w.obs.push(o); for (let k = c; k <= e; k++) w.crumbleAt[k + ',' + r] = o;
+      }
+      if (ch === 'S') w.springs.push({ c, r, x: c * CELL, y: -(r + 1) * CELL });
       if (ch === '=' && row[c - 1] !== '=') { let e = c; while (row[e + 1] === '=') e++; w.obs.push({ type: 'shutter', x0: c * CELL, x1: (e + 1) * CELL, y, offset: r * 0.7 }); }
       if (ch === '>' || ch === '<') {
         const d = ch === '>' ? 1 : -1, fx = d > 0 ? c * CELL : (c + 1) * CELL; let k = c;
@@ -391,7 +420,7 @@ function addObstacles(w, r0, n) {
       }
     }
   }
-  for (const o of w.obs) o.yMid = o.type === 'spin' || o.type === 'shutter' ? o.y : (o.y0 + o.y1) / 2;
+  for (const o of w.obs) if (o.yMid == null) o.yMid = o.type === 'spin' || o.type === 'shutter' ? o.y : (o.y0 + o.y1) / 2;
 }
 // トゲのマス → 当たる四角（となりの壁にくっついた側）
 function spikeRect(w, c, r) {
@@ -407,6 +436,15 @@ const isSpike = (w, ch) => ch === '^' || ((ch === 'p' || ch === 'q') && (!w.popO
 function spikeHit(w, x, y, ignore) {
   const r0 = Math.floor(-(y + HIT) / CELL), r1 = Math.floor(-(y - HIT) / CELL), c0 = Math.floor((x - HIT) / CELL), c1 = Math.floor((x + HIT) / CELL);
   for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+    if (raw(w, c, r) === 'Z') {   // 杭：出ているところだけ（チェックではいつも出きっている扱い）
+      const o = w.stakeRow[r], amt = !w.popOn ? 1 : (w.stakeAmt && w.stakeAmt[r]) || 0;
+      if (!o || amt < 0.5) continue;
+      const tip = o.x0 + o.dir * o.len * amt, a = Math.max(c * CELL, Math.min(o.x0, tip)), cc = Math.min((c + 1) * CELL, Math.max(o.x0, tip)), side = o.dir > 0 ? 'L' : 'R';
+      if (cc <= a || (ignore && side === ignore)) continue;
+      const yc = -(r + 0.5) * CELL, nx = clamp(x, a, cc), ny = clamp(y, yc - 5, yc + 5);
+      if ((x - nx) ** 2 + (y - ny) ** 2 < HIT * HIT) return side;
+      continue;
+    }
     if (!isSpike(w, raw(w, c, r))) continue;
     const [a, b, cc, d, side] = spikeRect(w, c, r);
     if (ignore && side === ignore) continue;
@@ -432,7 +470,7 @@ function edgePen(b, e) {
 }
 function collide(w, b, res) {
   const r0 = Math.floor(-(b.y + HB + 2) / CELL), r1 = Math.floor(-(b.y - HB - 2) / CELL), near = [];
-  const take = e => { if (!(e.maxY < b.y - HB - 1 || e.minY > b.y + HB + 1 || e.maxX < b.x - HB - 1 || e.minX > b.x + HB + 1)) near.push(e); };
+  const take = e => { if (e.cr && w.broken.has(e.cr)) return; if (!(e.maxY < b.y - HB - 1 || e.minY > b.y + HB + 1 || e.maxX < b.x - HB - 1 || e.minX > b.x + HB + 1)) near.push(e); };
   for (let r = Math.max(0, r0 - 1); r <= r1 + 1; r++) { const list = w.edges[r]; if (list) list.forEach(take); }
   w.dynEdges.forEach(take);
   for (let it = 0; it < 4; it++) {
@@ -443,7 +481,7 @@ function collide(w, b, res) {
     const vn = b.vx * e.nx + b.vy * e.ny;
     if (vn < 0) { b.vx -= vn * e.nx; b.vy -= vn * e.ny; }
     // 床＝真上向き、天井＝真下向き、それ以外（縦の壁・上向き/下向きの45度）＝壁として張り付ける
-    if (e.ny < -0.8) { res.floor = true; if (e.dyn) res.floorDyn = e.dyn; }
+    if (e.ny < -0.8) { res.floor = true; if (e.dyn) res.floorDyn = e.dyn; if (e.kind === 'spring') res.spring = true; }
     else if (e.ny > 0.8) { res.ceil = true; res.ceilV = Math.max(res.ceilV, -vn); }
     else { res.walls.push({ x: e.nx, y: e.ny }); if (e.dyn) res.wallDyn = e.dyn; }
   }
@@ -462,7 +500,8 @@ function physStep(w, b, dt) {
     for (const f of w.fans) {   // 扇風機：空中にいる間だけ、風の向きへ押す
       if (Math.abs(b.y - f.y) < Kabe.FAN_BAND + 4 && (b.x - f.x) * f.dir > 0 && (b.x - f.x) * f.dir < f.reach) b.vx = f.dir > 0 ? Math.min(FAN.max, b.vx + FAN.acc * dt) : Math.max(-FAN.max, b.vx - FAN.acc * dt);
     }
-    b.vy += MOVE.gravity * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall); if (Math.abs(b.vx) > 1) b.face = Math.sign(b.vx); }   // 空中では進んでいる方を向く
+    b.vy += MOVE.gravity * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall);
+      if (Math.abs(b.vx) > 1) b.face = Math.sign(b.vx); }   // 空中では進んでいる方を向く
   b.x += b.vx * dt; b.y += b.vy * dt;
   const c = { floor: false, ceil: false, ceilV: 0, walls: [] };
   collide(w, b, c); collide(w, b, c);
@@ -493,6 +532,7 @@ function physStep(w, b, dt) {
     }
     if (c.ceil && c.ceilV > 60) ev = ev || 'bump';
   }
+  if (c.spring && b.ground) { b.ground = false; b.side = 0; b.vx = 0; b.vy = -SURF.springV; b.air = MOVE.airJumps; ev = 'spring'; }   // バネ：乗ったら真上へ
   b.on = b.ground ? c.floorDyn || null : b.side ? c.wallDyn || null : null;   // 動く箱に乗っている／張り付いている
   return ev;
 }
@@ -763,6 +803,12 @@ function update(dt) {
   // グラグラしている壁から小石がこぼれる
   if (P.side && G.clingT > CLING.hold && !(P.slideTo > 0) && Math.random() < dt * 9) particles.push({ kind: 'pebble', x: P.x + P.side * (HB + 1), y: P.y + (Math.random() - 0.3) * 10, vx: -P.side * (10 + Math.random() * 30), vy: -20, life: 0.8, max: 0.8, r: 1 + Math.random() * 1.2 });
   clingTimer(dt);
+  crumbleTouch();
+  if (ev === 'spring') {   // バネ：縮んで、真上へ
+    sfx.spring(); P.squash = -0.4; G.kickT = 0.14; A.kickPose = 'kick'; startFlip();
+    for (const dx of [-HB + 2, HB - 2]) world.springHit[Math.floor((P.x + dx) / CELL) + ',' + Math.floor(-(P.y + HB + 2) / CELL)] = G.time;
+    kickLines(P.x, P.y, 0, -400);
+  }
   pickGems();
   if (state !== 'play') return;
   if (ev === 'wall' || ev === 'floor') {
@@ -843,10 +889,34 @@ function rectEdges(d, x0, y0, x1, y1, sides) {
   if (sides) { E(x0, y0, x0, y1, -1, 0); E(x1, y0, x1, y1, 1, 0); }
 }
 function updateObstacles() {
-  const t = G.time; world.dynEdges = [];
+  const t = G.time; world.dynEdges = []; world.stakeAmt = {};
   world.popOn = { p: Kabe.popState(t).hurt, q: Kabe.popState(t, { offset: OB.popOff }).hurt };
   for (const o of world.obs) {
     if (Math.abs(o.yMid - P.y) > H) { o.cx = null; continue; }
+    if (o.type === 'stake') { o.st = Kabe.stakeState(t, { offset: o.offset }); if (o.st.hurt) world.stakeAmt[o.r] = o.st.amount; continue; }
+    if (o.type === 'bridge') {   // 跳ね橋：下りている間だけ乗れる（押し出しは上下だけ）
+      o.st = Kabe.bridgeState(t, { offset: o.offset });
+      if (o.st.solid) { const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len); rectEdges(o, a, o.y - 4.5, b, o.y + 4.5, false); }
+      continue;
+    }
+    if (o.type === 'cannon') {   // 筒：撃った瞬間に音と煙（画面に見えているときだけ）
+      const ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod;
+      if (o.ph != null && ph < o.ph && Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 20) { sfx.cannon(); for (let i = 0; i < 5; i++) particles.push({ kind: 'dust', x: o.x + o.dir * 6, y: o.y + (Math.random() - 0.5) * 6, vx: o.dir * (40 + Math.random() * 60), vy: -10 - Math.random() * 20, life: 0.4, max: 0.4, r: 1.5 + Math.random() * 1.5 }); }
+      o.ph = ph; continue;
+    }
+    if (o.type === 'crumble') {   // 崩れる足場：触れてから crumbleWarn 秒で消え、crumbleGone 秒で戻る（体が重なっていたら待つ）
+      if (o.t0 == null) continue;
+      const e = t - o.t0;
+      if (e >= SURF.crumbleWarn && !world.broken.has(o.id) && e < SURF.crumbleWarn + SURF.crumbleGone) {
+        world.broken.add(o.id); sfx.crumble();
+        for (let i = 0; i < o.n * 4; i++) particles.push({ kind: 'pebble', x: o.x + Math.random() * o.n * CELL, y: o.y + Math.random() * CELL, vx: (Math.random() - 0.5) * 40, vy: -20 + Math.random() * 40, life: 0.8, max: 0.8, r: 1.2 + Math.random() * 1.8 });
+      }
+      if (e >= SURF.crumbleWarn + SURF.crumbleGone) {
+        const over = P.x + HB > o.x && P.x - HB < o.x + o.n * CELL && P.y + HB > o.y && P.y - HB < o.y + CELL;
+        if (!over) { world.broken.delete(o.id); o.t0 = null; }
+      }
+      continue;
+    }
     if (o.axis) {   // 箱：4つの面とも壁。トゲの面に触れると痛い（obstacleHit）。乗る・張り付くと運ばれる
       const k = Kabe.slide(t, o.period, o.offset), cx = o.x0 + (o.x1 - o.x0) * k, cy = o.y0 + (o.y1 - o.y0) * k;
       o.dx = o.cx == null ? 0 : cx - o.cx; o.dy = o.cx == null ? 0 : cy - o.cy; o.cx = cx; o.cy = cy; o.carry = true;
@@ -857,6 +927,18 @@ function updateObstacles() {
     }
   }
 }
+// 筒の鉄球の x の一覧（時間だけで決まる。反対の壁に着いたら消える）
+function cannonBalls(o, t) {
+  const out = [], ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod;
+  for (let age = ph; 6 + age * SURF.canSpeed < o.reach - 4; age += SURF.canPeriod) out.push(o.x + o.dir * (6 + age * SURF.canSpeed));
+  return out;
+}
+// 崩れる足場：床として乗る・壁として張り付くと崩れはじめる
+function crumbleTouch() {
+  if (!(P.ground || P.side)) return;
+  const pts = P.ground ? [[P.x - HB + 2, P.y + HB + 2], [P.x + HB - 2, P.y + HB + 2]] : [[P.x + P.side * (HB + 2), P.y - HB + 3], [P.x + P.side * (HB + 2), P.y + HB - 3]];
+  for (const [x, y] of pts) { const o = world.crumbleAt[Math.floor(x / CELL) + ',' + Math.floor(-y / CELL)]; if (o && o.t0 == null && !world.broken.has(o.id)) { o.t0 = G.time; sfx.crack(); } }
+}
 function circleRect(x, y, r, a, b, c, d) { const nx = clamp(x, a, c), ny = clamp(y, b, d); return (x - nx) ** 2 + (y - ny) ** 2 < r * r; }
 function obstacleHit() {
   if (G.inv > 0) return;
@@ -865,6 +947,11 @@ function obstacleHit() {
       const hw = o.w / 2, hh = o.h / 2, T = OB.teeth, x = o.cx, y = o.cy;
       const strips = o.axis === 'x' ? [[x - hw - T, y - hh, x - hw, y + hh], [x + hw, y - hh, x + hw + T, y + hh]] : [[x - hw, y - hh - T, x + hw, y - hh], [x - hw, y + hh, x + hw, y + hh + T]];
       if (strips.some(s => circleRect(P.x, P.y, HIT, ...s))) return hurt(Math.sign(P.x - x) || 1, 'box');
+    } else if (o.type === 'pend' && Math.abs(o.yMid - P.y) < 80) {
+      const a = Kabe.pendAngle(G.time, { offset: o.offset, amp: SURF.pendAmp, period: SURF.pendPeriod }), bx = o.x + Math.sin(a) * o.len, by = o.y + Math.cos(a) * o.len;
+      if (Math.hypot(P.x - bx, P.y - by) < SURF.pendHit + HIT) return hurt(Math.sign(P.x - bx) || 1, 'pend');
+    } else if (o.type === 'cannon' && Math.abs(o.y - P.y) < 30) {
+      for (const bx of cannonBalls(o, G.time)) if (Math.hypot(P.x - bx, P.y - o.y) < SURF.ballHit + HIT) return hurt(o.dir, 'ball');
     } else if (o.type === 'spin' && Math.abs(o.y - P.y) < 60) {
       const a = Kabe.spinAngle(G.time, o.speed), dx = Math.cos(a), dy = Math.sin(a), u = clamp((P.x - o.x) * dx + (P.y - o.y) * dy, -o.len, o.len);
       if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HIT + 2.6) return hurt(Math.sign(P.x - o.x) || 1, 'spin');
@@ -909,13 +996,16 @@ function dust(x, y, dir, n) {
 /* =====================================================================
    見た目：統一カタログ（catalog/project）の Kabe で描く。色は tokens.css のゾーンの色
    ===================================================================== */
-const ZONE = 'underground';
-const PAL = Object.assign({}, Kabe.stagePal(ZONE, 0));   // いまの色（カメラの高さで少しずつ変わる。syncLook）
-// 高さ m の見た目：100mごとの段（Kabe.STAGES）。境目の前後12mで色を混ぜる
+// 100mごとの見た目（ゾーンとその中の段。Kabe.STAGES）。0〜400m 地下、400〜800m 地上。それより上は最後の段が続く
+const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['underground', 3], ['surface', 0], ['surface', 1], ['surface', 2], ['surface', 3]];
+const lookPal = i => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, i))]; return Kabe.stagePal(L[0], L[1]); };
+const PAL = Object.assign({}, lookPal(0));   // いまの色（カメラの高さで少しずつ変わる。syncLook）
+// 高さ m の見た目。境目の前後12mで色を混ぜる
 const LOOK_BLEND = 12;
 function palAt(m) {
-  const b = Math.round(m / 100); if (b <= 0) return Kabe.stagePal(ZONE, 0);
-  const k = (m - (b * 100 - LOOK_BLEND)) / (LOOK_BLEND * 2), A = Kabe.stagePal(ZONE, b - 1), B = Kabe.stagePal(ZONE, b);
+  const b = Math.round(m / 100); if (b <= 0) return lookPal(0);
+  if (b >= LOOKS.length) return lookPal(LOOKS.length - 1);
+  const k = (m - (b * 100 - LOOK_BLEND)) / (LOOK_BLEND * 2), A = lookPal(b - 1), B = lookPal(b);
   return k <= 0 ? A : k >= 1 ? B : Kabe.blendPal(A, B, k * k * (3 - 2 * k));
 }
 // 背景・光・粒の色をカメラの高さに合わせる。8段階ずつ変え、変わったら背景の絵を作り直す
@@ -949,7 +1039,8 @@ function rockDepth(c, r) {
 }
 // ゲームの行（下から）を Kabe のマス目（上から）として見せる。i 行目 ＝ ゲームの top - i 行
 function bandGrid(r0) {
-  const top = r0 + BAND - 1, R = i => top - i, t = (c, i) => tile(world, c, R(i)), has = solidSide;
+  // バネ（S）と崩れる足場（%）は地形の絵に入れない（動く絵で上に描く）
+  const top = r0 + BAND - 1, R = i => top - i, t = (c, i) => { const ch = raw(world, c, R(i)); return ch === 'S' || ch === '%' ? '.' : tile(world, c, R(i)); }, has = solidSide;
   return {
     rows: BAND, cols: COLS,
     raw: (c, i) => raw(world, c, R(i)),
@@ -1133,6 +1224,37 @@ function drawPredict() {
 }
 
 /* ---------- 障害物・溶岩・エフェクト ---------- */
+// 地上の仕掛けの描き方（2D と GPU で共通）。sp(key, x, y, bb, fn)：key があれば同じ絵を使い回す
+const pendOpt = o => ({ offset: o.offset, amp: SURF.pendAmp, period: SURF.pendPeriod });
+function surfaceDraw(sp, seg, vis) {
+  const t = G.time;
+  for (const s2 of world.springs) {
+    if (!vis(s2.y)) continue;
+    const hit = world.springHit[s2.c + ',' + s2.r], k = hit != null ? Math.max(0, 1 - (t - hit) / 0.25) : 0, kk = k > 0 ? Math.sin(k * Math.PI) : 0;
+    sp(kk ? null : 'spring', s2.x, s2.y, [-2, -2, CELL + 2, CELL + 2], () => Kabe.spring(ctx, PAL, s2.x, s2.y, kk));
+  }
+  for (const o of world.obs) {
+    if (!vis(o.yMid)) continue;
+    if (o.type === 'pend') {
+      const a = Kabe.pendAngle(t, pendOpt(o)), L = o.len + 14;
+      sp(null, o.x, o.y, [-L, -8, L, L], () => Kabe.pendulum(ctx, PAL, o.x, o.y, o.len, a));
+    } else if (o.type === 'cannon') {
+      const ph = ((t + o.offset) % SURF.canPeriod + SURF.canPeriod) % SURF.canPeriod, lit = ph > SURF.canPeriod - SURF.canWarn && ph % 0.2 < 0.1;
+      for (const bx of cannonBalls(o, t)) sp('cball', bx, o.y, [-8, -8, 8, 8], () => Kabe.cannonBall(ctx, PAL, bx, o.y));
+      sp(`can|${o.dir}|${lit}`, o.x, o.y, [-24, -12, 24, 12], () => Kabe.cannon(ctx, PAL, o.x, o.y, o.dir, lit));
+    } else if (o.type === 'stake') {
+      const st = o.st || Kabe.stakeState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.24 < 0.12, still = st.amount === 0 || st.amount === 1;
+      sp(still ? `stake|${o.dir}|${o.len}|${st.amount}|${lit}` : null, o.x0, o.y, [-o.len - 14, -12, o.len + 14, 12], () => Kabe.stake(ctx, PAL, o.x0, o.y, o.dir, o.len, st.amount, lit));
+    } else if (o.type === 'bridge') {
+      const st = o.st || Kabe.bridgeState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.3 < 0.15, still = st.s === 'down' || st.s === 'warn' || st.s === 'up';
+      sp(still ? `bridge|${o.dir}|${o.len}|${st.ang.toFixed(2)}|${lit}` : null, o.x0, o.y, [-o.len - 8, -o.len - 16, o.len + 8, 14], () => Kabe.bridge(ctx, PAL, o.x0, o.y, o.dir, o.len, st.ang, lit));
+    } else if (o.type === 'crumble') {
+      if (world.broken.has(o.id)) continue;
+      const e = o.t0 == null ? -1 : t - o.t0, shake = e < 0 ? 0 : Math.min(1, e / SURF.crumbleWarn);
+      sp(shake ? null : `crumble|${o.n}`, o.x, o.y, [-4, -3, o.n * CELL + 4, CELL + 3], () => Kabe.crumble(ctx, PAL, o.x, o.y, o.n, shake, t));
+    }
+  }
+}
 function drawObstacles() {
   const t = G.time, yTop = cam.y - 60, yBot = cam.y + H + 60, vis = y => y > yTop && y < yBot;
   for (let r = Math.max(0, Math.floor(-yBot / CELL)); r <= Math.ceil(-yTop / CELL); r++) for (let c = 0; c < COLS; c++) {
@@ -1149,6 +1271,8 @@ function drawObstacles() {
     } else if (o.type === 'spin') Kabe.spinner(ctx, PAL, o.x, o.y, o.len, Kabe.spinAngle(t, o.speed));
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
+  surfaceDraw((key, x, y, bb, fn) => { ctx.save(); fn(); ctx.restore(); },
+    (x0, y0, x1, y1, r, col, a) => { ctx.strokeStyle = rgba(col, a); ctx.lineWidth = r * 2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }, vis);
 }
 // 結晶（カタログの Kabe.mote）。ゆっくり上下する
 function drawGems() {
@@ -1393,6 +1517,7 @@ function obstaclesGL() {
       wspr(still ? `shut|${o.x1 - o.x0}|${st.close}|${lit}` : null, o.x0, o.y, [-8, -21, o.x1 - o.x0 + 8, 11], () => Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset }));
     }
   }
+  surfaceDraw(wspr, wseg, vis);
 }
 function stationsGL() {
   for (const s of world.stations) {
@@ -1568,7 +1693,7 @@ const glfx = (() => {
       float fog = fbm(p * 0.006 + vec2(t * 0.02, -t * 0.035)) * 0.09;
       gl_FragColor = vec4((glowC * (rays + fog * 0.6) + lavaC * fog * lv * 0.8) * 4.0, 1.0); }`;
   const N = FX.maxLights;
-  const COMP = HEAD + `uniform sampler2D scene, bloom, atm; uniform vec2 res, px; uniform float lite, t, amb, bloomK, emb, lavaY, flash, calm, danger;
+  const COMP = HEAD + `uniform sampler2D scene, bloom, atm; uniform vec2 res, px; uniform float lite, t, amb, bloomK, emb, lavaY, flash, calm, danger, atmK;
     uniform vec4 L[${N}]; uniform vec3 LC[${N}]; uniform int nL; uniform vec3 lavaC, shadowT, lightT;
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -1600,7 +1725,7 @@ const glfx = (() => {
       light += lavaC * lv * lv * (0.9 + 0.6 * ldif) * (0.85 + 0.15 * sin(t * 3.0 + p.x * 0.05));
       c = c * light + glow;
       c += texture2D(bloom, uv).rgb * bloomK;                                                                              // にじみ
-      c += texture2D(atm, v).rgb * 0.25;                                                                                   // 光の筋と霧
+      c += texture2D(atm, v).rgb * 0.25 * atmK;                                                                                   // 光の筋と霧
       // 色の調整：暗い所は青紫、明るい所は暖かく。少しだけ鮮やかに
       float l = lum(c); c = mix(c * shadowT * 1.25, c * lightT, smoothstep(0.15, 0.85, l));
       c = mix(vec3(lum(c)), c, 1.12);
@@ -1860,7 +1985,7 @@ const glfx = (() => {
       gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, fb[2].t); gl.uniform1i(P3.u('atm'), 2);
       gl.activeTexture(gl.TEXTURE0);
       gl.uniform2f(P3.u('res'), W, H); gl.uniform2f(P3.u('px'), 1 / W2, 1 / H2);
-      for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger']) gl.uniform1f(P3.u(k), u[k]);
+      for (const k of ['t', 'amb', 'bloomK', 'emb', 'lavaY', 'flash', 'calm', 'danger', 'atmK']) gl.uniform1f(P3.u(k), u[k] == null ? 1 : u[k]);
       for (const k of ['lavaC', 'shadowT', 'lightT']) gl.uniform3fv(P3.u(k), u[k]);
       // マスに分けて描く：マスに少しでも届く光だけを渡す（届かない光の分は元から0なので、絵は全体で1回描くのと同じ）
       const n = PERF.off.lights ? 0 : Math.min(N, lights.length), [TX, TY] = FX.tile, mx = W / W2, my = H / H2;
@@ -1904,13 +2029,14 @@ function collectLights() {
   }
   for (const q of particles) if (q.kind === 'ember' && out.length < FX.maxLights * 2) out.push({ x: q.x, y: q.y - cy, r: 18, i: 0.5 * q.life / q.max, c: PAL.riseLight });
   const px = P.x, py = P.y - cy;
+  const lk = PAL.lightK == null ? 1 : PAL.lightK; if (lk !== 1) for (const l of out) l.i *= lk;   // 地上は明るいので光を弱める
   return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
 }
 function renderFx(src) {
   const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
   const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
   glfx.render(src, collectLights(), {
-    t: G.time, amb: FX.ambient * (PAL.amb || 1), bloomK: FX.bloom, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
+    t: G.time, amb: FX.ambient * (PAL.amb || 1), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: PAL.lightK == null ? 1 : PAL.lightK, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94],
   });
 }
@@ -1923,7 +2049,7 @@ function drawLighting() {
   if (lightCv.width !== Math.round(W * k)) { lightCv.width = Math.round(W * k); lightCv.height = Math.round(H * k); }
   const L = lightCv.getContext('2d'); L.setTransform(k, 0, 0, k, 0, 0);
   L.globalCompositeOperation = 'source-over'; L.clearRect(0, 0, W, H);
-  L.fillStyle = rgba(Kabe.mix(PAL.bgTop, '#000000', 0.6), LIGHT.dark); L.fillRect(0, 0, W, H);
+  L.fillStyle = rgba(Kabe.mix(PAL.bgTop, '#000000', 0.6), LIGHT.dark * Math.max(0.15, 2 - (PAL.amb || 1) * 1.2)); L.fillRect(0, 0, W, H);   // 地上（amb が大きい）は暗くしない
   L.globalCompositeOperation = 'destination-out';
   const hole = (x, y, r, a) => {
     const sy = y - cam.y; if (sy < -r || sy > H + r) return;
@@ -2035,6 +2161,10 @@ const sfx = {
   kick() { tone(300, 0.14, 'triangle', 0.12, 520); noise(0.04, 0.03, 3000, 6000); },
   air() { tone(660, 0.22, 'sine', 0.1, 990, 0, 0.01); tone(990, 0.18, 'sine', 0.05, 1320, 0.05, 0.01); },
   land() { tone(160, 0.08, 'sine', 0.1, 110, 0, 0.003); noise(0.04, 0.025, 400, 2000); },
+  spring() { tone(220, 0.25, 'triangle', 0.12, 880, 0, 0.004); tone(440, 0.2, 'sine', 0.05, 1320, 0.04, 0.01); },
+  crack() { noise(0.06, 0.04, 800, 3000); tone(200, 0.06, 'triangle', 0.05, 150); },
+  crumble() { noise(0.25, 0.06, 200, 1600); tone(120, 0.2, 'sine', 0.06, 70); },
+  cannon() { noise(0.12, 0.05, 150, 900); tone(110, 0.15, 'sine', 0.08, 60); },
   hurt() { tone(420, 0.3, 'triangle', 0.12, 160, 0, 0.003); tone(400, 0.3, 'triangle', 0.08, 150, 0.02, 0.003); },
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
   lava() { tone(240, 0.9, 'sine', 0.14, 60, 0, 0.01); noise(0.8, 0.05, 100, 900); },
@@ -2074,7 +2204,7 @@ function startGame() { showOnly(null); newGame(); G.zoneT = 3; state = 'play'; $
 function showEnd() {
   const m = Math.floor(G.best), best = store.get('kabe_best2', 0);
   if (m > best && !G.test) store.set('kabe_best2', m);
-  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた' }[G.cause] || 'おしまい';
+  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);

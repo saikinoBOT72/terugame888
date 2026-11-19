@@ -1,0 +1,46 @@
+<!-- @dsCard group="危険なもの" height=640 width=760 subtitle="地上（400m〜）の仕掛け6つ（機械・無機物）" -->
+<style>
+.ob-bar { display: flex; gap: 6px; justify-content: center; padding: 10px 10px 0; }
+.ob-bar button { font: inherit; font-size: 12px; border: 0; border-radius: 999px; padding: 5px 12px; background: transparent; color: var(--ui-muted); cursor: pointer; }
+.ob-bar button[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); }
+.ob-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+@media (max-width: 520px) { .ob-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<div class="ob-bar" id="bar"></div>
+<div class="ob-grid" id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var zone = 'surface', S = 126, L = 18, R = 108, M = 63;
+var G = Kabe.grid(['#.....#', '#.....#', '#.....#', '#.....#', '#.....#', '#.....#', '#.....#'], '#');
+var bar = document.getElementById('bar');
+Kabe.ZONES.forEach(function (z) {
+  var b = document.createElement('button'); b.textContent = z.name; b.setAttribute('aria-pressed', z.id === zone);
+  b.onclick = function () { zone = z.id; [].forEach.call(bar.children, function (x) { x.setAttribute('aria-pressed', x === b); }); };
+  bar.appendChild(b);
+});
+var scenes = [
+  ['振り子', function (g, P, t) { Kabe.pendulum(g, P, M, 14, 54, Kabe.pendAngle(t)); }],
+  ['筒と鉄球', function (g, P, t) {
+    var ph = t % 2.8; for (var a = ph; 6 + a * 120 < R - L - 4; a += 2.8) Kabe.cannonBall(g, P, L + 6 + a * 120, M);
+    Kabe.cannon(g, P, L, M, 1, ph > 2.3 && ph % 0.2 < 0.1);
+  }],
+  ['杭', function (g, P, t) { var st = Kabe.stakeState(t); Kabe.stake(g, P, L, M, 1, 72, st.amount, st.s === 'warn' && st.e % 0.24 < 0.12); }],
+  ['跳ね橋', function (g, P, t) { var st = Kabe.bridgeState(t); Kabe.bridge(g, P, L, 80, 1, 72, st.ang, st.s === 'warn' && st.e % 0.3 < 0.15); }],
+  ['バネ', function (g, P, t) {
+    var k = Math.max(0, 1 - (t % 1.6) / 0.25), y = 90 - 22 - Math.abs(Math.sin((t % 1.6) / 1.6 * Math.PI)) * 60;
+    Kabe.spring(g, P, M - 18, 90, Math.sin(k * Math.PI)); Kabe.spring(g, P, M, 90, Math.sin(k * Math.PI));
+    Kabe.ghost(g, P, 'sheet', 'kick', M, y, t, 1, 1);
+  }],
+  ['崩れる足場', function (g, P, t) { var k = (t % 3) / 3; if (k < 0.7) Kabe.crumble(g, P, L + 18, 80, 3, Math.max(0, (k - 0.3) / 0.4), t); }]
+];
+var root = document.getElementById('root');
+scenes.forEach(function (sc) {
+  var fig = document.createElement('figure'); fig.className = 'kabe-fig';
+  var cv = Kabe.canvas(S, S, 2, sc[0]), cap = document.createElement('figcaption'); cap.textContent = sc[0];
+  fig.appendChild(cv.c); fig.appendChild(cap); root.appendChild(fig);
+  Kabe.animate(function (t) {
+    var P = Kabe.pal(zone), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, S, S);
+    Kabe.background(g, P, 0, 0, S, S, t, t * 8); Kabe.terrain(g, P, G, t); sc[1](g, P, t);
+  });
+});
+</script>
