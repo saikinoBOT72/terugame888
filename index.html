@@ -170,7 +170,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19d';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19e';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -201,8 +201,8 @@ const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
-// lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate
-const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 10, lavaRate: 1 };
+// lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate（0.1＝10mで1個）
+const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 10, lavaRate: 0.1 };
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
@@ -1535,7 +1535,7 @@ function renderGacha() {
   $('gCrys').textContent = `結晶 ${Math.floor(G.crystals)}`;
   const b = $('btnRoll'); b.textContent = `回す（結晶${GACHA.cost}）`; b.disabled = G.crystals < GACHA.cost;
   const lv = $('btnLava'), gain = lavaGain();
-  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${Math.round(lavaDist())}m（もう近づけられない）`; lv.disabled = gain <= 0;
+  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${Math.round(lavaDist())}m（${GACHA.lavaTo + Math.ceil(1 / GACHA.lavaRate)}m以上はなれていれば交換できる）`; lv.disabled = gain <= 0;
   const list = $('gList'); list.textContent = '';
   const ids = Object.keys(G.gems);
   if (!ids.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'まだ水晶がない'; list.append(p); }
