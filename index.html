@@ -262,7 +262,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29e';
+const VERSION = '2026.11.29f';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -322,6 +322,7 @@ const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒�
 
 /* パーツとプールは data/pieces.js（KABE_DATA）。描き方は STAGES.md */
 const { PIECES, POOLS, poolAt } = KABE_DATA;
+const GACHA_PIECES = Object.keys(PIECES).filter(id => PIECES[id].station);   // ガチャ所の形（data/pieces.js の G のあるパーツ）
 
 /* =====================================================================
    地形（マス目 → 当たり判定の線分）
@@ -668,10 +669,8 @@ let particles = [], floaters = [], flyers = [], trail = [];
 function placePiece(id) {
   const pc = PIECES[id], r0 = appendRows(world, pc.rows), r1 = r0 + pc.rows.length - 1;
   world.placed.push({ id, r0, r1 });
-  if (id === 'gacha') {   // 棚の上に機械を置く
-    const r = r0 + pc.rows.findIndex(row => row.startsWith('###'));
-    world.stations.push({ x: 4.5 * CELL, y: -(r + 1) * CELL, used: false });
-  } else if (id !== 'z1_start') scatterGems(r0, r1);
+  if (pc.station) world.stations.push({ x: (pc.station.c + 0.5) * CELL, y: -(r0 + pc.station.r) * CELL, used: false });   // G のマスに家（下の床の上）
+  else if (id !== 'z1_start') scatterGems(r0, r1);
 }
 // 結晶：壁ぎわの空きマス（張り付くと取れる所）に数個。つなぎ目の2行は避ける。トゲのそばにも置く（取りに行くと危ない）
 function scatterGems(r0, r1) {
@@ -692,7 +691,10 @@ const connector = row => row.replace(/[^#]/g, '.');
 function nextPiece() {
   const lastP = world.placed[world.placed.length - 1], topRow = PIECES[lastP.id].rows[PIECES[lastP.id].rows.length - 1];
   const m = world.rows.length * CELL / PX_PER_M, pool = poolAt(m);
-  if (m >= world.nextGacha && connector(PIECES.gacha.rows[0]) === connector(topRow)) { world.nextGacha += GACHA.every; return 'gacha'; }
+  if (m >= world.nextGacha) {   // ガチャ所：形のちがうものから選ぶ（前と同じ形は避ける）
+    const gs = GACHA_PIECES.filter(id => connector(PIECES[id].rows[0]) === connector(topRow)), pick = gs.filter(id => id !== world.lastGacha);
+    if (gs.length) { const id = (pick.length ? pick : gs)[Math.floor(Math.random() * (pick.length || gs.length))]; world.nextGacha += GACHA.every; world.lastGacha = id; return id; }
+  }
   const recent = world.placed.slice(-2).map(p => p.id);
   let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
   if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));

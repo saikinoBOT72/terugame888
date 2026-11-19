@@ -94,7 +94,7 @@ function prepare(pc) {
     if (ch === 'S') obs.push({ k: 'spring', x, y });
     if (ch === '%' && at(c - 1, r) !== '%') { let e = c; while (at(e + 1, r) === '%') e++; obs.push({ k: 'crumble', x, y, n: e - c + 1 }); }
   }));
-  if (pc.id === 'gacha') { const r = rows.findIndex(row => row.startsWith('###')); obs.push({ k: 'house', x: 4.5 * CELL, y: r * CELL }); }
+  if (pc.station) obs.push({ k: 'house', x: (pc.station.c + 0.5) * CELL, y: (pc.rows.length - pc.station.r) * CELL });   // G のマスに家
   const kinds = [...new Set(rows.join('').split('').filter(ch => NAMES[ch]).map(ch => NAMES[ch]))];
   return { w: 20 * CELL, h: h * CELL, grid, obs, kinds };
 }
@@ -151,8 +151,8 @@ POOLS.forEach((pool, i) => {
   card.m = 0;
   sec.append(h, sub, grid); root.append(sec);
 });
-const used = new Set(POOLS.flatMap(p => p.pieces)), special = ['z1_start', 'gacha'], rest = Object.keys(PIECES).filter(id => !used.has(id) && !special.includes(id));
-[['特別なパーツ', 'いちばん下のスタートと、25mごとのガチャ所', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
+const used = new Set(POOLS.flatMap(p => p.pieces)), special = ['z1_start', ...Object.keys(PIECES).filter(id => PIECES[id].station)], rest = Object.keys(PIECES).filter(id => !used.has(id) && !special.includes(id));
+[['特別なパーツ', 'いちばん下のスタートと、25mごとのガチャ所（形は毎回ここから選ぶ）', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
   if (!ids.length) return;
   const sec = document.createElement('section'), h = document.createElement('h2'), sub = document.createElement('p'), grid = document.createElement('div');
   h.textContent = title; sub.className = 'sub'; sub.textContent = note; grid.className = 'grid';
