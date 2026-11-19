@@ -166,6 +166,16 @@
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
     background: color-mix(in srgb, var(--ui-panel) 85%, transparent); border: 0; border-radius: 50%; cursor: pointer;
   }
+  /* 押すと少しへこみ（0.1秒）、はなすとぽよんと戻る（0.28秒）。板は出るとき下から少し跳ねて出る */
+  .btn, .sub, .lavaBtn, .healBtn, .gtile, #pauseBtn { transition: transform .1s ease-out, box-shadow .1s ease-out, filter .15s; }
+  .btn:active:not(:disabled) { transform: translateY(calc(var(--u) * 3px)) scale(.95); }
+  .sub:active:not(:disabled), .healBtn:active:not(:disabled), .gtile:active:not(:disabled), #pauseBtn:active { transform: translateY(calc(var(--u) * 1.5px)) scale(.93); }
+  .lavaBtn:active:not(:disabled) { transform: translateY(calc(var(--u) * 2px)) scale(.97); }
+  .pop { animation: pop .28s cubic-bezier(.3, 1.7, .5, 1); }
+  @keyframes pop { 0% { transform: translateY(calc(var(--u) * 2px)) scale(.93); } 55% { transform: scale(1.06); } 100% { transform: none; } }
+  .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
+  @keyframes cardIn { from { transform: translateY(calc(var(--u) * 16px)) scale(.95); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .pop, .ov:not([hidden]) > .card { animation: none !important; } }
 </style>
 </head>
 <body>
@@ -241,7 +251,7 @@
         <dl class="stats" id="endStats"></dl>
         <div class="grows" id="eGems"></div>
         <button class="btn" id="btnRetry" type="button">もう一度</button>
-        <button class="sub" id="btnToTitle" type="button">タイトルへ</button>
+        <div class="row"><button class="sub" id="btnCard" type="button">結果を画像にする</button><button class="sub" id="btnToTitle" type="button">タイトルへ</button></div>
       </div>
     </section>
   </div>
@@ -252,7 +262,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29c';
+const VERSION = '2026.11.29d';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -1157,6 +1167,7 @@ function idlePose() {
 }
 function poseId() {
   A.hopY = 0;
+  if (state === 'title') return 'sleep';   // タイトルでは床でうとうと
   if (state === 'dying' || G.inv > INVINCIBLE - 0.45) return 'hurt';
   if (P.side) return P.slideTo > 0 ? 'slide' : A.grabT > 0 ? 'grab' : G.clingT > CLING.hold ? 'wobble' : G.clingT > 0.9 ? 'clingUp' : 'cling';
   if (P.ground) {
@@ -1917,6 +1928,7 @@ function fxShown() {
   glcv.hidden = false; hudcv.hidden = false; showCv(false);
   ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
   if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); }
+  if (state === 'title' && TITLE.fade > 0) { ctx.fillStyle = rgba(Kabe.mixHex(PAL.bgTop, '#000000', 0.5), TITLE.fade); ctx.fillRect(0, 0, W, H); }
   ctx = cvCtx;
 }
 function drawFrame() {
@@ -1960,6 +1972,7 @@ function drawFrame() {
   drawLighting();
   if (G && G.flash > 0 && !calm) { ctx.fillStyle = rgba('#ffffff', G.flash * 0.35); ctx.fillRect(0, 0, W, H); }
   if (state !== 'title') { drawHud(); drawZoneBanner(); }
+  else if (TITLE.fade > 0) { ctx.fillStyle = rgba(Kabe.mixHex(PAL.bgTop, '#000000', 0.5), TITLE.fade); ctx.fillRect(0, 0, W, H); }
 }
 /* =====================================================================
    シェーダーの後処理（WebGL）：2Dで描いた画面を1枚の絵として受け取り、光・にじみ・熱のゆらぎ・色を足す。
@@ -2523,8 +2536,11 @@ function audio() {
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
+// 効果音のゆらぎ：同じ音が続いても機械的に聞こえないよう、1回ごとに高さ（VR）と大きさ（VV）を少しだけ変える（sfx をまとめて包む。曲になっている音は変えない）
+let VR = 1, VV = 1;
 function tone(f, dur, type, vol, f2 = 0, delay = 0, attack = 0.004) {
   const a = audio(); if (!a) return;
+  f *= VR; f2 *= VR; vol *= VV;
   const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -2532,6 +2548,7 @@ function tone(f, dur, type, vol, f2 = 0, delay = 0, attack = 0.004) {
 }
 function noise(dur, vol, hp, lp = 12000) {
   const a = audio(); if (!a) return;
+  hp *= VR; lp = Math.min(20000, lp * VR); vol *= VV;
   const t = a.currentTime, s = a.createBufferSource(), g = a.createGain(), f1 = a.createBiquadFilter(), f2 = a.createBiquadFilter();
   s.buffer = noiseBuf; f1.type = 'highpass'; f1.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
@@ -2569,8 +2586,60 @@ const sfx = {
   zone() { [392, 523, 659].forEach((f, i) => tone(f, 0.5, 'triangle', 0.05, 0, i * 0.12, 0.01)); tone(784, 0.9, 'sine', 0.05, 0, 0.36, 0.02); },
   door() { tone(392, 0.2, 'sine', 0.07, 0, 0, 0.01); tone(523, 0.3, 'sine', 0.06, 0, 0.1, 0.01); },
   start() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.35, 'sine', 0.08, 0, i * 0.1, 0.01)); },
+  crackle() { noise(0.05, 0.035, 2500, 9000); tone(1900 + Math.random() * 600, 0.05, 'triangle', 0.025, 1400); },   // ガチャ：殻にひびが入る
+  shatter() { noise(0.4, 0.06, 2000, 12000); [2637, 3136, 3520, 2349].forEach((f, i) => tone(f, 0.25, 'sine', 0.03, f * 0.7, i * 0.03, 0.002)); },
+  gather() { [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, 0.5, 'sine', 0.03, 0, i * 0.07, 0.15)); },
 };
+for (const [k, r, v] of [['kick', 0.06, 0.3], ['air', 0.04, 0.25], ['land', 0.08, 0.35], ['crack', 0.1, 0.3], ['crumble', 0.08, 0.3], ['cannon', 0.06, 0.25], ['clank', 0.1, 0.35],
+  ['wobble', 0.05, 0.2], ['tick', 0.03, 0.2], ['gem', 0.05, 0.25], ['gem2', 0.05, 0.25], ['spring', 0.05, 0.25], ['hurt', 0.04, 0.2], ['plink', 0.02, 0.2], ['bubble', 0.04, 0.3], ['crackle', 0.15, 0.3]]) {
+  const f = sfx[k]; sfx[k] = (...a) => { VR = 1 + (Math.random() * 2 - 1) * r; VV = 1 - v / 2 + Math.random() * v; try { f(...a); } finally { VR = 1; VV = 1; } };
+}
 
+/* ---------- 環境音：ゾーンと天気でずっと鳴っている小さな音（全部その場で作る。効果音の下に敷く） ----------
+   地下：遠いうなり。洞窟は水滴、根っこは木のきしみ、古い機械はうなりと遠い金属の音と蒸気、さけ目はすきま風。
+   地上：風（風の強さで大きく・高く）、雨（ざあざあ＋はじける音）、夕焼けの峰は遠くの鐘。溶岩（毒）が近いと低いごうごう。 */
+const AMB = { nodes: null, last: {}, next: {} };
+function ambInit(a) {
+  const len = a.sampleRate * 2, buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  let b0 = 0, b1 = 0, b2 = 0;   // やわらかいノイズ（高い音が少ない）
+  for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b0 = 0.99765 * b0 + w * 0.099046; b1 = 0.963 * b1 + w * 0.2965164; b2 = 0.57 * b2 + w * 1.0526913; d[i] = (b0 + b1 + b2 + w * 0.1848) * 0.2; }
+  const master = a.createGain(); master.gain.value = 0; master.connect(a.destination);
+  const layer = (type, freq, q) => {
+    const src = a.createBufferSource(); src.buffer = buf; src.loop = true; src.playbackRate.value = 0.85 + Math.random() * 0.3;
+    const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; const g = a.createGain(); g.gain.value = 0;
+    src.connect(f).connect(g).connect(master); src.start(a.currentTime, Math.random() * 1.5); return { f, g };
+  };
+  const o = a.createOscillator(), o2 = a.createOscillator(), hg = a.createGain(); o.frequency.value = 55; o2.type = 'triangle'; o2.frequency.value = 110.7; hg.gain.value = 0;
+  o.connect(hg); o2.connect(hg); hg.connect(master); o.start(); o2.start();
+  AMB.nodes = { master, rumble: layer('lowpass', 150, 0.7), wind: layer('bandpass', 520, 1.3), rain: layer('bandpass', 2600, 0.6), lava: layer('lowpass', 240, 1.1), hum: { g: hg } };
+}
+function ambTick(dt) {
+  if (!actx) return;
+  if (!AMB.nodes) ambInit(actx);
+  const N = AMB.nodes, now = actx.currentTime, t = G ? G.time : 0;
+  const set = (key, p, v, tc = 0.6) => { if (Math.abs((AMB.last[key] ?? -1) - v) < 0.002) return; AMB.last[key] = v; p.setTargetAtTime(v, now, tc); };
+  const live = !muted && (state === 'play' || state === 'title' || state === 'gacha');
+  set('master', N.master.gain, muted ? 0 : state === 'play' ? 0.9 : live ? 0.5 : 0.12, 0.3);
+  if (!G || !world) return;
+  const und = PAL.id !== 'surface', st = Math.round(PAL.stage || 0) % 4, dark = G.dark || 0;
+  const lava = state === 'play' && G.lavaDelay <= 0 ? clampN(1 - (G.lavaY - P.y) / 520, 0, 1) : 0;
+  set('rumble', N.rumble.g.gain, und ? 0.12 + dark * 0.06 : 0.03);
+  set('hum', N.hum.g.gain, und && st === 2 ? 0.03 * (0.7 + 0.3 * Math.sin(t * 0.6)) : 0, 1);
+  set('wind', N.wind.g.gain, und ? (st === 3 ? 0.1 : 0.03) : 0.05 + WX.wind * 0.17);
+  set('windF', N.wind.f.frequency, Math.round(360 + 420 * (0.5 + 0.5 * Math.sin(t * 0.37)) + WX.wind * 320), 0.8);
+  set('rain', N.rain.g.gain, WX.rain * 0.24);
+  set('lava', N.lava.g.gain, lava * lava * 0.32, 0.4);
+  if (!live) return;
+  // ときどき鳴る音（次に鳴らす時刻を種類ごとに持つ）
+  const due = (k, a, b) => { if (AMB.next[k] == null) AMB.next[k] = t + a + Math.random() * (b - a); if (t < AMB.next[k]) return false; AMB.next[k] = t + a + Math.random() * (b - a); return true; };
+  if (und && (st === 0 || st === 3) && due('drip', 0.9, 3.2)) { const f = 1300 + Math.random() * 1100; tone(f, 0.12, 'sine', 0.022, f * 0.45, 0, 0.002); tone(f * 0.98, 0.1, 'sine', 0.008, f * 0.44, 0.17, 0.002); }   // 水滴とこだま
+  if (und && st === 1 && due('creak', 3, 7)) { const f = 130 + Math.random() * 70; tone(f, 0.5, 'sawtooth', 0.006, f * 0.8, 0, 0.12); noise(0.3, 0.006, 300, 900); }   // 木のきしみ
+  if (und && st === 2 && due('clank', 2.5, 6)) { const f = 300 + Math.random() * 220; tone(f, 0.6, 'triangle', 0.011, f * 0.97, 0, 0.002); tone(f * 2.7, 0.45, 'sine', 0.005, 0, 0.01, 0.002); }   // 遠い金属の音
+  if (und && st === 2 && due('steam', 5, 11)) noise(0.9, 0.012, 3200, 9000);   // 蒸気
+  if (!und && st === 3 && due('bell', 7, 14)) { const f = [392, 440, 523, 587, 659][Math.floor(Math.random() * 5)]; [[1, 0.018], [2.76, 0.007], [5.4, 0.003]].forEach(([m, v]) => tone(f * m, 2.6, 'sine', v, 0, 0, 0.003)); }   // 遠くの鐘
+  if (WX.rain > 0.2 && due('drop', 0.08, 0.35)) tone(1800 + Math.random() * 2200, 0.035, 'sine', 0.006 * WX.rain, 0, 0, 0.001);   // 雨粒がはじける
+  if (lava > 0.4 && due('blub', 0.4, 1.4)) tone(90 + Math.random() * 60, 0.18, 'sine', 0.03 * lava, 55, 0, 0.01);   // 溶岩のぼこぼこ
+}
 /* ---------- menus & loop ---------- */
 const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
@@ -2591,7 +2660,52 @@ function showEnd() {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
   }
   gemRows($('eGems'), GEM_ORDER.filter(id => G.gems[id]));
+  G.cardInfo = { m, isNew: m > best && !G.test, zone: poolAt(G.best).name, time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
+  $('btnCard').textContent = '結果を画像にする';
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
+}
+/* ---------- 結果カード：着いた高さの景色・オバケ・高さ・持っていた水晶を 1080×1080 の絵にして、共有（スマホ）か保存 ---------- */
+function makeCard(info) {
+  const S = 1080, u = S / 360, c = document.createElement('canvas'); c.width = c.height = S;
+  const g = c.getContext('2d'), P = palAt(info.m), t = G.time;
+  g.setTransform(u, 0, 0, u, 0, 0);
+  Kabe.background(g, P, 0, 0, 360, 360, t, -info.m * PX_PER_M);
+  // 左右の岩の壁（地形の色）と、下の床
+  g.fillStyle = P.terrain; g.fillRect(0, 0, 30, 360); g.fillRect(330, 0, 30, 360); g.fillStyle = P.terrainLight; g.fillRect(30, 0, 2.5, 360); g.fillRect(327.5, 0, 2.5, 360);
+  g.fillStyle = P.terrain; g.fillRect(0, 300, 360, 60); g.fillStyle = P.accent; g.fillRect(0, 298, 360, 4);
+  for (let i = 0; i < 26; i++) { const x = 34 + i * 11.5 + Kabe.hash(i, 1, 2) * 4, h = 4 + Kabe.hash(i, 2, 3) * 6; g.strokeStyle = i % 2 ? P.accentShade : P.accent; g.lineWidth = 1.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(x, 299); g.quadraticCurveTo(x + 1, 299 - h * 0.6, x + 2.5, 299 - h); g.stroke(); }
+  // 光
+  const gl = g.createRadialGradient(250, 240, 10, 250, 240, 150); gl.addColorStop(0, rgba(P.glow, 0.28)); gl.addColorStop(1, rgba(P.glow, 0)); g.fillStyle = gl; g.fillRect(0, 0, 360, 360);
+  // オバケ（新記録ならばんざい）
+  Kabe.ghost(g, P, 'sheet', info.isNew ? 'cheer' : 'stand', 252, 270, 1.2, -1, 2.6);
+  // 文字の板
+  g.fillStyle = rgba(P.uiPanel, 0.9); rr(g, 44, 36, 178, 232, 18); g.fill();
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillStyle = P.glow; g.font = `800 13px ${FONT}`; g.fillText('壁蹴りタワー', 60, 62);
+  g.fillStyle = P.uiInk; g.font = `800 54px ${FONT}`; g.fillText(info.m + 'm', 58, 120);
+  g.fillStyle = P.uiMuted; g.font = `800 12px ${FONT}`; g.fillText(`${info.zone}まで登った`, 60, 142);
+  if (info.isNew) { g.fillStyle = P.glow; rr(g, 150, 58, 62, 20, 10); g.fill(); g.fillStyle = P.ink; g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.fillText('新記録', 181, 72); g.textAlign = 'left'; }
+  g.font = `500 12px ${FONT}`; g.fillStyle = P.uiMuted;
+  [['タイム', info.time + '秒'], ['拾った結晶', info.got + '個'], ['おしまい', info.cause]].forEach(([a, b], i) => { g.fillStyle = P.uiMuted; g.fillText(a, 60, 170 + i * 20); g.fillStyle = P.uiInk; g.textAlign = 'right'; g.fillText(b, 206, 170 + i * 20); g.textAlign = 'left'; });
+  info.gems.slice(0, 5).forEach((id, i) => Kabe.gem(g, P, id, GEMS[id].star, 68 + i * 33, 248, 1.15, 0.5));
+  if (!info.gems.length) { g.fillStyle = P.uiMuted; g.fillText('水晶なし', 60, 252); }
+  // 下のはし：日付と遊べる場所
+  const d = new Date(), ds = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
+  g.fillStyle = rgba(P.uiInk, 0.85); g.font = `500 10px ${FONT}`; g.textAlign = 'left'; g.fillText(ds, 40, 340);
+  if (/^https?:/.test(location.protocol)) { g.textAlign = 'right'; g.fillText((location.host + location.pathname).replace(/index\.html$/, ''), 320, 340); }
+  return c;
+}
+async function shareCard() {
+  const b = $('btnCard'), info = G.cardInfo; if (!info) return;
+  b.disabled = true; b.textContent = 'つくっています…';
+  try {
+    if (document.fonts && document.fonts.load) await document.fonts.load(`800 54px "M PLUS Rounded 1c"`).catch(() => {});
+    const c = makeCard(info), blob = await new Promise(r => c.toBlob(r, 'image/png')), name = `kabegeri-${info.m}m.png`;
+    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: `壁蹴りタワーで ${info.m}m 登った！` }).catch(() => {}); b.textContent = '結果を画像にする'; }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); b.textContent = '保存しました'; }
+  } catch (e) { b.textContent = 'うまく作れなかった'; }
+  b.disabled = false;
 }
 /* ---------- 画面の表示に置く小さな絵（canvas に data-w・data-h、draw(g, t) で毎フレーム描く） ---------- */
 const uiDraws = new Map();
@@ -2721,7 +2835,8 @@ function startShow(n) {
   for (let st = start + 1; st <= best; st++) { ups.push({ t: tt, star: st, fired: false }); tt += 0.7; }
   const brewEnd = Math.max(2.0, tt + 0.1), hushEnd = brewEnd + 0.55;
   res.forEach((r, i) => { r.popAt = hushEnd + i * 0.6; r.popped = false; r.x = n === 1 ? 180 : 70 + i * 110; r.y = n === 1 ? 240 : 262; });
-  Object.assign(show, { active: true, t: 0, n, res, best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd,
+  const style = ['pop', 'shatter', 'gather'][Math.floor(Math.random() * 3)];   // 開け方：飛び出す・殻が砕ける・光が集まる
+  Object.assign(show, { active: true, t: 0, n, res, best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd, style, rings: [],
     endAt: hushEnd + (n - 1) * 0.6 + 1.1, flash: 0, shake: 0, parts: [], plinks: 0, nextBubble: 0.8, hushed: false, done: false, upFx: [] });
   $('gShow').hidden = false; renderGacha(); sfx.spin();
   if (reduceMotion) skipShow();
@@ -2753,6 +2868,12 @@ function popFx(r, big) {
   show.flash = calm ? 0.3 : 1; show.shake = calm ? 0 : 4 + r.star * 3;
   show.shock = { t0: show.t, x: r.x, y: r.y, k: 1 + r.star * 0.35 };
   sfx.pop(r.star); buzz(r.star >= 3 ? [40, 60, 90] : r.star === 2 ? [30, 40] : 25);
+  const tone0 = Kabe.gemTone(PAL, r.star);
+  if (show.style !== 'pop') show.rings.push({ x: r.x, y: r.y, t0: show.t, col: tone0[0] });
+  if (show.style === 'shatter') {   // 殻のかけら：大きめの三角が外へ飛ぶ
+    sfx.shatter();
+    for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2 + Math.random() * 0.3, sp = 140 + Math.random() * 200; show.parts.push({ x: r.x + Math.cos(a) * 10, y: r.y + Math.sin(a) * 14, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 80, life: 1 + Math.random() * 0.6, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 14, col: Math.random() < 0.35 ? '#ffffff' : Kabe.mixHex(tone0[0], '#ffffff', 0.3), kind: 'shard', size: 4 + Math.random() * 5 }); }
+  }
   const c = Kabe.gemTone(PAL, r.star), n = 18 + r.star * 14 + (big ? 10 : 0);
   for (let i = 0; i < n; i++) {
     const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 260;
@@ -2872,6 +2993,34 @@ const showFx = (() => {
   return api;
 })();
 const easeOutBack = k => 1 + 2.4 * (k - 1) ** 3 + 1.4 * (k - 1) ** 2;
+// 出る前の様子：殻（shatter）は 0.8秒前からふくらんで、ひびが増えてふるえる。光（gather）は 0.9秒前から粒がうずを巻いて集まる
+function revealPre(g, S, r, T, t) {
+  const pre = r.popAt - T, sc = S.n === 1 ? 2.6 : 1.5, c = Kabe.gemTone(PAL, S.tier);
+  if (S.style === 'shatter' && pre < 0.8) {
+    const k = 1 - pre / 0.8, grow = smooth01(k / 0.3), cracks = Math.floor(smooth01((k - 0.25) / 0.7) * 7), sh = k > 0.5 && !calm ? (Math.random() - 0.5) * (k - 0.5) * 6 : 0;
+    if ((r.cracks || 0) < cracks) { r.cracks = cracks; sfx.crackle(); }
+    g.save(); g.translate(r.x + sh, r.y); g.scale(sc * grow, sc * grow);
+    const pts = [[0, -27], [15, -13], [15, 13], [0, 27], [-15, 13], [-15, -13]];
+    const path = () => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); };
+    path(); g.fillStyle = rgba(Kabe.mixHex(c[1], '#ffffff', 0.2), 0.92); g.fill();
+    g.save(); path(); g.clip(); g.fillStyle = rgba(Kabe.mixHex(c[0], '#ffffff', 0.45), 0.9); g.fillRect(-16, -28, 16, 56); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(-11, -20, 3, 30); g.restore();
+    path(); g.strokeStyle = 'rgba(255,255,255,.75)'; g.lineWidth = 1; g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 0.9; g.lineCap = 'round';
+    for (let j = 0; j < cracks; j++) { let a = Kabe.hash(j, r.x, 5) * Math.PI * 2, x = 0, y = 0; g.beginPath(); g.moveTo(0, 0); for (let q = 0; q < 3; q++) { a += (Kabe.hash(j, q, 6) - 0.5) * 1.2; x += Math.cos(a) * 7; y += Math.sin(a) * 9; g.lineTo(x, y); } g.stroke(); }
+    g.restore();
+    const gl = g.createRadialGradient(r.x, r.y, 4, r.x, r.y, 60 * sc / 2.6 + k * 40); gl.addColorStop(0, rgba(c[0], 0.35 * k)); gl.addColorStop(1, rgba(c[0], 0)); g.fillStyle = gl; g.fillRect(r.x - 120, r.y - 120, 240, 240);
+  } else if (S.style === 'gather' && pre < 0.9) {
+    const k = 1 - pre / 0.9, e = k * k;
+    if (!r.gathered) { r.gathered = true; sfx.gather(); }
+    for (let i = 0; i < 28; i++) {
+      const a = i * 2.39996 + e * 4 + Kabe.hash(i, 3, 9), rad = (230 + Kabe.hash(i, 4, 9) * 120) * (1 - e) * sc / 2.6;
+      const px = r.x + Math.cos(a) * rad, py = r.y + Math.sin(a) * rad * 0.85;
+      g.strokeStyle = rgba(i % 3 ? c[0] : '#ffffff', 0.35 * k); g.lineWidth = 1.2; g.beginPath(); g.moveTo(px, py); g.lineTo(r.x + Math.cos(a - 0.25) * rad * 1.15, r.y + Math.sin(a - 0.25) * rad * 0.98); g.stroke();   // 粒の通ったあと
+      Kabe.twinkle(g, px, py, 2.4 + (i % 3) * 1.2 + e * 3, Math.min(1, k * 2.5));
+    }
+    const core = g.createRadialGradient(r.x, r.y, 0, r.x, r.y, 14 + e * 46); core.addColorStop(0, rgba('#ffffff', Math.min(1, 0.4 + 0.6 * k))); core.addColorStop(0.4, rgba(c[0], 0.7 * k)); core.addColorStop(1, rgba(c[0], 0)); g.fillStyle = core; g.fillRect(r.x - 60, r.y - 60, 120, 120);
+  }
+}
 uiCanvas($('gShow'), (g, t, w, h) => {
   const S = show; if (!S.active) return;
   const T = S.t, liquid = Kabe.gemTone(PAL, S.tier)[0], dark = Kabe.mix(PAL.uiPanel, '#000000', 0.55);
@@ -2908,11 +3057,12 @@ uiCanvas($('gShow'), (g, t, w, h) => {
   // 出た水晶
   const big = S.n === 1 ? 4.6 : 2.7;
   for (const r of S.res) {
-    if (!r.popped) continue;
-    const kk = T - r.popAt, f = Math.min(1, kk / 0.4), e = easeOutBack(f);
-    const x = POT.x + (r.x - POT.x) * e, y = POT.my + (r.y - POT.my) * e + (f >= 1 ? Math.sin(t * 2 + r.x) * 3 : 0);
+    if (!r.popped) { revealPre(g, S, r, T, t); continue; }
+    const kk = T - r.popAt, f = Math.min(1, kk / 0.4), e = easeOutBack(f), fly = S.style === 'pop';
+    const x = fly ? POT.x + (r.x - POT.x) * e : r.x, y = (fly ? POT.my + (r.y - POT.my) * e : r.y) + (f >= 1 ? Math.sin(t * 2 + r.x) * 3 : 0);
     g.save(); g.translate(x, y); g.scale(S.n === 1 ? 3 : 1.9, S.n === 1 ? 3 : 1.9); Kabe.gemBurst(g, PAL, r.star, 0, 0, t, Math.min(1, kk / 0.3)); g.restore();
-    g.save(); g.translate(x, y); g.scale(f < 1 ? Math.max(0.15, Math.abs(Math.cos(f * 9))) : 1, 1); Kabe.gem(g, PAL, r.id, r.star, 0, 0, big * (0.5 + 0.5 * f), t); g.restore();   // 回りながら飛び出す
+    const gs = fly ? 0.5 + 0.5 * f : 0.25 + 0.75 * e;   // 飛び出すときは回りながら、その場で出るときはぽんとふくらむ
+    g.save(); g.translate(x, y); g.scale(fly && f < 1 ? Math.max(0.15, Math.abs(Math.cos(f * 9))) : 1, 1); Kabe.gem(g, PAL, r.id, r.star, 0, 0, big * gs, t); g.restore();
     // ★ を1つずつ、名前、NEW の札
     const ty = r.y + big * 12 + 18, c = Kabe.gemTone(PAL, r.star);
     g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -2953,10 +3103,13 @@ uiCanvas($('gShow'), (g, t, w, h) => {
       g.restore();
     }
   }
+  // 出た瞬間の輪（殻・光の開け方）
+  for (const q of S.rings) { const k = (T - q.t0) / 0.7; if (k < 0 || k > 1) continue; g.strokeStyle = rgba(q.col, 1 - k); g.lineWidth = 5 * (1 - k) + 1; g.beginPath(); g.arc(q.x, q.y, 20 + k * 150, 0, Math.PI * 2); g.stroke(); }
   // 光のかけら（紙吹雪）
   for (const q of S.parts) {
     g.globalAlpha = Math.min(1, q.life / 0.6);
     if (q.kind === 'twinkle') Kabe.twinkle(g, q.x, q.y, q.size * 1.4, 0.95);
+    else if (q.kind === 'shard') { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillStyle = q.col; g.beginPath(); g.moveTo(0, -q.size); g.lineTo(q.size * 0.6, q.size * 0.7); g.lineTo(-q.size * 0.5, q.size * 0.4); g.closePath(); g.fill(); g.strokeStyle = 'rgba(255,255,255,.7)'; g.lineWidth = 0.8; g.stroke(); g.restore(); }
     else { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillStyle = q.col; g.fillRect(-q.size / 2, -q.size * 0.3, q.size, q.size * 0.6 * Math.abs(Math.cos(q.rot * 2)) + 0.6); g.restore(); }
   }
   g.globalAlpha = 1;
@@ -3009,8 +3162,8 @@ $('btnUpdate').onclick = async () => {
   } catch (e) {}
   location.replace(location.pathname + '?v=' + Date.now());
 };
-$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame;
-const toTitle = () => { state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
+$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard').onclick = shareCard;
+const toTitle = () => { TITLE.t = 0; state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
 $('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
 $('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); showOnly('pause'); } };
@@ -3027,6 +3180,9 @@ document.addEventListener('selectstart', e => e.preventDefault());
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); press(e.clientX - r.left < r.width / 2 ? -1 : 1); });
 addEventListener('pointerup', release); addEventListener('pointercancel', release);
+// ボタンをはなしたら、ぽよんと戻す（.pop をつけ直す）
+document.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('button, a.sub'); if (!b || b.disabled) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
+document.addEventListener('animationend', e => { if (e.animationName === 'pop') e.target.classList.remove('pop'); });
 addEventListener('keyup', e => { if ([' ', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) release(); });
 addEventListener('keydown', e => {
   if (show.active && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); if (!e.repeat) showTap(); return; }
@@ -3040,15 +3196,25 @@ addEventListener('keydown', e => {
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') $('pauseBtn').onclick(); });
 
+// タイトル：オバケは床でうとうと。カメラは下で少し止まってから縦穴をゆっくり上へ流し、上で止まったら暗くして下へ戻る（24秒でくり返す）
+const TITLE = { t: 0, fade: 0, cycle: 24, rise: 1150 };
+function titleTick(dt) {
+  TITLE.t += dt; G.standT = 7;
+  const T = TITLE.t % TITLE.cycle, base = 60 - H, k = smooth01((T - 3.5) / 16.5);
+  cam.y = base - TITLE.rise * (k * k * (3 - 2 * k) * 0.5 + k * 0.5);
+  TITLE.fade = reduceMotion ? 0 : T < 0.9 ? 1 - T / 0.9 : T > TITLE.cycle - 1.3 ? (T - TITLE.cycle + 1.3) / 1.3 : 0;
+  if (reduceMotion) cam.y = base;
+  ensureAhead();
+}
 let last = performance.now(), acc = 0, fps = 60;
 function loop(now) {
   const raw = Math.max(0, now - last) / 1000, frame = Math.min(0.1, raw) * MOVE.speed; last = now;
   if (raw > 0) fps += (1 / raw - fps) * 0.05;   // 表示用になめらかに
   if (state === 'play') { acc += frame; while (acc >= DT && state === 'play') { update(DT); acc -= DT; } }
-  else if (state === 'title') { G.time += frame; updatePose(frame); }
+  else if (state === 'title') { G.time += frame; titleTick(frame); updatePose(frame); }
   else if (state === 'gacha') updateGacha(frame);
   else if (state === 'dying') G.time += frame;
-  updateEffects(frame);
+  updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
   const t0 = performance.now();
   draw();
   drawUi(now / 1000); showFx.frame();
@@ -3082,7 +3248,7 @@ if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS
 // 文字の絵は使い回すので、フォントが届いたら描き直す
 if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
-window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
+window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
 </script>
 </body>
