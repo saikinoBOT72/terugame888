@@ -232,7 +232,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.20g';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.20h';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -577,7 +577,22 @@ const cv = $('cv'), frameEl = $('frame');
 let ctx = cv.getContext('2d', { alpha: false });   // HUD を描くあいだだけ #hud の canvas に切り替える。背景で毎回全部塗るので不透明（重ねるのが速い）
 let scale = 1, dpr = 1;
 // 計測モード（URL に ?perf）：部分ごとにオフにして、実機でどこが重いかを見る
-const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0 };
+const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, mode: (location.search.match(/[?&]up=(gpu|cpu|bmp)/) || [])[1] || 'gpu' };
+// シェーダーへ渡す2Dの絵の描き先（見た目は同じ、渡し方だけ違う）
+//   gpu：見えている #cv にそのまま描いて渡す（今まで）／ cpu：メモリ上の canvas に描いて渡す／ bmp：画面外の OffscreenCanvas に描いて画像として渡す
+const cvCtx = ctx, scene = { c: null, g: null, mode: '' };
+const canBmp = typeof OffscreenCanvas === 'function' && !!OffscreenCanvas.prototype.transferToImageBitmap;
+function sceneTarget() {
+  const mode = PERF.mode === 'bmp' && !canBmp ? 'gpu' : PERF.mode;
+  if (mode === 'gpu') return null;
+  if (scene.mode !== mode || scene.c.width !== cv.width || scene.c.height !== cv.height) {
+    scene.mode = mode;
+    scene.c = mode === 'bmp' ? new OffscreenCanvas(cv.width, cv.height) : Object.assign(document.createElement('canvas'), { width: cv.width, height: cv.height });
+    scene.g = scene.c.getContext('2d', { alpha: false, willReadFrequently: mode === 'cpu' });
+  }
+  return scene;
+}
+
 function resize() {
   const box = $('app').getBoundingClientRect();
   scale = Math.min((box.width || innerWidth) / W, (box.height || innerHeight) / H);
@@ -905,7 +920,7 @@ function bandCanvas(b) {
   if (world.rows.length < (b + 1) * BAND + 2) return null;   // 上の行がまだない
   const r0 = b * BAND, pad = 2 * CELL, yTop = -(r0 + BAND) * CELL - pad, hpx = BAND * CELL + pad * 2, k = scale * dpr;
   const c = document.createElement('canvas'); c.width = Math.ceil(W * k); c.height = Math.ceil(hpx * k);
-  const g = c.getContext('2d'); g.setTransform(k, 0, 0, k, 0, -yTop * k);
+  const g = c.getContext('2d', { willReadFrequently: PERF.mode === 'cpu' }); g.setTransform(k, 0, 0, k, 0, -yTop * k);
   Kabe.terrain(g, PAL, bandGrid(r0), 0, 0, -(r0 + BAND) * CELL);
   const out = { c, yTop, hpx };
   bands.set(b, out);
@@ -1105,6 +1120,11 @@ function drawHud() {
 let cvShown = true;
 function showCv(on) { if (on !== cvShown) { cvShown = on; cv.style.opacity = on ? '' : '0'; } }
 function draw() {
+  const sc = FX.ok ? sceneTarget() : null;
+  ctx = sc ? sc.g : cvCtx;
+  try { drawFrame(sc); } finally { ctx = cvCtx; }
+}
+function drawFrame(sc) {
   const k = scale * dpr;
   ctx.setTransform(k, 0, 0, k, 0, 0);
   if (!world) return;
@@ -1135,7 +1155,7 @@ function draw() {
   }
   ctx.restore();
   if (FX.ok) {   // シェーダーで仕上げ、HUD は別の canvas へ
-    renderFx(); glcv.hidden = false; hudcv.hidden = false; showCv(false);
+    renderFx(sc); glcv.hidden = false; hudcv.hidden = false; showCv(false);
     const main = ctx; ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
     if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); }
     ctx = main;
@@ -1321,13 +1341,15 @@ function collectLights() {
   const px = P.x, py = P.y - cy;
   return out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
 }
-function renderFx() {
+function renderFx(sc) {
   const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
   const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
-  glfx.render(cv, collectLights(), {
+  const src = !sc ? cv : sc.mode === 'bmp' ? sc.c.transferToImageBitmap() : sc.c;
+  glfx.render(src, collectLights(), {
     t: G.time, amb: FX.ambient, bloomK: FX.bloom, emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94],
   });
+  if (src.close) src.close();   // bmp：渡し終わった画像はすぐ返す
 }
 
 /* ---------- 光と影：洞窟を少し暗くして、光るものだけ明るく抜く（おばけ・結晶・キノコ・ガチャ所・溶岩） ---------- */
@@ -1839,13 +1861,21 @@ if (PERF.on) {
   const items = [['upload', '転送'], ['comp', '仕上げ'], ['lights', '点光源'], ['emb', '凹凸+色ずれ'], ['bloom', 'ブルーム'], ['atm', '筋+霧'], ['bg', '背景'], ['terrain', '地形'], ['sprites', '動くもの'], ['hud', 'HUD']];
   const btn = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.style.cssText = 'font:inherit;padding:5px 8px;border-radius:8px;border:0;background:#3a3445;color:#fff'; b.onclick = e => { e.stopPropagation(); fn(b); }; box.appendChild(b); return b; };
   for (const [key, label] of items) btn(label, b => { PERF.off[key] = !PERF.off[key]; b.style.background = PERF.off[key] ? '#b5562d' : '#3a3445'; b.style.textDecoration = PERF.off[key] ? 'line-through' : ''; });
+  // 渡し方（見た目は同じ）。押すと切り替わる。URL の &up=cpu などでも選べる
+  const modeBtns = [];
+  const paintModes = () => modeBtns.forEach(b => { b.style.background = b.dataset.m === PERF.mode ? '#3a8f86' : '#3a3445'; });
+  for (const m of ['gpu', 'cpu', 'bmp']) {
+    const b = btn('渡し方 ' + m.toUpperCase() + (m === 'bmp' && !canBmp ? '（非対応）' : ''), () => { if (m === 'bmp' && !canBmp) return; PERF.mode = m; clearBands(); scene.mode = ''; paintModes(); });
+    b.dataset.m = m; modeBtns.push(b);
+  }
+  paintModes();
   box.addEventListener('pointerdown', e => e.stopPropagation());
   document.body.appendChild(box);
   let next = 0;
   perfTick = (ms, now) => {
     PERF.js += (ms - PERF.js) * 0.05;
     if (now < next) return; next = now + 400;
-    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height}（×${dpr.toFixed(2)}）・ ${FX.ok ? 'きれい' : 'かるい'}`;
+    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'} ・ 渡し方 ${PERF.mode.toUpperCase()}`;
   };
 }
 resize(); renderBest(); newGame();
