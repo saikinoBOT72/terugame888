@@ -148,6 +148,7 @@
         <h2>ガチャ所</h2>
         <p id="gCrys"></p>
         <button class="btn" id="btnRoll" type="button"></button>
+        <button class="sub" id="btnLava" type="button"></button>
         <p id="gResult" class="tagline" aria-live="polite"></p>
         <p class="small">水晶を押して装備（2つまで）</p>
         <div id="gList" class="gems"></div>
@@ -169,7 +170,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19c';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19d';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -200,7 +201,8 @@ const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
-const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2 };
+// lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate
+const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 10, lavaRate: 1 };
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
@@ -1312,37 +1314,63 @@ function drawObstacles() {
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
 }
-// 結晶（仮の絵。カタログにはまだ無い）：glow の色の小さな結晶。ゆっくり上下して光る
-function gemShape(g, x, y, s) {
-  const k = Kabe.mix(PAL.glow, '#000000', 0.25);
-  Kabe.solid(g, () => { g.beginPath(); g.moveTo(x, y - 6 * s); g.lineTo(x + 4 * s, y - 1.5 * s); g.lineTo(x + 2.6 * s, y + 5 * s); g.lineTo(x - 2.6 * s, y + 5 * s); g.lineTo(x - 4 * s, y - 1.5 * s); g.closePath(); }, PAL.glow, k, PAL.ink, 0.8 * s, 0.85);
-  g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.moveTo(x - 0.6 * s, y - 4 * s); g.lineTo(x - 2.6 * s, y - 1.2 * s); g.lineTo(x - 1 * s, y + 1 * s); g.closePath(); g.fill();
+// 結晶（仮の絵。カタログにはまだ無い）：光の粒。ぼんやりした光＋白い芯＋十字のきらめき＋まわりを回る小さな粒
+function lightMote(g, x, y, s, t, seed) {
+  const tw = 0.75 + Math.sin(t * 5 + seed * 2) * 0.25;
+  const gl = g.createRadialGradient(x, y, 0, x, y, 11 * s); gl.addColorStop(0, rgba(PAL.glow, 0.55 * tw)); gl.addColorStop(0.45, rgba(PAL.glow, 0.18 * tw)); gl.addColorStop(1, rgba(PAL.glow, 0));
+  g.fillStyle = gl; g.beginPath(); g.arc(x, y, 11 * s, 0, Math.PI * 2); g.fill();
+  const L = (4.5 + tw * 3) * s, wd = 0.9 * s;   // 十字のきらめき（縦長め）
+  g.fillStyle = rgba('#ffffff', 0.85 * tw); g.beginPath();
+  g.moveTo(x, y - L * 1.2); g.quadraticCurveTo(x + wd, y - wd, x + L, y); g.quadraticCurveTo(x + wd, y + wd, x, y + L * 1.2);
+  g.quadraticCurveTo(x - wd, y + wd, x - L, y); g.quadraticCurveTo(x - wd, y - wd, x, y - L * 1.2); g.fill();
+  g.fillStyle = PAL.glow; g.beginPath(); g.arc(x, y, 2.6 * s, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffffff'; g.beginPath(); g.arc(x, y, 1.5 * s, 0, Math.PI * 2); g.fill();
+  if (s >= 1) for (let i = 0; i < 3; i++) {   // 回る小さな粒
+    const a = t * (1.6 + i * 0.4) + seed + i * 2.1, r = (6 + i * 1.5) * s;
+    g.fillStyle = rgba(PAL.glow, 0.5 + 0.4 * Math.sin(t * 4 + i + seed));
+    g.beginPath(); g.arc(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.7, 0.9 * s, 0, Math.PI * 2); g.fill();
+  }
 }
 function drawGems() {
   const t = G.time, yTop = cam.y - 30, yBot = cam.y + H + 30;
   for (const g of world.gems) {
     if (g.got || g.y < yTop || g.y > yBot) continue;
-    const y = g.y + Math.sin(t * 2.4 + g.seed) * 1.5;
-    const gl = ctx.createRadialGradient(g.x, y, 1, g.x, y, 13); gl.addColorStop(0, rgba(PAL.glow, 0.35 + Math.sin(t * 3 + g.seed) * 0.1)); gl.addColorStop(1, rgba(PAL.glow, 0));
-    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(g.x, y, 13, 0, Math.PI * 2); ctx.fill();
-    gemShape(ctx, g.x, y, 1);
+    lightMote(ctx, g.x, g.y + Math.sin(t * 2 + g.seed) * 2, 1, t, g.seed);
   }
 }
-// ガチャ所（仮の絵）：鉄の箱に丸いガラス窓、中に結晶。使ったら暗くなる
+// ガチャ所（仮の絵）：小さな家。土壁・鉄の屋根・光る丸窓・アーチの扉・軒先のランタン。使ったら窓の灯りが消える
 function drawStations() {
+  const t = G.time;
   for (const s of world.stations) {
-    if (s.y < cam.y - 60 || s.y > cam.y + H + 60) continue;
-    const x = s.x, y = s.y, w = 34, h = 40;
-    ctx.globalAlpha = s.used ? 0.55 : 1;
-    Kabe.solid(ctx, () => rr(ctx, x - w / 2, y - h, w, h, 6), PAL.metal, PAL.metalShade, PAL.ink, 1.4, 1.1);
-    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x, y - h + 15, 10, 0, Math.PI * 2); }, PAL.uiPanel, PAL.ink, PAL.ink, 0.8, 0.9);
-    if (!s.used) { gemShape(ctx, x - 4, y - h + 18, 0.7); gemShape(ctx, x + 4, y - h + 17, 0.6); gemShape(ctx, x, y - h + 12, 0.75); }
-    Kabe.shine(ctx, x - 4, y - h + 9, 2.6, 1.4, 0.45);
-    rr(ctx, x - 6, y - 12, 12, 7, 2); ctx.fillStyle = PAL.metalShade; ctx.fill();
-    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x + 10, y - 9, 2.6, 0, Math.PI * 2); }, PAL.accent, PAL.accentShade, PAL.ink, 0.5, 0.8);
+    if (s.y < cam.y - 80 || s.y > cam.y + H + 60) continue;
+    const x = s.x, y = s.y, w = 46, wh = 30, roofH = 20, top = y - wh, lit = !s.used;
+    // 窓の灯りが外にもれる
+    if (lit) { const gl = ctx.createRadialGradient(x - 10, top + 12, 2, x - 10, top + 12, 34); gl.addColorStop(0, rgba(PAL.glow, 0.3)); gl.addColorStop(1, rgba(PAL.glow, 0)); ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x - 10, top + 12, 34, 0, Math.PI * 2); ctx.fill(); }
+    // 煙突
+    Kabe.solid(ctx, () => rr(ctx, x + 10, top - roofH + 2, 7, 14, [2, 2, 0, 0]), PAL.metal, PAL.metalShade, PAL.ink, 0.8, 1);
+    // 壁
+    Kabe.solid(ctx, () => rr(ctx, x - w / 2 + 3, top, w - 6, wh, [0, 0, 3, 3]), PAL.terrainLight, PAL.terrainShade, PAL.ink, 1.4, 1.1);
+    ctx.fillStyle = rgba(PAL.terrainShade, 0.5); for (let i = 1; i < 3; i++) ctx.fillRect(x - w / 2 + 4, top + i * 10, w - 8, 1);   // 板の継ぎ目
+    // 屋根（三角、ふちは丸く）
+    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.moveTo(x - w / 2 - 3, top + 2); ctx.quadraticCurveTo(x - w / 2 - 4, top - 1, x - w / 2, top - 3); ctx.lineTo(x - 2, top - roofH); ctx.quadraticCurveTo(x, top - roofH - 1.5, x + 2, top - roofH); ctx.lineTo(x + w / 2, top - 3); ctx.quadraticCurveTo(x + w / 2 + 4, top - 1, x + w / 2 + 3, top + 2); ctx.closePath(); }, PAL.metal, PAL.metalShade, PAL.ink, 1.6, 1.1);
+    ctx.strokeStyle = PAL.metalLight; ctx.lineWidth = 1; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(x - w / 2 + 2, top - 4); ctx.lineTo(x - 3, top - roofH + 1.5); ctx.stroke();
+    // 丸窓（中に光の粒）
+    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x - 10, top + 12, 6.5, 0, Math.PI * 2); }, lit ? PAL.glow : PAL.uiPanel, lit ? Kabe.mix(PAL.glow, '#000000', 0.2) : PAL.ink, PAL.ink, 0.8, 0.9);
+    if (lit) lightMote(ctx, x - 10, top + 12, 0.6, t, 1);
+    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(x - 16.5, top + 12); ctx.lineTo(x - 3.5, top + 12); ctx.moveTo(x - 10, top + 5.5); ctx.lineTo(x - 10, top + 18.5); ctx.stroke();
+    // アーチの扉と取っ手
+    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.moveTo(x + 3, y); ctx.lineTo(x + 3, top + 13); ctx.arc(x + 9, top + 13, 6, Math.PI, 0); ctx.lineTo(x + 15, y); ctx.closePath(); }, PAL.metal, PAL.metalShade, PAL.ink, 0.8, 0.9);
+    ctx.fillStyle = PAL.glow; ctx.beginPath(); ctx.arc(x + 12.5, top + 20, 1.1, 0, Math.PI * 2); ctx.fill();
+    // 軒先のランタン（揺れる）
+    const sw = Math.sin(t * 1.8) * 0.15, lx = x - w / 2 + 1, ly = top + 2;
+    ctx.save(); ctx.translate(lx, ly); ctx.rotate(sw);
+    ctx.strokeStyle = PAL.ink; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, 5); ctx.stroke();
+    if (lit) { const lg = ctx.createRadialGradient(0, 9, 1, 0, 9, 10); lg.addColorStop(0, rgba(PAL.glow, 0.4)); lg.addColorStop(1, rgba(PAL.glow, 0)); ctx.fillStyle = lg; ctx.beginPath(); ctx.arc(0, 9, 10, 0, Math.PI * 2); ctx.fill(); }
+    Kabe.solid(ctx, () => rr(ctx, -2.6, 5, 5.2, 7, 2), lit ? PAL.glow : PAL.uiMuted, PAL.metalShade, PAL.ink, 0.6, 0.8);
+    ctx.restore();
+    // 看板
     ctx.font = `800 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = s.used ? PAL.uiMuted : PAL.glow; ctx.fillText(s.used ? 'つかった' : 'ガチャ', x, y - h - 9);
-    ctx.globalAlpha = 1;
+    ctx.fillStyle = lit ? PAL.glow : PAL.uiMuted; ctx.fillText(lit ? 'ガチャ' : '閉店', x, top - roofH - 9);
   }
 }
 function drawLava() {
@@ -1383,7 +1411,7 @@ function drawHud() {
   ctx.fillStyle = PAL.uiInk; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 11.5);
   // 結晶の数（ハートの下）と、装備している水晶（タイムの下）
   pill(HUD_GAP, HUD_GAP + 26, 64, 22);
-  gemShape(ctx, 22, HUD_GAP + 37, 0.85);
+  lightMote(ctx, 22, HUD_GAP + 37, 0.75, G.time, 0);
   ctx.textAlign = 'left'; ctx.fillStyle = PAL.uiInk; ctx.font = `800 12px ${FONT}`; ctx.fillText(Math.floor(G.crystals), 34, HUD_GAP + 37.5);
   ctx.textAlign = 'center';
   G.equip.forEach((id, i) => {
@@ -1506,6 +1534,8 @@ function leaveGacha() { showOnly(null); state = 'play'; $('pauseBtn').hidden = f
 function renderGacha() {
   $('gCrys').textContent = `結晶 ${Math.floor(G.crystals)}`;
   const b = $('btnRoll'); b.textContent = `回す（結晶${GACHA.cost}）`; b.disabled = G.crystals < GACHA.cost;
+  const lv = $('btnLava'), gain = lavaGain();
+  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づける（+${gain}結晶）` : `溶岩まで ${Math.round(lavaDist())}m（もう近づけられない）`; lv.disabled = gain <= 0;
   const list = $('gList'); list.textContent = '';
   const ids = Object.keys(G.gems);
   if (!ids.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'まだ水晶がない'; list.append(p); }
@@ -1538,6 +1568,14 @@ $('btnRoll').onclick = () => {
   }
   $('gResult').textContent = msg; sfx.gacha(); renderGacha();
   if ($('btnRoll').disabled) $('btnGachaGo').focus({ preventScroll: true });
+};
+// 溶岩を近づけて結晶にかえる：いまの溶岩までの距離から lavaTo m を引いた分
+const lavaDist = () => (G.lavaY - P.y) / PX_PER_M;
+const lavaGain = () => Math.max(0, Math.floor((lavaDist() - GACHA.lavaTo) * GACHA.lavaRate));
+$('btnLava').onclick = () => {
+  const gain = lavaGain(); if (gain <= 0) return;
+  G.lavaY = P.y + GACHA.lavaTo * PX_PER_M; G.lavaDelay = 0; G.crystals += gain;
+  $('gResult').textContent = `溶岩が ${GACHA.lavaTo}m まで上がってきた。結晶 +${gain}`; sfx.lava(); cam.shake = 6; renderGacha();
 };
 $('btnGachaGo').onclick = leaveGacha;
 const muteLabel = () => { $('btnMute').textContent = muted ? '音：オフ' : '音：オン'; };
