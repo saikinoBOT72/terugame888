@@ -384,7 +384,20 @@ window.Kabe = (function () {
     air: { name: '2段ジャンプ', tilt: 0.5, sq: 0.08, hands: [[-6, 3], [6.5, 2]], feet: [[-3, 10], [5, 9]], scarf: [[-4, -1], [-11, -4], [-19, -4], [-26, 1], [-31, 8]], expr: 'happy', look: [1, 0], hem: -0.9 },
     hurt: { name: 'ダメージ', tilt: -0.32, sq: 0.06, hands: [[-11, -6], [10.5, -7]], feet: [[-7.5, 12], [6.5, 10]], scarf: [[-4, -1], [-8, -8], [-13, -14], [-14, -21], [-12, -28]], expr: 'hurt', look: [-1, 0], hem: 1.2 }
   };
+  // 動きを増やすポーズ（本編で状態に合わせて切り替える）
+  var MORE = {
+    kick: { name: '蹴った瞬間', tilt: 0.32, sq: -0.16, hands: [[-12, 2], [-10, 7]], feet: [[-8, 11], [-2, 13]], scarf: [[-4, -1], [-13, 2], [-22, 5], [-31, 9], [-39, 14]], expr: 'brave', look: [1, -0.5], hem: -2.4 },
+    fall: { name: '落ちる', tilt: -0.06, sq: -0.05, hands: [[-10.5, -9], [10.5, -10]], feet: [[-5, 13], [5, 13]], scarf: [[-4, -1], [-8, -7], [-11, -14], [-10, -21], [-12, -27]], expr: 'surprised', look: [0, 0.7], hem: 2.2 },
+    land: { name: '着地', tilt: 0, sq: 0.13, hands: [[-11.5, 6], [11.5, 6]], feet: [[-6, 12.5], [6, 12.5]], scarf: [[-4, -1], [-10, 3], [-13, 9], [-14, 15], [-13, 20]], expr: 'squint', look: [1, 0.3], hem: 0.9 },
+    wobble: { name: 'グラグラ', tilt: -0.1, sq: 0.02, hands: [[-11.5, -6], [-11.5, 2]], feet: [[-10.5, 10], [-8, 12.5]], scarf: [[-4, -1], [-9, 5], [-10, 12], [-8, 19], [-9, 26]], expr: 'worried', look: [1, 0.4], wall: true, hem: -0.6, sweat: true },
+    slide: { name: '壁を滑る', tilt: -0.06, sq: -0.03, hands: [[-11.5, -8], [-11, -1]], feet: [[-10.5, 11], [-8, 13]], scarf: [[-4, -1], [-8, -6], [-9, -13], [-7, -19], [-8, -25]], expr: 'calm', look: [1, 0.6], wall: true, hem: 1.4 },
+    hover: { name: 'ホバリング', tilt: 0.04, sq: 0.05, hands: [[-13, -2], [13, -3]], feet: [[-4, 11], [4, 11]], scarf: [[-4, -1], [-11, -3], [-18, -2], [-24, 2], [-29, 7]], expr: 'happy', look: [1, 0.2], hem: 1.6 },
+    sleep: { name: 'うとうと', tilt: 0.12, sq: 0.06, hands: [[-8, 6.5], [8.5, 6.5]], feet: [[-4, 12.5], [4.5, 12.5]], scarf: [[-4, -1], [-10, 3], [-13, 9], [-14, 16], [-13, 22]], expr: 'sleep', look: [0.4, 0.6], hem: 0.3, zzz: true },
+    cheer: { name: 'やったー', tilt: 0, sq: -0.08, hands: [[-10, -12], [10.5, -12]], feet: [[-5, 13], [5, 13]], scarf: [[-4, -1], [-11, 0], [-17, 4], [-21, 10], [-23, 16]], expr: 'happy', look: [0.6, -0.6], hem: -0.6 }
+  };
+  for (var mk in MORE) POSES[mk] = MORE[mk];
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
+  var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer'];
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
   function scarfTail(g, P, pts, t, w0) {
     w0 = w0 || 3.4;
@@ -429,6 +442,11 @@ window.Kabe = (function () {
       g.beginPath();
       if (expr === 'hurt') { var s = i ? -1 : 1; g.moveTo(x - 1.2 * s, y - 1.5); g.lineTo(x + 1 * s, y); g.lineTo(x - 1.2 * s, y + 1.5); }
       else if (expr === 'happy') { g.moveTo(x - 1.4, y + 0.8); g.lineTo(x, y - 0.8); g.lineTo(x + 1.4, y + 0.8); }
+      else if (expr === 'surprised') { g.arc(x, y, 1.25, 0, Math.PI * 2); }
+      else if (expr === 'sleep') { g.moveTo(x - 1.5, y - 0.2); g.quadraticCurveTo(x, y + 1.4, x + 1.5, y - 0.2); }
+      else if (expr === 'squint') { g.moveTo(x - 1.4, y); g.lineTo(x + 1.4, y); }
+      else if (expr === 'calm') { g.moveTo(x - 1.4, y - 0.2); g.quadraticCurveTo(x, y - 1.2, x + 1.4, y - 0.2); }
+      else if (expr === 'worried') { g.moveTo(x, y - 0.9); g.lineTo(x, y + 1.5); var d = i ? 1 : -1; g.moveTo(x - 1.5 * d, y - 2.6); g.lineTo(x + 0.9 * d, y - 3.4); }
       else if (blink) { g.moveTo(x - 1.2, y + 0.4); g.lineTo(x + 1.2, y + 0.4); }
       else if (expr === 'brave') { g.moveTo(x - 0.4, y - 1.8); g.lineTo(x + 0.4, y + 1.6); }
       else { g.moveTo(x, y - 1.7); g.lineTo(x, y + 1.7); }
@@ -475,6 +493,18 @@ window.Kabe = (function () {
       g.beginPath(); g.moveTo(-20, o.hemY - 1.2); g.quadraticCurveTo(0, o.hemY - 3, 20, o.hemY - 1.2); g.lineTo(20, 30); g.lineTo(-20, 30); g.closePath(); g.fill(); g.restore();
       shine(g, -o.half * 0.5, o.top + 4.5, 2.4, 1.3, 0.9);
       lineEyes(g, P, o.eyes, Q.expr, Q.look, t); cheeks(g, P, o.cheeks);
+      if (Q.sweat) {   // 汗：額の横に小さなしずく（揺れる）
+        var sy = o.top + 5 + Math.sin(t * 6) * 0.6;
+        solid(g, function () { g.beginPath(); g.moveTo(o.half - 0.5, sy - 3); g.quadraticCurveTo(o.half + 2.2, sy + 0.5, o.half + 0.8, sy + 1.6); g.quadraticCurveTo(o.half - 1.6, sy + 1.4, o.half - 0.5, sy - 3); g.closePath(); }, '#ffffff', P.playerShade, P.playerLine, 0.4, 0.8);
+      }
+      if (Q.zzz) {   // 寝息：小さな z が3つ、ゆっくり上へ
+        g.strokeStyle = P.playerLine; g.lineWidth = 0.9; g.lineCap = 'round'; g.lineJoin = 'round';
+        for (var zi = 0; zi < 3; zi++) {
+          var zk = (t * 0.45 + zi / 3) % 1, zs = 1.4 + zk * 1.6, zx = 6 + zk * 7, zy = o.top - 2 - zk * 12;
+          g.globalAlpha = Math.min(1, (1 - zk) * 2.2); g.beginPath(); g.moveTo(zx - zs, zy - zs); g.lineTo(zx + zs, zy - zs); g.lineTo(zx - zs, zy + zs); g.lineTo(zx + zs, zy + zs); g.stroke();
+        }
+        g.globalAlpha = 1;
+      }
       scarfWrap(g, P, 0, o.scarfY, o.scarfW, 3.2);
       if (o.sleeves) sleeve(g, P, shoulder(Q.hands[1][0]), 0.5, Q.hands[1][0], Q.hands[1][1], 2.1);
       else ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], o.hand);
@@ -634,22 +664,34 @@ window.Kabe = (function () {
     g.restore();
   }
 
-  // ガチャの釜（案D「光の釜」）：脚つきの鉄の釜で、中の光がぶくぶく泡立つ。spin（0〜1）で泡と湯気が増え、揺れる。
-  // liquid：中の光の色（省略で glow。演出でレア度の色に変える）
-  function gachaPot(g, P, x, y, t, spin, liquid) {
-    spin = spin || 0; liquid = liquid || P.glow;
-    var sh = spin > 0.3 ? Math.sin(t * 38) * 1.4 * spin : 0, i;
+  // ガチャの器（フラスコ）：まるいガラスのフラスコに光の液。台の下で小さな火がゆれる。
+  // spin（0〜1）で液が波打ち、泡が増え、口から湯気が出て揺れる。liquid：液の色（省略で glow。演出でレア度の色に変える）
+  // (x, y) はフラスコの体の真ん中あたり。口は y-46、台の下は y+42
+  function gachaFlask(g, P, x, y, t, spin, liquid) {
+    spin = spin || 0; var liq = liquid || P.glow, sh = spin > 0.3 ? Math.sin(t * 30) * spin * 1.2 : 0, i;
     g.save(); g.translate(x + sh, y); g.lineJoin = 'round'; g.lineCap = 'round';
-    glowAt(g, P, 0, -6, 42, 0.22 + spin * 0.3, liquid);
-    [-16, 16].forEach(function (dx) { solid(g, function () { rr(g, dx - 3, 14, 6, 20, 2); }, P.metal, P.metalShade, P.ink, 0.6, 1); });   // 脚
-    for (i = 0; i < 3 + Math.round(spin * 3); i++) { var k = (t * (0.4 + spin) + i / (3 + spin * 3)) % 1; g.fillStyle = alpha(P.uiInk, (0.15 + spin * 0.2) * (1 - k)); ell(g, -10 + (i % 3) * 10 + Math.sin(k * 6 + i) * 3, -14 - k * (30 + spin * 16), 4 + k * 6, 4 + k * 6); g.fill(); }   // 湯気
-    solid(g, function () { g.beginPath(); g.moveTo(-30, -10); g.quadraticCurveTo(-32, 24, 0, 24); g.quadraticCurveTo(32, 24, 30, -10); g.closePath(); }, P.metal, P.metalShade, P.ink, 1.8, 1.2);   // 釜
-    g.fillStyle = alpha(liquid, 0.75 + spin * 0.2); ell(g, 0, -10, 28, 5.5); g.fill();   // 光の湯
-    g.fillStyle = alpha('#ffffff', 0.25 + spin * 0.2); ell(g, -4, -10.5, 16, 2.4); g.fill();
-    for (i = 0; i < 5 + Math.round(spin * 6); i++) { var bk = (t * (1 + spin * 3) + i * 0.37) % 1, bx = -20 + ((i * 23) % 40); g.fillStyle = alpha('#ffffff', 0.8 * (1 - bk)); ell(g, bx, -10 - bk * (4 + spin * 6), 1.4 + bk * 1.6, 1.4 + bk * 1.6); g.fill(); }   // 泡
-    solid(g, function () { rr(g, -33, -13, 66, 5, 2.5); }, P.metalLight, P.metal, P.ink, 0.6, 1.1);   // ふち
-    g.strokeStyle = P.metalLight; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 2, 22, Math.PI * 0.15, Math.PI * 0.4); g.stroke();
-    [-1, 1].forEach(function (d) { g.strokeStyle = P.ink; g.lineWidth = 1.6; g.beginPath(); g.arc(d * 33, -2, 4, -Math.PI / 2, Math.PI / 2, d < 0); g.stroke(); });   // 取っ手
+    glowAt(g, P, 0, -14, 56, 0.2 + spin * 0.3, liq);
+    for (i = 0; i < 3; i++) {   // 小さな火（光なので縁取らない）
+      var fk = Math.sin(t * (9 + spin * 8) + i * 2) * 1.5;
+      g.fillStyle = alpha(i === 1 ? '#ffffff' : P.glow, i === 1 ? 0.8 : 0.6); g.beginPath(); g.moveTo(-8 + i * 5, 30); g.quadraticCurveTo(-5 + i * 5 + fk, 18 - spin * 6 - (i === 1 ? 2 : 0), -2 + i * 5, 30); g.closePath(); g.fill();
+    }
+    solid(g, function () { rr(g, -22, 30, 44, 6, 3); }, P.metal, P.metalShade, P.ink, 0.8, 1.1);   // 台
+    [-17, 17].forEach(function (dx) { solid(g, function () { rr(g, dx - 2, 30, 4, 12, 1.5); }, P.metal, P.metalShade, P.ink, 0.5, 1); });
+    solid(g, function () { g.beginPath(); g.moveTo(-20, 14); g.lineTo(20, 14); g.lineTo(16, 18); g.lineTo(-16, 18); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.5, 1);   // 受け皿
+    var body = function () { g.beginPath(); g.moveTo(-6, -40); g.lineTo(-6, -24); g.bezierCurveTo(-28, -20, -30, 14, 0, 15); g.bezierCurveTo(30, 14, 28, -20, 6, -24); g.lineTo(6, -40); g.closePath(); };
+    body(); g.fillStyle = alpha(P.uiInk, 0.08); g.fill();   // ガラス
+    g.save(); body(); g.clip();
+    var lv = -6 - spin * 2, wv = function (xx) { return lv + Math.sin(xx * 0.25 + t * (3 + spin * 8)) * (1 + spin * 2.5); }, xx;
+    g.beginPath(); g.moveTo(-32, 20); for (xx = -32; xx <= 32; xx += 2) g.lineTo(xx, wv(xx)); g.lineTo(32, 20); g.closePath(); g.fillStyle = alpha(liq, 0.55); g.fill();   // 光の液
+    g.beginPath(); for (xx = -32; xx <= 32; xx += 2) g.lineTo(xx, wv(xx)); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 1.2; g.stroke();
+    for (i = 0; i < 6 + spin * 8; i++) { var k = (t * (0.6 + spin * 1.6) + i * 0.29) % 1; g.strokeStyle = 'rgba(255,255,255,' + (0.7 * (1 - k)) + ')'; g.lineWidth = 0.9; ell(g, -14 + ((i * 11) % 28), 12 - k * (18 + spin * 4), 1.2 + k, 1.2 + k); g.stroke(); }   // 泡
+    for (i = 0; i < 3; i++) { var a2 = t * (0.8 + spin * 3) + i * 2.1; mote(g, P, Math.cos(a2) * 10, 2 + Math.sin(a2) * 5, t, 0.4, i); }   // 中の結晶
+    g.restore();
+    g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = 2; g.beginPath(); g.arc(0, -4, 18, Math.PI * 1.08, Math.PI * 1.38); g.stroke();   // ガラスの光
+    g.fillStyle = 'rgba(255,255,255,.7)'; ell(g, 10, -12, 1.6, 1.6); g.fill();
+    g.strokeStyle = P.ink; g.lineWidth = 1.6; body(); g.stroke();
+    solid(g, function () { rr(g, -8, -46, 16, 7, 2); }, P.terrainShade, P.terrainDeep, P.ink, 0.6, 1);   // 栓
+    if (spin > 0.2) for (i = 0; i < 3; i++) { var sk = (t * (0.5 + spin) + i / 3) % 1; g.fillStyle = alpha(P.uiInk, 0.3 * spin * (1 - sk)); ell(g, Math.sin(sk * 6 + i) * 4, -50 - sk * 30, 3 + sk * 6, 3 + sk * 6); g.fill(); }   // 湯気
     g.restore();
   }
   // 出た水晶のまわりの光（レア度の色。光なので縁取らない）。k は 0→1 で広がる
@@ -717,7 +759,7 @@ window.Kabe = (function () {
   }
 
   return {
-    CELL: CELL, ZONES: ZONES, MOTIF: MOTIF, POSES: POSES, POSE_ORDER: POSE_ORDER, GHOSTS: GHOSTS,
+    CELL: CELL, ZONES: ZONES, MOTIF: MOTIF, POSES: POSES, POSE_ORDER: POSE_ORDER, POSE_MORE: POSE_MORE, GHOSTS: GHOSTS,
     sheetPath: sheetPath,
     pal: pal, mix: mix, alpha: alpha, hash: hash,
     rr: rr, ell: ell, solid: solid, shine: shine, spline: spline,
@@ -726,7 +768,7 @@ window.Kabe = (function () {
     spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, FAN_BAND: FAN_BAND,
     rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaPot: gachaPot, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();

@@ -56,8 +56,8 @@ declare const Kabe: {
   gemBadge(g: CanvasRenderingContext2D, P: Palette, kind: GemKind | null, star: number, x: number, y: number, t: number, opt?: { lv?: number; cool?: number; r?: number }): void;
   /** ガチャ所（ランタン塔）。(x, y) は床の真ん中。lit=false で使ったあと */
   gachaHouse(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, lit: boolean): void;
-  /** ガチャの釜。spin 0〜1 で泡と湯気が増えて揺れる。liquid は中の光の色 */
-  gachaPot(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
+  /** ガチャのフラスコ。spin 0〜1 で液が波打ち湯気が出る。liquid は液の色。口は y-46、台の下は y+42 */
+  gachaFlask(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
   /** 十字のきらめき（光） */
   twinkle(g: CanvasRenderingContext2D, x: number, y: number, len: number, alpha: number): void;
   /** 出た水晶のまわりの光。k は 0→1 で広がる */

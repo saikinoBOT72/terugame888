@@ -78,7 +78,7 @@
 - `Kabe.pal('underground')` でそのゾーンの色をまとめて取る（`tokens.css` の変数を読む）。
 - `Kabe.terrain(g, P, Kabe.grid(地図), t)` で地形を描く。地図は1文字1マス（`#` 壁、`.` 空間、`^` トゲ、`/` `\` 45度の斜め）。
 - `Kabe.ghost(g, P, 'sheet', 'cling', x, y, t, 向き, 倍率)` でプレイヤー、`Kabe.rise(...)` で迫ってくるもの。
-- ローグライク：`Kabe.mote`（結晶）、`Kabe.gem`（水晶）、`Kabe.gemBadge`（装備の枠）、`Kabe.gachaHouse`（ガチャ所のランタン塔）、`Kabe.gachaPot`・`Kabe.gemBurst`（ガチャの釜と出たときの光）。決まりは `Gems`・`GachaHouse` の見本。
+- ローグライク：`Kabe.mote`（結晶）、`Kabe.gem`（水晶）、`Kabe.gemBadge`（装備の枠）、`Kabe.gachaHouse`（ガチャ所のランタン塔）、`Kabe.gachaFlask`・`Kabe.gemBurst`（ガチャのフラスコと出たときの光）。決まりは `Gems`・`GachaHouse` の見本。おばけちゃんの増えたポーズ（`Kabe.POSE_MORE`）は `GhostMoves`。
 - 見本ページは `Kabe.zoneRow(要素, {w, h, draw})` で4ゾーンを並べて描く。
 
 ## キャラ

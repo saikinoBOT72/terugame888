@@ -1,0 +1,25 @@
+<!-- @dsCard group="キャラ" height=330 width=760 subtitle="おばけちゃんの動きを増やすポーズ8つ" -->
+<style>
+.gm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 10px; }
+@media (max-width: 520px) { .gm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+<div class="gm-grid" id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+Kabe.POSE_MORE.forEach(function (id) {
+  var Q = Kabe.POSES[id], fig = document.createElement('figure'); fig.className = 'kabe-fig';
+  var cv = Kabe.canvas(80, 64, 2, Q.name), cap = document.createElement('figcaption'); cap.textContent = Q.name;
+  fig.appendChild(cv.c); fig.appendChild(cap); root.appendChild(fig);
+  Kabe.animate(function (t) {
+    var P = Kabe.pal('underground'), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, 80, 64);
+    Kabe.background(g, P, 0, 0, 80, 64, t, t * 8);
+    var wall = Q.wall, x = wall ? 18 + 11 : 44;
+    if (wall) { g.fillStyle = P.terrain; Kabe.rr(g, 0, 0, 18, 64, [0, 4, 4, 0]); g.fill(); g.fillStyle = P.terrainLight; g.fillRect(14, 0, 4, 64); }
+    if (id === 'land' || id === 'sleep' || id === 'cheer') { g.fillStyle = P.terrain; g.fillRect(0, 50, 80, 14); g.fillStyle = P.terrainLight; g.fillRect(0, 50, 80, 3); }
+    var y = id === 'land' || id === 'sleep' || id === 'cheer' ? 50 - 11 * 1.6 : 32;
+    if (id === 'wobble') x += Math.sin(t * 45) * 1.2;
+    Kabe.ghost(g, P, 'sheet', id, x, y + (id === 'hover' ? Math.sin(t * 3) * 1.5 : 0), t, 1, 1.6);
+  });
+});
+</script>
