@@ -232,7 +232,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.20d';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.20e';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -270,8 +270,8 @@ const GACHA = { every: 25, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lava
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
-  greed: { name: '欲ばり', short: '欲', star: 1, lv: [{ lava: 2, gain: 2 }, { lava: 1.8, gain: 2.5 }, { lava: 1.6, gain: 3 }],
-    desc: v => `溶岩が${v.lava}倍速い。結晶が${v.gain}倍` },
+  greed: { name: '欲ばり', short: '欲', star: 1, lv: [{ lava: 1.5, chance: 0.5 }, { lava: 1.75, chance: 0.75 }, { lava: 2, chance: 1 }],
+    desc: v => `溶岩が${v.lava}倍速い。結晶を拾うと${Math.round(v.chance * 100)}%で2個になる` },
   hover: { name: 'ホバリング', short: 'ホバ', star: 1, lv: [{ t: 0.3 }, { t: 0.5 }, { t: 0.8 }],
     desc: v => `空中で長押しすると${v.t}秒ふんばる（落ちるのがゆっくり）` },
   triple: { name: '3段ジャンプ', short: '3段', star: 2, lv: [{ cd: 8 }, { cd: 5 }, { cd: 3 }],
@@ -772,10 +772,11 @@ function clingTimer(dt) {
 function pickGems() {
   for (const g of world.gems) {
     if (g.got || Math.abs(g.y - P.y) > 24 || Math.hypot(g.x - P.x, g.y - P.y) > R + 6) continue;
-    const gain = gemVal('greed') ? gemVal('greed').gain : 1;
+    const gr = gemVal('greed'), gain = gr && Math.random() < gr.chance ? 2 : 1;   // 欲ばり：確率で2個
     g.got = true; G.crystals += gain; G.got++; sfx.gem(); G.happyT = Math.max(G.happyT, 0.35);
     flyers.push({ sx: g.x, sy: g.y - cam.y, t: 0, seed: g.seed });
-    floaters.push({ text: '+' + gain, x: g.x, y: g.y - 12, life: 0.9 });
+    floaters.push({ text: gain > 1 ? '+2 ×2!' : '+1', x: g.x, y: g.y - 12, life: gain > 1 ? 1.2 : 0.9 });
+    if (gain > 1) sfx.gem2();
     for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'gem', x: g.x, y: g.y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, life: 0.4, max: 0.4 }); }
   }
   for (const s of world.stations) {
@@ -1409,6 +1410,7 @@ const sfx = {
     if (star >= 2) [2093, 2637].forEach((f, i) => tone(f, 0.5, 'sine', 0.035, 0, 0.3 + i * 0.07, 0.005));
     if (star >= 3) { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, i === 6 ? 0.9 : 0.22, 'square', 0.03, 0, 0.45 + i * 0.1, 0.005)); noise(1.2, 0.025, 5000, 12000); }
   },
+  gem2() { tone(1568, 0.16, 'sine', 0.045, 2093, 0.06, 0.003); },
   hover() { tone(520, 0.35, 'sine', 0.04, 780, 0, 0.05); noise(0.3, 0.015, 1500, 5000); },
   heal() { [659, 880, 1175].forEach((f, i) => tone(f, 0.3, 'sine', 0.06, 0, i * 0.07, 0.005)); },
   zone() { [392, 523, 659].forEach((f, i) => tone(f, 0.5, 'triangle', 0.05, 0, i * 0.12, 0.01)); tone(784, 0.9, 'sine', 0.05, 0, 0.36, 0.02); },
