@@ -11,7 +11,7 @@ const path = require('path'), os = require('os');
   await pg.waitForTimeout(500); await pg.click('#btnStart');
   const t0 = Date.now();
   while (Date.now() - t0 < secs * 1000) {
-    const st = await pg.evaluate(() => { const k = window.__kabe; if (k.state === 'play') { k.G.hp = 3; k.G.lavaY = Math.max(k.G.lavaY, k.P.y + 400); } return k.state; });
+    const st = await pg.evaluate(() => { const k = window.__kabe; if (k.state === 'gacha') k.leaveGacha(); if (k.state === 'play') { k.G.hp = 3; k.G.lavaY = Math.max(k.G.lavaY, k.P.y + 400); } return k.state; });
     if (st !== 'play') break;
     await pg.evaluate(() => window.__kabe.press()); await pg.waitForTimeout(300 + Math.random() * 400);
     if (Math.random() < 0.6) await pg.evaluate(() => window.__kabe.press()); await pg.waitForTimeout(300 + Math.random() * 400);

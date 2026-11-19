@@ -83,6 +83,17 @@
   @keyframes blink { 50% { opacity: .35; } }
   .ver { position: absolute; left: calc(var(--u) * 10px); bottom: calc(var(--u) * 8px); font-size: calc(var(--u) * 10px); color: var(--dim); opacity: .8; }
   .sub:disabled { opacity: .6; cursor: default; }
+  .btn:disabled { opacity: .45; cursor: default; transform: none; }
+  .gems { display: grid; gap: calc(var(--u) * 6px); width: 100%; max-height: calc(var(--u) * 230px); overflow-y: auto; }
+  .gem {
+    font: inherit; text-align: left; color: var(--cream); background: rgba(0,0,0,.18); cursor: pointer;
+    border: 2px solid transparent; border-radius: calc(var(--u) * 12px); padding: calc(var(--u) * 6px) calc(var(--u) * 10px);
+    display: grid; gap: calc(var(--u) * 2px); font-size: calc(var(--u) * 12.5px);
+  }
+  .gem b { font-weight: 800; } .gem .st { color: var(--teal); margin-right: calc(var(--u) * 6px); }
+  .gem span { color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.45; }
+  .gem.on { border-color: var(--teal); background: rgba(142,227,208,.12); }
+  .gem:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px);
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
@@ -132,6 +143,17 @@
         <button class="sub" id="btnQuit" type="button">はじめからやり直す</button>
       </div>
     </section>
+    <section id="ovGacha" class="ov" hidden>
+      <div class="card">
+        <h2>ガチャ所</h2>
+        <p id="gCrys"></p>
+        <button class="btn" id="btnRoll" type="button"></button>
+        <p id="gResult" class="tagline" aria-live="polite"></p>
+        <p class="small">水晶を押して装備（2つまで）</p>
+        <div id="gList" class="gems"></div>
+        <button class="sub" id="btnGachaGo" type="button">出発する</button>
+      </div>
+    </section>
     <section id="ovEnd" class="ov" hidden>
       <div class="card">
         <h2 id="endTitle">溶岩に呑まれた</h2>
@@ -147,7 +169,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19b';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19c';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -175,6 +197,23 @@ const LAVA = { delay: 3, speed: 20 };   // 一定の速さ（px/秒）。追い�
 const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1.6, teeth: 5 };
 const FAN = { acc: 1000, max: 230 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
+
+/* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
+// every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
+const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2 };
+const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
+// 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
+const GEMS = {
+  greed: { name: '欲ばり', short: '欲', star: 1, lv: [{ lava: 2, gain: 2 }, { lava: 1.8, gain: 2.5 }, { lava: 1.6, gain: 3 }],
+    desc: v => `溶岩が${v.lava}倍速い。結晶が${v.gain}倍` },
+  hover: { name: 'ホバリング', short: 'ホバ', star: 1, lv: [{ t: 0.3 }, { t: 0.5 }, { t: 0.8 }],
+    desc: v => `空中で長押しすると${v.t}秒ふんばる（落ちるのがゆっくり）` },
+  triple: { name: '3段ジャンプ', short: '3段', star: 2, lv: [{ cd: 8 }, { cd: 5 }, { cd: 3 }],
+    desc: v => `空中でもう1回跳べる。使ったら${v.cd}秒でたまる` },
+  turn: { name: '振り向き', short: '振向', star: 3, lv: [{ on: 1 }, { on: 2 }, { on: 3 }],
+    desc: v => ['床の上で', '床と壁で', '床・壁・2段ジャンプで'][v.on - 1] + '、画面の押した側（←→キー）へ跳ぶ' + (v.on >= 2 ? '。壁側を押すと壁ぞいに跳び上がる' : '') },
+};
+const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒）
 
 /* =====================================================================
    パーツ（ステージの部品）
@@ -204,6 +243,24 @@ piece('z1_start', {}, String.raw`
 ##................##
 ##................##
 ##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+// ガチャ所：GACHA.every m ごとに1つ差し込む（プールには入れない）。左の棚の上に機械。棚に降り立つと開く
+piece('gacha', {}, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+##................##
+#######...........##
 ##................##
 ##................##
 ##................##
@@ -657,7 +714,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
 
-function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], obs: [], fans: [], dynEdges: [], popOn: null }; }
+function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every }; }
 // 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
 function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
 const isWall = t => t === '#';
@@ -789,6 +846,7 @@ function collide(w, b, res) {
 function physStep(w, b, dt) {
   b.prevY = b.y;
   if (b.grace > 0) b.grace -= dt;
+  if (b.noStick > 0 && (b.noStick -= dt) <= 0) b.vx = b.hopDir * 60;   // 壁ぞいの跳び上がり（振り向き）：終わったら壁へ寄せて張り付き直す
   if (b.side !== 0) {
     b.slideV += (MOVE.slide - b.slideV) * Math.min(1, dt * MOVE.slideAccel);
     let tx = -b.wn.y, ty = b.wn.x; if (ty < 0) { tx = -tx; ty = -ty; }
@@ -823,7 +881,7 @@ function physStep(w, b, dt) {
     if (!c.floor) { b.ground = false; b.vy = 0; } else { b.vx = 0; b.vy = 0; }
   } else {
     if (c.floor) { b.ground = true; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'floor'; }
-    else if (c.walls.length) {
+    else if (c.walls.length && !(b.noStick > 0)) {
       const n = c.walls.find(q => q.y > 0.3) || c.walls[c.walls.length - 1];
       b.side = n.x > 0 ? -1 : 1; b.wn = n; b.slideV = Math.min(0, b.vy) * MOVE.carry; b.vx = 0; b.vy = 0; b.air = MOVE.airJumps; ev = 'wall';
     }
@@ -832,8 +890,8 @@ function physStep(w, b, dt) {
   b.on = b.ground ? c.floorDyn || null : b.side ? c.wallDyn || null : null;   // 動く箱に乗っている／張り付いている
   return ev;
 }
-function kick(w, b) {
-  const dir = b.side !== 0 ? -b.side : (b.face || 1);   // 床からは、着地したとき向いていた方へ跳ぶ
+function kick(w, b, floorDir) {
+  const dir = b.side !== 0 ? -b.side : (floorDir || b.face || 1);   // 床からは、着地したとき向いていた方へ跳ぶ（振り向きで選べる）
   // 斜めの壁からは倍率をかける（下向きの斜面＝横多め、上向きの斜面＝上多め）。斜面に引っかからないように
   const k = b.side === 0 ? null : b.wn.y > 0.3 ? MOVE.kickDownSlope : b.wn.y < -0.3 ? MOVE.kickUpSlope : null;
   b.vx = dir * MOVE.kickVx * (k ? k.vx : 1); b.vy = -MOVE.kickVy * (k ? k.vy : 1);
@@ -845,6 +903,12 @@ function airJump(b) {
   else if (MOVE.airMode === 'up') b.vx = 0;
   else if (Math.abs(b.vx) < MOVE.kickVx * 0.5) b.vx = (b.vx ? Math.sign(b.vx) : b.face) * MOVE.kickVx * 0.7;
   b.vy = -MOVE.airVy; b.air--;
+}
+// 振り向き Lv2〜：壁側を押すと、壁ぞいに真上へ跳び、少し上で同じ壁に張り付き直す
+function wallHop(b) {
+  b.grace = KICK_GRACE; b.graceSide = b.side < 0 ? 'L' : 'R';
+  b.hopDir = b.side; b.noStick = 0.3; b.face = -b.side;
+  b.vx = 0; b.vy = -MOVE.kickVy * 0.85; b.side = 0; b.ground = false; b.air = MOVE.airJumps;
 }
 const canAct = b => b.side !== 0 || b.ground;
 
@@ -939,19 +1003,39 @@ function resize() {
 const bands = new Map();
 addEventListener('resize', resize);
 
-let state = 'title', world = null, P = null, G = null, inputBuf = 0, debug = false, showCheck = false;
+let state = 'title', world = null, P = null, G = null, inputBuf = 0, inputDir = 0, holding = false, debug = false, showCheck = false;
 const cam = { y: 0, shake: 0 };
 const checkCache = {};
 let particles = [], floaters = [];
 
 function placePiece(id) {
-  const pc = PIECES[id], r0 = appendRows(world, pc.rows);
-  world.placed.push({ id, r0, r1: r0 + pc.rows.length - 1 });
+  const pc = PIECES[id], r0 = appendRows(world, pc.rows), r1 = r0 + pc.rows.length - 1;
+  world.placed.push({ id, r0, r1 });
+  if (id === 'gacha') {   // 棚の上に機械を置く
+    const r = r0 + pc.rows.findIndex(row => row.startsWith('###'));
+    world.stations.push({ x: 4.5 * CELL, y: -(r + 1) * CELL, used: false });
+  } else if (id !== 'z1_start') scatterGems(r0, r1);
+}
+// 結晶：壁ぎわの空きマス（張り付くと取れる所）に数個。つなぎ目の2行は避ける。トゲのそばにも置く（取りに行くと危ない）
+function scatterGems(r0, r1) {
+  const cells = [];
+  for (let r = r0 + 2; r <= r1 - 2; r++) for (let c = 2; c < COLS - 2; c++) {
+    if (raw(world, c, r) === '.' && (isWall(raw(world, c - 1, r)) || isWall(raw(world, c + 1, r)))) cells.push([c, r]);
+  }
+  const [a, b] = GACHA.perPiece, used = new Set();
+  let n = a + Math.floor(Math.random() * (b - a + 1));
+  while (n > 0 && cells.length) {
+    const [c, r] = cells.splice(Math.floor(Math.random() * cells.length), 1)[0];
+    if (used.has(r) || used.has(r - 1) || used.has(r + 1)) continue;   // 縦に詰めて置かない
+    used.add(r); n--;
+    world.gems.push({ x: (c + 0.5) * CELL, y: -(r + 0.5) * CELL, got: false, seed: Math.random() * 6 });
+  }
 }
 const connector = row => row.replace(/[^#]/g, '.');
 function nextPiece() {
   const lastP = world.placed[world.placed.length - 1], topRow = PIECES[lastP.id].rows[PIECES[lastP.id].rows.length - 1];
   const m = world.rows.length * CELL / PX_PER_M, pool = poolAt(m);
+  if (m >= world.nextGacha && connector(PIECES.gacha.rows[0]) === connector(topRow)) { world.nextGacha += GACHA.every; return 'gacha'; }
   const recent = world.placed.slice(-2).map(p => p.id);
   let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
   if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));
@@ -970,29 +1054,41 @@ function newGame() {
   placePiece('z1_start');
   P = newBody(2 * CELL + HB, -HB, -1);
   P.squash = 0; live = null;
-  G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0 };
-  cam.y = 60 - H; cam.shake = 0; inputBuf = 0; particles = []; floaters = [];
+  G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
+    crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0 };
+  cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = [];
   bands.clear();
   ensureAhead();
 }
 function heightM() { return Math.max(0, -P.y - HB) / PX_PER_M; }
 
-function press() {
+// 装備している水晶のレベル（していなければ 0）と、そのレベルの数値
+const gemLv = id => G.equip.includes(id) ? Math.min(3, G.gems[id] || 0) : 0;
+const gemVal = id => { const l = gemLv(id); return l ? GEMS[id].lv[l - 1] : null; };
+// dir：押した側（-1 左 / 1 右 / 0 どちらでもない）。振り向きの水晶があるときだけ使う
+function press(dir = 0) {
   if (state !== 'play') return;
-  inputBuf = MOVE.buffer; tryAct();
+  holding = true; inputBuf = MOVE.buffer; inputDir = dir; tryAct();
 }
+function release() { holding = false; }
 function tryAct() {
+  const turn = gemLv('turn') ? GEMS.turn.lv[gemLv('turn') - 1].on : 0, dir = turn ? inputDir : 0;
   if (canAct(P)) {
     const from = P.side, fx = P.x + P.side * HB, fy = P.y;
-    kick(world, P); inputBuf = 0; P.squash = -0.28; sfx.kick();
+    if (from && turn >= 2 && dir === from) wallHop(P);   // 壁側を押した：壁ぞいに跳び上がる
+    else kick(world, P, P.ground ? dir : 0);
+    inputBuf = 0; P.squash = -0.28; sfx.kick();
     if (from) dust(fx, fy, -from, 7); else dust(P.x, P.y + HB, 0, 7);
     return;
   }
-  if (P.air > 0) {
+  const triple = P.air <= 0 && gemLv('triple') && G.tripleCd <= 0;
+  if (P.air > 0 || triple) {
     // 壁のすぐ手前なら2段ジャンプを使わず、着いた瞬間に蹴る
     const r = Math.floor(-P.y / CELL), c = Math.floor(P.x / CELL), dir = Math.sign(P.vx);
     if (dir) { let k = 0; while (k < COLS && !isWall(raw(world, c + dir * (k + 1), r))) k++; const dist = dir > 0 ? (c + k + 1) * CELL - HB - P.x : P.x - (c - k) * CELL - HB; if (dist / Math.abs(P.vx) < 0.08) return; }
     airJump(P); inputBuf = 0; P.squash = -0.3; sfx.air();
+    if (triple) { P.air = 0; G.tripleCd = gemVal('triple').cd; }
+    if (turn >= 3 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * 0.7); P.face = dir; }
     G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
   }
 }
@@ -1017,6 +1113,12 @@ function update(dt) {
   updateObstacles();
   if (P.on && P.on.carry && canAct(P)) { P.x += P.on.dx; P.y += P.on.dy; }   // 動く箱に運ばれる
   const ev = physStep(world, P, dt);
+  G.tripleCd = Math.max(0, G.tripleCd - dt);
+  const hv = gemVal('hover');
+  if (canAct(P)) G.hoverLeft = hv ? hv.t : 0;
+  else if (hv && holding && P.vy > HOVER_V && G.hoverLeft > 0) { P.vy = HOVER_V; G.hoverLeft -= dt; }
+  pickGems();
+  if (state !== 'play') return;
   if (ev === 'wall' || ev === 'floor') {
     if (wasAir) { P.squash = 0.32; sfx.land(); dust(P.x + (P.side || 0) * HB, P.y + (P.side ? 0 : HB), -(P.side || 0), 4); }
     if (inputBuf > 0) tryAct();
@@ -1038,10 +1140,32 @@ function update(dt) {
 
   if (G.lavaDelay > 0) G.lavaDelay -= dt;
   else {
-    G.lavaY -= LAVA.speed * dt;
+    G.lavaY -= LAVA.speed * (gemVal('greed') ? gemVal('greed').lava : 1) * dt;
   }
   if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; die(); }
 }
+/* ---------- 結晶を拾う・ガチャ所に降り立つ ---------- */
+function pickGems() {
+  for (const g of world.gems) {
+    if (g.got || Math.abs(g.y - P.y) > 24 || Math.hypot(g.x - P.x, g.y - P.y) > R + 6) continue;
+    const gain = gemVal('greed') ? gemVal('greed').gain : 1;
+    g.got = true; G.crystals += gain; G.got++; sfx.gem();
+    floaters.push({ text: '+' + gain, x: g.x, y: g.y - 12, life: 0.9 });
+    for (let i = 0; i < 6; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'gem', x: g.x, y: g.y, vx: Math.cos(a) * 70, vy: Math.sin(a) * 70, life: 0.4, max: 0.4 }); }
+  }
+  for (const s of world.stations) {
+    if (!s.used && P.ground && Math.abs(P.y + HB - s.y) < 3 && Math.abs(P.x - s.x) < 3 * CELL) { s.used = true; openGacha(); return; }
+  }
+}
+// ガチャ：レア度を重みで選び、そのレア度の水晶から1つ
+function rollGem() {
+  const stars = Object.keys(RARITY).map(Number).filter(st => Object.values(GEMS).some(g => g.star === st));
+  let r = Math.random() * stars.reduce((t, st) => t + RARITY[st].w, 0), star = stars[0];
+  for (const st of stars) if ((r -= RARITY[st].w) < 0) { star = st; break; }
+  const ids = Object.keys(GEMS).filter(id => GEMS[id].star === star);
+  return ids[Math.floor(Math.random() * ids.length)];
+}
+
 /* ---------- 障害物（時間 G.time だけで動く） ---------- */
 function rectEdges(d, x0, y0, x1, y1, sides) {
   const E = (ax, ay, bx, by, nx, ny) => world.dynEdges.push({ ax, ay, bx, by, nx, ny, dyn: d, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by) });
@@ -1167,7 +1291,7 @@ function drawPlayer() {
   Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, face, 1);
   ctx.restore();
   ctx.globalAlpha = 1;
-  if (air && p.air > 0) { ctx.fillStyle = PAL.playerShade; ctx.beginPath(); ctx.arc(p.x, p.y + 19, 1.6, 0, Math.PI * 2); ctx.fill(); }
+  if (air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { ctx.fillStyle = p.air > 0 ? PAL.playerShade : PAL.glow; ctx.beginPath(); ctx.arc(p.x, p.y + 19, 1.6, 0, Math.PI * 2); ctx.fill(); }
 }
 
 /* ---------- 障害物・溶岩・エフェクト ---------- */
@@ -1188,6 +1312,39 @@ function drawObstacles() {
     else if (o.type === 'shutter') Kabe.shutter(ctx, PAL, o.x0, o.x1, o.y, t, { offset: o.offset });
   }
 }
+// 結晶（仮の絵。カタログにはまだ無い）：glow の色の小さな結晶。ゆっくり上下して光る
+function gemShape(g, x, y, s) {
+  const k = Kabe.mix(PAL.glow, '#000000', 0.25);
+  Kabe.solid(g, () => { g.beginPath(); g.moveTo(x, y - 6 * s); g.lineTo(x + 4 * s, y - 1.5 * s); g.lineTo(x + 2.6 * s, y + 5 * s); g.lineTo(x - 2.6 * s, y + 5 * s); g.lineTo(x - 4 * s, y - 1.5 * s); g.closePath(); }, PAL.glow, k, PAL.ink, 0.8 * s, 0.85);
+  g.fillStyle = 'rgba(255,255,255,.7)'; g.beginPath(); g.moveTo(x - 0.6 * s, y - 4 * s); g.lineTo(x - 2.6 * s, y - 1.2 * s); g.lineTo(x - 1 * s, y + 1 * s); g.closePath(); g.fill();
+}
+function drawGems() {
+  const t = G.time, yTop = cam.y - 30, yBot = cam.y + H + 30;
+  for (const g of world.gems) {
+    if (g.got || g.y < yTop || g.y > yBot) continue;
+    const y = g.y + Math.sin(t * 2.4 + g.seed) * 1.5;
+    const gl = ctx.createRadialGradient(g.x, y, 1, g.x, y, 13); gl.addColorStop(0, rgba(PAL.glow, 0.35 + Math.sin(t * 3 + g.seed) * 0.1)); gl.addColorStop(1, rgba(PAL.glow, 0));
+    ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(g.x, y, 13, 0, Math.PI * 2); ctx.fill();
+    gemShape(ctx, g.x, y, 1);
+  }
+}
+// ガチャ所（仮の絵）：鉄の箱に丸いガラス窓、中に結晶。使ったら暗くなる
+function drawStations() {
+  for (const s of world.stations) {
+    if (s.y < cam.y - 60 || s.y > cam.y + H + 60) continue;
+    const x = s.x, y = s.y, w = 34, h = 40;
+    ctx.globalAlpha = s.used ? 0.55 : 1;
+    Kabe.solid(ctx, () => rr(ctx, x - w / 2, y - h, w, h, 6), PAL.metal, PAL.metalShade, PAL.ink, 1.4, 1.1);
+    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x, y - h + 15, 10, 0, Math.PI * 2); }, PAL.uiPanel, PAL.ink, PAL.ink, 0.8, 0.9);
+    if (!s.used) { gemShape(ctx, x - 4, y - h + 18, 0.7); gemShape(ctx, x + 4, y - h + 17, 0.6); gemShape(ctx, x, y - h + 12, 0.75); }
+    Kabe.shine(ctx, x - 4, y - h + 9, 2.6, 1.4, 0.45);
+    rr(ctx, x - 6, y - 12, 12, 7, 2); ctx.fillStyle = PAL.metalShade; ctx.fill();
+    Kabe.solid(ctx, () => { ctx.beginPath(); ctx.arc(x + 10, y - 9, 2.6, 0, Math.PI * 2); }, PAL.accent, PAL.accentShade, PAL.ink, 0.5, 0.8);
+    ctx.font = `800 10px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = s.used ? PAL.uiMuted : PAL.glow; ctx.fillText(s.used ? 'つかった' : 'ガチャ', x, y - h - 9);
+    ctx.globalAlpha = 1;
+  }
+}
 function drawLava() {
   const y = G.lavaY, bottom = cam.y + H + 20;
   if (y > bottom) return;
@@ -1198,6 +1355,7 @@ function drawParticles() {
     const a = Math.max(0, q.life / q.max);
     if (q.kind === 'dust') { ctx.fillStyle = rgba(PAL.terrainLight, a * 0.85); ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.6 - a * 0.6), 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'ring') { ctx.strokeStyle = rgba(PAL.playerShade, a); ctx.lineWidth = 2; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.arc(q.x, q.y, 12 + (1 - a) * 16, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
+    else if (q.kind === 'gem') { ctx.fillStyle = rgba(PAL.glow, a); ctx.beginPath(); ctx.arc(q.x, q.y, 1.8, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'spark') { ctx.fillStyle = rgba(PAL.hazard, a); ctx.beginPath(); ctx.arc(q.x, q.y, 2, 0, Math.PI * 2); ctx.fill(); }
     else if (q.kind === 'puff') { ctx.globalAlpha = a; ctx.fillStyle = q.r > 5 ? PAL.scarf : PAL.playerBody; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (1.5 - a * 0.5), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
   }
@@ -1223,6 +1381,18 @@ function drawHud() {
   ctx.font = `500 11px ${FONT}`; const tmw = ctx.measureText(time).width + 20;
   pill(W - HUD_GAP - tmw, HUD_GAP, tmw, 22);
   ctx.fillStyle = PAL.uiInk; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 11.5);
+  // 結晶の数（ハートの下）と、装備している水晶（タイムの下）
+  pill(HUD_GAP, HUD_GAP + 26, 64, 22);
+  gemShape(ctx, 22, HUD_GAP + 37, 0.85);
+  ctx.textAlign = 'left'; ctx.fillStyle = PAL.uiInk; ctx.font = `800 12px ${FONT}`; ctx.fillText(Math.floor(G.crystals), 34, HUD_GAP + 37.5);
+  ctx.textAlign = 'center';
+  G.equip.forEach((id, i) => {
+    let txt = `${GEMS[id].short} Lv${gemLv(id)}`;
+    const cool = id === 'triple' && G.tripleCd > 0; if (cool) txt += ` ${Math.ceil(G.tripleCd)}s`;
+    ctx.font = `800 11px ${FONT}`; const ew = ctx.measureText(txt).width + 18, ey = HUD_GAP + 26 + i * 24;
+    pill(W - HUD_GAP - ew, ey, ew, 20);
+    ctx.fillStyle = cool ? PAL.uiMuted : PAL.glow; ctx.fillText(txt, W - HUD_GAP - ew / 2, ey + 10.5);
+  });
   if (state === 'play' && G.lavaY > cam.y + H) {
     const m = Math.max(0, Math.round((G.lavaY - P.y) / PX_PER_M)), txt = `▼ 溶岩まで ${m}m`, near = m < 6;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
@@ -1250,6 +1420,8 @@ function draw() {
     }
   }
   drawObstacles();
+  drawStations();
+  drawGems();
   if (showCheck) drawCheck();
   if (state !== 'dying' && state !== 'end') drawPlayer();
   drawParticles();
@@ -1304,11 +1476,13 @@ const sfx = {
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
   lava() { tone(240, 0.9, 'sine', 0.14, 60, 0, 0.01); noise(0.8, 0.05, 100, 900); },
   tick() { tone(1320, 0.25, 'sine', 0.06, 0, 0, 0.005); },
+  gem() { tone(1180, 0.12, 'sine', 0.05, 1560, 0, 0.003); },
+  gacha() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.07, 0, i * 0.07, 0.005)); },
   start() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.35, 'sine', 0.08, 0, i * 0.1, 0.01)); },
 };
 
 /* ---------- menus & loop ---------- */
-const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd') };
+const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
 function renderBest() { const b = store.get('kabe_best', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
 function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
@@ -1317,11 +1491,55 @@ function showEnd() {
   if (m > best) store.set('kabe_best', m);
   $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
-  for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['最高', Math.max(m, best) + 'm']]) {
+  for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
   }
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
 }
+/* ---------- ガチャ所の画面 ---------- */
+function openGacha() {
+  state = 'gacha'; holding = false; inputBuf = 0; $('pauseBtn').hidden = true;
+  $('gResult').textContent = ''; renderGacha(); showOnly('gacha'); sfx.tick();
+  $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
+}
+function leaveGacha() { showOnly(null); state = 'play'; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
+function renderGacha() {
+  $('gCrys').textContent = `結晶 ${Math.floor(G.crystals)}`;
+  const b = $('btnRoll'); b.textContent = `回す（結晶${GACHA.cost}）`; b.disabled = G.crystals < GACHA.cost;
+  const list = $('gList'); list.textContent = '';
+  const ids = Object.keys(G.gems);
+  if (!ids.length) { const p = document.createElement('p'); p.className = 'small'; p.textContent = 'まだ水晶がない'; list.append(p); }
+  for (const id of ids) {
+    const g = GEMS[id], lv = Math.min(3, G.gems[id]), on = G.equip.includes(id);
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'gem' + (on ? ' on' : '');
+    el.setAttribute('aria-pressed', on);
+    const top = document.createElement('div'), st = document.createElement('i'), nm = document.createElement('b'), d = document.createElement('span');
+    st.className = 'st'; st.textContent = '★'.repeat(g.star); st.style.fontStyle = 'normal';
+    nm.textContent = `${g.name}  Lv${lv}${on ? '  装備中' : ''}`; top.append(st, nm);
+    d.textContent = g.desc(g.lv[lv - 1]); el.append(top, d);
+    el.onclick = () => {
+      if (on) G.equip = G.equip.filter(x => x !== id);
+      else { G.equip.push(id); if (G.equip.length > GACHA.slots) G.equip.shift(); }   // いっぱいなら古い方を外す
+      renderGacha();
+    };
+    list.append(el);
+  }
+}
+$('btnRoll').onclick = () => {
+  if (G.crystals < GACHA.cost) return;
+  G.crystals -= GACHA.cost;
+  const id = rollGem(), g = GEMS[id], n = G.gems[id] || 0, stars = '★'.repeat(g.star);
+  let msg;
+  if (n >= 3) { G.crystals += GACHA.refund; msg = `${stars} ${g.name}（もうLv3なので結晶${GACHA.refund}に戻した）`; }
+  else {
+    G.gems[id] = n + 1;
+    msg = n ? `${stars} ${g.name} が Lv${n + 1} になった！` : `${stars} ${g.name} を手に入れた！`;
+    if (!n && G.equip.length < GACHA.slots) G.equip.push(id);   // 空き枠があれば自動で装備
+  }
+  $('gResult').textContent = msg; sfx.gacha(); renderGacha();
+  if ($('btnRoll').disabled) $('btnGachaGo').focus({ preventScroll: true });
+};
+$('btnGachaGo').onclick = leaveGacha;
 const muteLabel = () => { $('btnMute').textContent = muted ? '音：オフ' : '音：オン'; };
 $('btnMute').onclick = () => { muted = !muted; store.set('kabe_muted', muted); muteLabel(); if (!muted) sfx.tick(); };
 muteLabel();
@@ -1343,12 +1561,15 @@ $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnQuit
 $('btnToTitle').onclick = () => { state = 'title'; newGame(); renderBest(); showOnly('title'); };
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
 $('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; showOnly('pause'); } };
-cv.addEventListener('pointerdown', e => { e.preventDefault(); press(); });
+// 振り向きの水晶があるときは、画面の左半分＝左へ、右半分＝右へ
+cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); press(e.clientX - r.left < r.width / 2 ? -1 : 1); });
+addEventListener('pointerup', release); addEventListener('pointercancel', release);
+addEventListener('keyup', e => { if ([' ', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) release(); });
 addEventListener('keydown', e => {
-  if (e.key === ' ' || e.key === 'ArrowUp') {
+  if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     if (e.target.tagName === 'BUTTON' && state !== 'play') return;
     e.preventDefault(); if (e.repeat) return;
-    if (state === 'title') { if (!ov.title.hidden) startGame(); } else press();
+    if (state === 'title') { if (!ov.title.hidden) startGame(); } else press(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0);
   } else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play') $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
   else if (e.key === 'd' || e.key === 'D') debug = !debug;
   else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;
@@ -1368,7 +1589,7 @@ function loop(now) {
 resize(); renderBest(); newGame();
 if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS Rounded 1c"`).catch(() => {});
 requestAnimationFrame(loop);
-window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, startGame };
+window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, GEMS };
 })();
 </script>
 </body>
