@@ -54,10 +54,12 @@ declare const Kabe: {
   gem(g: CanvasRenderingContext2D, P: Palette, kind: GemKind, star: number, x: number, y: number, s?: number, t?: number): void;
   /** 装備の枠。kind が null なら空き枠。cool はリチャージの残り 0〜1 */
   gemBadge(g: CanvasRenderingContext2D, P: Palette, kind: GemKind | null, star: number, x: number, y: number, t: number, opt?: { lv?: number; cool?: number; r?: number }): void;
-  /** ガチャ所の家。(x, y) は床の真ん中。lit=false で使ったあと */
+  /** ガチャ所（ランタン塔）。(x, y) は床の真ん中。lit=false で使ったあと */
   gachaHouse(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, lit: boolean): void;
-  /** ガチャの画面の玉。spin 0〜1 で揺れて速く回る */
-  gachaOrb(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number): void;
+  /** ガチャの釜。spin 0〜1 で泡と湯気が増えて揺れる。liquid は中の光の色 */
+  gachaPot(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
+  /** 十字のきらめき（光） */
+  twinkle(g: CanvasRenderingContext2D, x: number, y: number, len: number, alpha: number): void;
   /** 出た水晶のまわりの光。k は 0→1 で広がる */
   gemBurst(g: CanvasRenderingContext2D, P: Palette, star: number, x: number, y: number, t: number, k: number): void;
   /** 4ゾーンを横に並べて動かす（見本ページ用） */

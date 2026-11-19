@@ -121,6 +121,10 @@
   .gtile:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
   .gdesc { min-height: 2.9em; font-size: calc(var(--u) * 11.5px); line-height: 1.45; text-align: left; width: 100%; }
   .gdesc b { color: var(--cream); }
+  .gshow { position: absolute; inset: 0; z-index: 5; cursor: pointer; touch-action: none; }
+  .rollRow { display: flex; gap: calc(var(--u) * 8px); width: 100%; justify-content: center; }
+  .rollRow .btn { padding-left: calc(var(--u) * 20px); padding-right: calc(var(--u) * 20px); }
+  .btn.alt { background: var(--teal); box-shadow: 0 calc(var(--u) * 4px) 0 color-mix(in srgb, var(--teal) 55%, #000); }
   /* 一時停止・おしまいの画面に出す水晶の行 */
   .grows { display: grid; gap: calc(var(--u) * 6px); width: 100%; }
   .grow { display: grid; grid-template-columns: auto 1fr; gap: calc(var(--u) * 8px); align-items: center; text-align: left; background: rgba(0,0,0,.18); border-radius: calc(var(--u) * 12px); padding: calc(var(--u) * 4px) calc(var(--u) * 10px) calc(var(--u) * 4px) calc(var(--u) * 4px); }
@@ -184,7 +188,7 @@
         </div>
         <canvas class="uic gstage" id="gStage" data-w="288" data-h="118" role="img" aria-label="ガチャの玉"></canvas>
         <p id="gResult" class="gresult" aria-live="polite"></p>
-        <button class="btn" id="btnRoll" type="button"></button>
+        <div class="rollRow"><button class="btn" id="btnRoll" type="button"></button><button class="btn alt" id="btnRoll3" type="button"></button></div>
         <button class="lavaBtn" id="btnLava" type="button"></button>
         <div class="ginv">
           <div class="ginvHead"><span>持っている水晶（押して装備）</span><span id="gSlots"></span></div>
@@ -194,6 +198,7 @@
         <button class="sub" id="btnGachaGo" type="button">出発する</button>
       </div>
     </section>
+    <canvas class="uic gshow" id="gShow" data-w="360" data-h="640" role="img" aria-label="ガチャの演出（タップで先へ）" hidden></canvas>
     <section id="ovEnd" class="ov" hidden>
       <div class="card">
         <h2 id="endTitle">溶岩に呑まれた</h2>
@@ -1850,7 +1855,17 @@ const sfx = {
     if (star >= 2) [1318, 1568].forEach((f, i) => tone(f, 0.3, 'sine', 0.05, 0, 0.3 + i * 0.08, 0.005));
     if (star >= 3) [2093, 1568, 2093, 2637].forEach((f, i) => tone(f, 0.35, 'sine', 0.045, 0, 0.5 + i * 0.07, 0.005));
   },
-  spin() { for (let i = 0; i < 8; i++) tone(500 + (i % 2) * 120, 0.06, 'triangle', 0.05, 0, i * 0.11, 0.003); },
+  spin() { tone(330, 0.25, 'sine', 0.06, 660, 0, 0.01); },
+  plink(i) { tone(988 + i * 70, 0.12, 'sine', 0.045, 0, 0, 0.002); },
+  bubble(k) { tone(180 + Math.random() * 160 + k * 200, 0.07, 'sine', 0.03 + k * 0.03, 90 + Math.random() * 60, 0, 0.003); if (Math.random() < 0.4) noise(0.05, 0.012 + k * 0.015, 300, 1500); },
+  up(star) { const base = star >= 3 ? 784 : 587; [1, 1.26, 1.5, 2].forEach((m, i) => tone(base * m, 0.4, 'triangle', 0.06, 0, i * 0.05, 0.004)); noise(0.3, 0.03, 3000, 9000); },
+  hush() { tone(220, 0.55, 'sine', 0.05, 880, 0, 0.3); },
+  pop(star) {
+    noise(0.35, 0.06, 800, 8000); tone(523, 0.5, 'triangle', 0.08, 1046, 0, 0.003);
+    [1046, 1318, 1568].forEach((f, i) => tone(f, 0.6, 'sine', 0.05, 0, 0.08 + i * 0.06, 0.005));
+    if (star >= 2) [2093, 2637].forEach((f, i) => tone(f, 0.5, 'sine', 0.035, 0, 0.3 + i * 0.07, 0.005));
+    if (star >= 3) { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, i === 6 ? 0.9 : 0.22, 'square', 0.03, 0, 0.45 + i * 0.1, 0.005)); noise(1.2, 0.025, 5000, 12000); }
+  },
   door() { tone(392, 0.2, 'sine', 0.07, 0, 0, 0.01); tone(523, 0.3, 'sine', 0.06, 0, 0.1, 0.01); },
   start() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.35, 'sine', 0.08, 0, i * 0.1, 0.01)); },
 };
@@ -1910,15 +1925,12 @@ uiCanvas($('gStage'), (g, t, w, h) => {
   const cx = w / 2, cy = 56;
   if (gacha.phase === 'reveal') {
     const k = Math.min(1, gacha.t / 0.35), id = gacha.id, st = GEMS[id].star;
-    g.globalAlpha = 0.22; Kabe.gachaOrb(g, PAL, cx, cy, t, 0); g.globalAlpha = 1;
-    Kabe.gemBurst(g, PAL, st, cx, cy - 4, t, k);
-    Kabe.gem(g, PAL, id, st, cx, cy - 4 + (1 - k) * 26 + Math.sin(t * 2) * 1.5, 1.2 + k * 1.3, t);
-  } else Kabe.gachaOrb(g, PAL, cx, cy, t, gacha.phase === 'spin' ? Math.min(1, gacha.t * 3) : 0.12);
+    g.globalAlpha = 0.25; Kabe.gachaPot(g, PAL, cx, cy + 22, t, 0.1); g.globalAlpha = 1;
+    Kabe.gemBurst(g, PAL, st, cx, cy - 6, t, k);
+    Kabe.gem(g, PAL, id, st, cx, cy - 6 + (1 - k) * 26 + Math.sin(t * 2) * 1.5, 1.2 + k * 1.2, t);
+  } else Kabe.gachaPot(g, PAL, cx, cy + 22, t, 0.15);
 });
-function updateGacha(dt) {
-  gacha.t += dt;
-  if (gacha.phase === 'spin' && gacha.t > 0.95) { gacha.phase = 'reveal'; gacha.t = 0; revealGem(); }
-}
+function updateGacha(dt) { gacha.t += dt; updateShow(dt); }
 function openGacha() {
   state = 'gacha'; holding = false; inputBuf = 0; $('pauseBtn').hidden = true;
   gacha.phase = 'idle'; gacha.t = 0; gacha.sel = G.equip[0] || Object.keys(G.gems)[0] || null;
@@ -1926,7 +1938,7 @@ function openGacha() {
   renderGacha(); showOnly('gacha'); sfx.door();
   $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
 }
-function leaveGacha() { if (gacha.phase === 'spin') return; showOnly(null); state = 'play'; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
+function leaveGacha() { if (show.active) return; showOnly(null); state = 'play'; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
 function setResult(text, id, tag) {
   const el = $('gResult'); el.textContent = '';
   if (id) { el.style.setProperty('--tone', toneOf(id)); const st = document.createElement('span'); st.className = 'st'; st.textContent = stars(id); el.append(st); }
@@ -1934,10 +1946,12 @@ function setResult(text, id, tag) {
   if (tag) { const t = document.createElement('span'); t.className = 'tag'; t.textContent = tag; el.append(t); }
 }
 function renderGacha() {
-  const spinning = gacha.phase === 'spin';
+  const spinning = show.active;
   $('gCrys').textContent = Math.floor(G.crystals);
   const b = $('btnRoll'); b.textContent = gacha.phase === 'reveal' ? 'もう1回' : '回す'; const sm = document.createElement('small'); sm.textContent = `結晶${GACHA.cost}`; b.append(sm);
   b.disabled = spinning || G.crystals < GACHA.cost;
+  const b3 = $('btnRoll3'); b3.textContent = '3回'; const sm3 = document.createElement('small'); sm3.textContent = `結晶${GACHA.cost * 3}`; b3.append(sm3);
+  b3.hidden = G.crystals < GACHA.cost * 3; b3.disabled = spinning;
   const lv = $('btnLava'), gain = lavaGain();
   lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づけて 結晶+${gain}` : `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`;
   lv.disabled = spinning || gain <= 0;
@@ -1964,27 +1978,175 @@ function renderGacha() {
   if (sel) { const bb = document.createElement('b'); bb.textContent = `${GEMS[sel].name} Lv${Math.min(3, G.gems[sel])}：`; d.append(bb, GEMS[sel].desc(GEMS[sel].lv[Math.min(3, G.gems[sel]) - 1])); }
   else d.textContent = '結晶で回すと水晶が出る。同じ水晶が出るとレベルが上がる（最大Lv3）。';
 }
-$('btnRoll').onclick = () => {
-  if (gacha.phase === 'spin' || G.crystals < GACHA.cost) return;
-  G.crystals -= GACHA.cost; gacha.id = rollGem(); gacha.phase = 'spin'; gacha.t = 0;
-  setResult('……'); sfx.spin(); renderGacha();
-};
-function revealGem() {
-  const id = gacha.id, g = GEMS[id], n = G.gems[id] || 0;
-  if (n >= 3) { G.crystals += GACHA.refund; setResult(`${g.name}（Lv3なので結晶${GACHA.refund}に戻した）`, id); }
-  else {
-    G.gems[id] = n + 1; G.pulls.push(id);
-    setResult(n ? `${g.name} が Lv${n + 1} に` : `${g.name}`, id, n ? 'レベルアップ' : 'NEW');
-    if (!n && G.equip.length < GACHA.slots) G.equip.push(id);   // 空き枠があれば自動で装備
-  }
-  gacha.sel = id; sfx.gacha(g.star); renderGacha();
+/* ---------- ガチャの演出（画面いっぱい）----------
+   流れ：結晶を釜へ入れる → 煮立つ（湯の色でレア度を予告。途中で色が上がる＝昇格）→ 静まる（溜め）→ 水晶が飛び出す → 名前・★・NEW を出す。
+   ★★★はたまに最初から金の湯（確定演出）。まとめて回すと、いちばん良いものを最後に出す。どこでもタップで先へ飛ばせる。 */
+const show = { active: false };
+const POT = { x: 180, y: 470, s: 2.2 }, COIN_FROM = { x: 296, y: 96 };
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+function applyResult(r) {
+  const n = G.gems[r.id] || 0;
+  if (n >= 3) { G.crystals += GACHA.refund; r.lv = 3; r.tag = `結晶+${GACHA.refund}`; r.isNew = false; r.refund = true; return; }
+  G.gems[r.id] = n + 1; G.pulls.push(r.id); r.lv = n + 1; r.isNew = !n; r.tag = n ? `Lv${n + 1}にアップ` : 'NEW';
+  if (!n && G.equip.length < GACHA.slots) G.equip.push(r.id);   // 空き枠があれば自動で装備
+}
+function startShow(n) {
+  if (show.active || G.crystals < GACHA.cost * n) return;
+  G.crystals -= GACHA.cost * n;
+  const res = [];
+  for (let i = 0; i < n; i++) { const id = rollGem(); res.push({ id, star: GEMS[id].star }); }
+  res.sort((a, b) => a.star - b.star);   // いちばん良いものを最後に
+  res.forEach(applyResult);
+  const best = res[n - 1].star, r0 = Math.random();
+  // 予告の湯の色：★★★でも最初は ミント40%・青35%・金25%（金＝確定演出）。★★ は 青40%・ミント60%
+  const start = best === 3 ? (r0 < 0.25 ? 3 : r0 < 0.6 ? 2 : 1) : best === 2 ? (r0 < 0.4 ? 2 : 1) : 1;
+  const ups = []; let tt = 1.45;
+  for (let st = start + 1; st <= best; st++) { ups.push({ t: tt, star: st, fired: false }); tt += 0.7; }
+  const brewEnd = Math.max(2.0, tt + 0.1), hushEnd = brewEnd + 0.55;
+  res.forEach((r, i) => { r.popAt = hushEnd + i * 0.6; r.popped = false; r.x = n === 1 ? 180 : 70 + i * 110; r.y = n === 1 ? 240 : 262; });
+  Object.assign(show, { active: true, t: 0, n, res, best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd,
+    endAt: hushEnd + (n - 1) * 0.6 + 1.1, flash: 0, shake: 0, parts: [], plinks: 0, nextBubble: 0.8, hushed: false, done: false, upFx: [] });
+  $('gShow').hidden = false; renderGacha(); sfx.spin();
+  if (reduceMotion) skipShow();
+}
+// スキップ：まだ出ていないものを全部出した状態へ（音と光はいちばん良いものの分だけ）
+function skipShow() {
+  const S = show;
+  for (const u of S.ups) u.fired = true;
+  S.tier = S.best; S.hushed = true;
+  if (S.t < S.hushEnd) S.t = S.hushEnd;
+  const fresh = S.res.filter(r => !r.popped);
+  for (const r of S.res) if (!r.popped) { r.popped = true; r.popAt = S.t - 0.9; }
+  if (fresh.length) popFx(S.res[S.n - 1], true);
+  S.endAt = S.t + 0.05;
+}
+function showTap() {
+  if (!show.active) return;
+  if (!show.done) { skipShow(); return; }
+  show.active = false; $('gShow').hidden = true;
+  const last = show.res[show.n - 1];
+  gacha.phase = 'reveal'; gacha.t = 1; gacha.id = last.id; gacha.sel = last.id;
+  if (show.n === 1) setResult(last.refund ? `${GEMS[last.id].name}（Lv3なので${last.tag}）` : `${GEMS[last.id].name}${last.isNew ? '' : ` Lv${last.lv}`}`, last.id, last.refund ? '' : last.isNew ? 'NEW' : 'レベルアップ');
+  else setResult(show.res.map(r => GEMS[r.id].name + (r.isNew ? '(NEW)' : '')).join('・'), last.id);
+  renderGacha();
   $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
 }
+$('gShow').addEventListener('pointerdown', e => { e.preventDefault(); showTap(); });
+function popFx(r, big) {
+  show.flash = 1; show.shake = 4 + r.star * 3;
+  sfx.pop(r.star); buzz(r.star >= 3 ? [40, 60, 90] : r.star === 2 ? [30, 40] : 25);
+  const c = Kabe.gemTone(PAL, r.star), n = 18 + r.star * 14 + (big ? 10 : 0);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 260;
+    show.parts.push({ x: r.x, y: r.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120, life: 1.2 + Math.random() * 0.8, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 12,
+      col: Math.random() < 0.3 ? '#ffffff' : c[Math.random() < 0.7 ? 0 : 1], kind: Math.random() < 0.4 ? 'twinkle' : 'chip', size: 2 + Math.random() * 3 });
+  }
+  if (r.star >= 3) for (let i = 0; i < 40; i++) show.parts.push({ x: Math.random() * 360, y: -20 - Math.random() * 200, vx: (Math.random() - 0.5) * 30, vy: 80 + Math.random() * 90, life: 3, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 8, col: Math.random() < 0.5 ? c[0] : '#ffffff', kind: 'chip', size: 2 + Math.random() * 2.5, rain: true });
+}
+function updateShow(dt) {
+  if (!show.active) return;
+  const S = show; S.t += dt;
+  S.flash = Math.max(0, S.flash - dt * 3); S.shake = Math.max(0, S.shake - dt * 18);
+  while (S.plinks < Math.min(10, S.n * 5) && S.t > 0.08 + S.plinks * 0.06) { sfx.plink(S.plinks); S.plinks++; }   // 結晶を入れる音（だんだん高く）
+  if (S.t > S.nextBubble && S.t < S.brewEnd) { sfx.bubble(Math.min(1, (S.t - 0.7) / (S.brewEnd - 0.7))); S.nextBubble = S.t + 0.12 + Math.random() * 0.12; }   // 煮立つ音
+  for (const u of S.ups) if (!u.fired && S.t >= u.t) { u.fired = true; S.tier = u.star; S.flash = 0.7; S.shake = 6; S.upFx.push({ t: S.t, star: u.star }); sfx.up(u.star); buzz(20); }
+  if (!S.hushed && S.t >= S.brewEnd) { S.hushed = true; sfx.hush(); }
+  S.res.forEach((r, i) => { if (!r.popped && S.t >= r.popAt) { r.popped = true; popFx(r, i === S.n - 1); } });
+  if (!S.done && S.t >= S.endAt) S.done = true;
+  for (const q of S.parts) { q.life -= dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt; if (!q.rain) { q.vx *= 0.96; q.vy = q.vy * 0.96 + 260 * dt; } }
+  S.parts = S.parts.filter(q => q.life > 0 && q.y < 700);
+}
+const easeOutBack = k => 1 + 2.4 * (k - 1) ** 3 + 1.4 * (k - 1) ** 2;
+uiCanvas($('gShow'), (g, t, w, h) => {
+  const S = show; if (!S.active) return;
+  const T = S.t, liquid = Kabe.gemTone(PAL, S.tier)[0], dark = Kabe.mix(PAL.uiPanel, '#000000', 0.55);
+  const hush = T < S.brewEnd ? 0 : Math.min(1, (T - S.brewEnd) / 0.3), popped = T >= S.hushEnd;
+  g.save();
+  if (S.shake) g.translate((Math.random() - 0.5) * S.shake, (Math.random() - 0.5) * S.shake);
+  // 背景：暗くして、釜のまわりだけ湯の色で明るい
+  g.fillStyle = rgba(dark, 0.97); g.fillRect(-20, -20, w + 40, h + 40);
+  const brew = T < 0.7 ? T / 0.7 * 0.35 : T < S.brewEnd ? 0.35 + 0.65 * (T - 0.7) / (S.brewEnd - 0.7) : popped ? 0.15 : 0;
+  const gl = g.createRadialGradient(POT.x, POT.y - 30, 10, POT.x, POT.y - 30, 260 + brew * 80);
+  gl.addColorStop(0, rgba(popped ? Kabe.gemTone(PAL, S.best)[0] : liquid, Math.max(0, 0.28 + brew * 0.25 - hush * 0.2))); gl.addColorStop(1, rgba(dark, 0));
+  g.fillStyle = gl; g.fillRect(0, 0, w, h);
+  // 煮立つあいだ、釜の上で光の帯がゆっくり回る（色が予告）
+  if (!popped && brew > 0.3) { g.save(); g.translate(POT.x, POT.y - 40); g.globalAlpha = (brew - 0.3) * (1 - hush); Kabe.gemBurst(g, PAL, S.tier, 0, 0, t * 0.6, Math.min(1, brew)); g.restore(); }
+  // 昇格したときの輪
+  for (const u of S.upFx) { const k = (T - u.t) / 0.6; if (k > 1) continue; g.strokeStyle = rgba(Kabe.gemTone(PAL, u.star)[0], 1 - k); g.lineWidth = 6 * (1 - k) + 1; g.beginPath(); g.arc(POT.x, POT.y - 20, 30 + k * 190, 0, Math.PI * 2); g.stroke(); }
+  // 確定演出：金の湯のとき、釜のまわりを金のきらめきが回る
+  if (S.kakutei && !popped) for (let i = 0; i < 6; i++) { const a = t * 1.8 + i * 1.05; Kabe.twinkle(g, POT.x + Math.cos(a) * 92, POT.y - 30 + Math.sin(a) * 34, 4 + Math.sin(t * 6 + i) * 2, 0.9); }
+  // 釜（静まるあいだは泡も止まる）
+  const spin = T < 0.7 ? 0.25 : T < S.brewEnd ? 0.35 + 0.65 * (T - 0.7) / (S.brewEnd - 0.7) : popped ? 0.1 : 0;
+  g.save(); g.globalAlpha = popped ? 0.4 : 1; g.translate(POT.x, POT.y); g.scale(POT.s, POT.s); Kabe.gachaPot(g, PAL, 0, 0, hush && !popped ? S.brewEnd : t, spin, liquid); g.restore();
+  // 立ちのぼる光の粒
+  if (!popped) { const cnt = Math.round(4 + brew * 16 * (1 - hush)); for (let i = 0; i < cnt; i++) { const ph = (t * (0.35 + brew * 0.5) + i * 0.137) % 1; Kabe.mote(g, PAL, POT.x + Math.sin(i * 7.3 + ph * 3) * (20 + ph * 60), POT.y - 30 - ph * 300, t, 0.5 * (1 - ph * 0.6), i); } }
+  // 静まる：まわりの光が釜へ吸いこまれる
+  if (hush > 0 && !popped) for (let i = 0; i < 24; i++) { const k = ((T - S.brewEnd) * 1.6 + i / 24) % 1, a = i * 2.39, r = 300 * (1 - k); Kabe.mote(g, PAL, POT.x + Math.cos(a) * r, POT.y - 30 + Math.sin(a) * r * 0.8, t, 0.4, i); }
+  // 結晶を入れる：右上から釜へ弧を描いて飛ぶ
+  for (let i = 0; i < Math.min(10, S.n * 5); i++) { const k = (T - 0.05 - i * 0.06) / 0.45; if (k <= 0 || k >= 1) continue; const e = k * k; Kabe.mote(g, PAL, COIN_FROM.x + (POT.x - COIN_FROM.x) * e, COIN_FROM.y + (POT.y - 30 - COIN_FROM.y) * e - Math.sin(k * Math.PI) * 60, t, 0.7, i); }
+  // 出た水晶
+  const big = S.n === 1 ? 4.6 : 2.7;
+  for (const r of S.res) {
+    if (!r.popped) continue;
+    const kk = T - r.popAt, f = Math.min(1, kk / 0.4), e = easeOutBack(f);
+    const x = POT.x + (r.x - POT.x) * e, y = POT.y - 30 + (r.y - POT.y + 30) * e + (f >= 1 ? Math.sin(t * 2 + r.x) * 3 : 0);
+    g.save(); g.translate(x, y); g.scale(S.n === 1 ? 3 : 1.9, S.n === 1 ? 3 : 1.9); Kabe.gemBurst(g, PAL, r.star, 0, 0, t, Math.min(1, kk / 0.3)); g.restore();
+    g.save(); g.translate(x, y); g.scale(f < 1 ? Math.max(0.15, Math.abs(Math.cos(f * 9))) : 1, 1); Kabe.gem(g, PAL, r.id, r.star, 0, 0, big * (0.5 + 0.5 * f), t); g.restore();   // 回りながら飛び出す
+    // ★ を1つずつ、名前、NEW の札
+    const ty = r.y + big * 12 + 18, c = Kabe.gemTone(PAL, r.star);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let j = 0; j < r.star; j++) {
+      const sk = (kk - 0.3 - j * 0.14) / 0.2; if (sk <= 0) continue; const sc = sk < 1 ? 1 + (1 - sk) * 1.2 : 1;
+      g.save(); g.translate(r.x + (j - (r.star - 1) / 2) * (S.n === 1 ? 26 : 16), ty); g.scale(sc, sc); g.globalAlpha = Math.min(1, sk);
+      g.font = `800 ${S.n === 1 ? 24 : 15}px ${FONT}`; g.fillStyle = c[1]; g.fillText('★', 1, 1.5); g.fillStyle = c[0]; g.fillText('★', 0, 0); g.restore();
+    }
+    const nk = Math.min(1, Math.max(0, (kk - 0.45) / 0.25));
+    if (nk > 0) {
+      g.globalAlpha = nk; g.fillStyle = PAL.uiInk; g.font = `800 ${S.n === 1 ? 24 : 13}px ${FONT}`; g.fillText(GEMS[r.id].name, r.x, ty + (S.n === 1 ? 34 : 22) + (1 - nk) * 8);
+      if (S.n === 1) { g.font = `500 12px ${FONT}`; g.fillStyle = PAL.uiMuted; g.fillText(GEMS[r.id].desc(GEMS[r.id].lv[r.lv - 1]), r.x, ty + 62, 320); }
+      g.globalAlpha = 1;
+    }
+    const tk = (kk - 0.7) / 0.18;
+    if (tk > 0) {
+      const sc = tk < 1 ? 2.2 - 1.2 * tk : 1; g.save(); g.translate(r.x + (S.n === 1 ? 58 : 30), r.y - big * 10 - 4); g.rotate(-0.14); g.scale(sc, sc); g.globalAlpha = Math.min(1, tk);
+      g.font = `800 ${S.n === 1 ? 14 : 10}px ${FONT}`; const tw = g.measureText(r.tag).width + 16, th = S.n === 1 ? 22 : 16;
+      g.fillStyle = r.isNew ? c[0] : PAL.uiInk; rr(g, -tw / 2, -th / 2, tw, th, th / 2); g.fill(); g.fillStyle = PAL.ink; g.fillText(r.tag, 0, 1); g.restore();
+    }
+  }
+  // ★★以上は、いちばん良いものが出たとき上から帯が入る（レア！／すごくレア！）
+  const lastR = S.res[S.n - 1];
+  if (lastR.popped && lastR.star >= 2) {
+    const bk = Math.min(1, Math.max(0, (T - lastR.popAt - 0.15) / 0.3)), c = Kabe.gemTone(PAL, lastR.star), txt = lastR.star >= 3 ? 'すごくレア！' : 'レア！';
+    if (bk > 0) {
+      const bx = w / 2 + (1 - easeOutBack(bk)) * -w, by = S.n === 1 ? 96 : 140;
+      g.save(); g.translate(bx, by); g.rotate(-0.04);
+      g.fillStyle = c[1]; rr(g, -130, -17, 260, 38, 19); g.fill(); g.fillStyle = c[0]; rr(g, -130, -20, 260, 38, 19); g.fill();
+      g.font = `800 20px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = PAL.ink; g.fillText(txt, 0, 0);
+      Kabe.twinkle(g, -112, -14, 5 + Math.sin(t * 5) * 2, 0.95); Kabe.twinkle(g, 116, 12, 4 + Math.sin(t * 5 + 2) * 2, 0.95);
+      g.restore();
+    }
+  }
+  // 光のかけら（紙吹雪）
+  for (const q of S.parts) {
+    g.globalAlpha = Math.min(1, q.life / 0.6);
+    if (q.kind === 'twinkle') Kabe.twinkle(g, q.x, q.y, q.size * 1.4, 0.95);
+    else { g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillStyle = q.col; g.fillRect(-q.size / 2, -q.size * 0.3, q.size, q.size * 0.6 * Math.abs(Math.cos(q.rot * 2)) + 0.6); g.restore(); }
+  }
+  g.globalAlpha = 1;
+  if (S.flash) { g.fillStyle = rgba('#ffffff', S.flash * 0.75); g.fillRect(-20, -20, w + 40, h + 40); }
+  g.restore();
+  g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `500 12px ${FONT}`;
+  g.fillStyle = rgba(PAL.uiInk, S.done ? 0.55 + Math.sin(t * 4) * 0.35 : 0.45);
+  g.fillText(S.done ? 'タップでもどる' : 'タップでスキップ', w / 2, h - 28);
+});
+$('btnRoll').onclick = () => startShow(1);
+$('btnRoll3').onclick = () => startShow(3);
 // 溶岩を近づけて結晶にかえる：いまの溶岩までの距離から lavaTo m を引いた分
 const lavaDist = () => (G.lavaY - P.y) / PX_PER_M;
 const lavaGain = () => Math.max(0, Math.floor((lavaDist() - GACHA.lavaTo) * GACHA.lavaRate + 1e-9));
 $('btnLava').onclick = () => {
-  const gain = lavaGain(); if (gain <= 0 || gacha.phase === 'spin') return;
+  const gain = lavaGain(); if (gain <= 0 || show.active) return;
   G.lavaY = P.y + GACHA.lavaTo * PX_PER_M; G.lavaDelay = 0; G.crystals += gain;
   setResult(`溶岩が ${GACHA.lavaTo}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); cam.shake = 6; renderGacha();
 };
@@ -2015,6 +2177,7 @@ cv.addEventListener('pointerdown', e => { e.preventDefault(); const r = cv.getBo
 addEventListener('pointerup', release); addEventListener('pointercancel', release);
 addEventListener('keyup', e => { if ([' ', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) release(); });
 addEventListener('keydown', e => {
+  if (show.active && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); if (!e.repeat) showTap(); return; }
   if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     if (e.target.tagName === 'BUTTON' && state !== 'play') return;
     e.preventDefault(); if (e.repeat) return;

@@ -557,19 +557,18 @@ window.Kabe = (function () {
     }
   }
 
-  // 水晶の形（中心 0,0、高さ 18、幅 11）。先は短く、角は丸める
-  function gemPath(g) {
-    g.beginPath(); g.moveTo(-1.1, -8.6); g.quadraticCurveTo(0, -9.4, 1.1, -8.6); g.lineTo(5.1, -5.2); g.quadraticCurveTo(5.6, -4.8, 5.6, -4.1);
-    g.lineTo(5.6, 4.1); g.quadraticCurveTo(5.6, 4.8, 5.1, 5.2); g.lineTo(1.1, 8.6); g.quadraticCurveTo(0, 9.4, -1.1, 8.6); g.lineTo(-5.1, 5.2);
-    g.quadraticCurveTo(-5.6, 4.8, -5.6, 4.1); g.lineTo(-5.6, -4.1); g.quadraticCurveTo(-5.6, -4.8, -5.1, -5.2); g.closePath();
-  }
-  function crystalBody(g, P, tone) {
-    solid(g, function () { gemPath(g); }, tone[0], tone[1], P.ink, 1.5, 0.95);
-    g.save(); gemPath(g); g.clip();
-    g.fillStyle = 'rgba(255,255,255,.32)'; g.beginPath(); g.moveTo(-6, -6); g.lineTo(0, -10); g.lineTo(0, 10); g.lineTo(-6, 6); g.closePath(); g.fill();   // 左の面は明るい
+  // 水晶（案A「ガラスの柱」）：六角の柱を半透明にして、面ごとに透け方を変える。印は中に沈んで見える
+  function hexPath(g, w, h, tip) { g.beginPath(); g.moveTo(0, -h); g.lineTo(w, -h + tip); g.lineTo(w, h - tip); g.lineTo(0, h); g.lineTo(-w, h - tip); g.lineTo(-w, -h + tip); g.closePath(); }
+  function prism(g, P, c, w, h) {
+    var tip = h * 0.42;
+    hexPath(g, w, h, tip); g.fillStyle = alpha(c[0], 0.42); g.fill();
+    g.save(); hexPath(g, w, h, tip); g.clip();
+    g.fillStyle = 'rgba(255,255,255,.28)'; g.beginPath(); g.moveTo(-w, -h + tip); g.lineTo(0, -h); g.lineTo(-w * 0.35, -h + tip * 1.2); g.lineTo(-w * 0.35, h - tip * 0.8); g.lineTo(-w, h - tip); g.closePath(); g.fill();   // 左の面は明るく透ける
+    g.fillStyle = alpha(c[1], 0.45); g.beginPath(); g.moveTo(w, -h + tip); g.lineTo(w * 0.35, -h + tip * 1.2); g.lineTo(w * 0.35, h - tip * 0.8); g.lineTo(0, h); g.lineTo(w, h - tip); g.closePath(); g.fill();   // 右の面は影
+    g.fillStyle = 'rgba(255,255,255,.45)'; g.beginPath(); g.moveTo(0, -h); g.lineTo(w, -h + tip); g.lineTo(w * 0.35, -h + tip * 1.2); g.lineTo(-w * 0.35, -h + tip * 1.2); g.lineTo(-w, -h + tip); g.closePath(); g.fill();   // 上の面
     g.restore();
-    g.strokeStyle = alpha(P.ink, 0.35); g.lineWidth = 0.7; g.beginPath(); g.moveTo(0, -8.8); g.lineTo(0, -5.6); g.moveTo(0, 5.6); g.lineTo(0, 8.8); g.stroke();
-    shine(g, -3, -4.6, 1.3, 2.2, 0.75, 0.2);
+    g.strokeStyle = alpha(mix(c[0], '#ffffff', 0.6), 0.9); g.lineWidth = 0.7; g.beginPath(); g.moveTo(-w * 0.35, -h + tip * 1.2); g.lineTo(-w * 0.35, h - tip * 0.8); g.moveTo(w * 0.35, -h + tip * 1.2); g.lineTo(w * 0.35, h - tip * 0.8); g.stroke();
+    g.strokeStyle = P.ink; g.lineWidth = 1.1; g.lineJoin = 'round'; hexPath(g, w, h, tip); g.stroke();
   }
   // 効き目の印（中心 0,1 のまわり 7px ほど）
   var SIGNS = {
@@ -580,19 +579,21 @@ window.Kabe = (function () {
     predict: function (g) { g.fillStyle = g.strokeStyle; [[-3.4, 4.2], [-2.6, 0.8], [-0.9, -1.6]].forEach(function (p) { g.beginPath(); g.arc(p[0], p[1], 0.95, 0, Math.PI * 2); g.fill(); }); g.beginPath(); g.arc(2.4, -1.2, 1.9, 0, Math.PI * 2); g.stroke(); },
     turn: function (g) { g.beginPath(); g.moveTo(-3.6, 0.8); g.lineTo(3.6, 0.8); g.moveTo(-1.6, -1.4); g.lineTo(-3.8, 0.8); g.lineTo(-1.6, 3); g.moveTo(1.6, -1.4); g.lineTo(3.8, 0.8); g.lineTo(1.6, 3); g.stroke(); }
   };
-  // 水晶。star が 2 なら横に小さなかけら1つ、3 ならかけら2つ＋きらめき
+  function twinkle(g, x, y, L, a) {
+    g.fillStyle = 'rgba(255,255,255,' + a + ')'; g.beginPath();
+    g.moveTo(x, y - L); g.quadraticCurveTo(x + 0.5, y - 0.5, x + L, y); g.quadraticCurveTo(x + 0.5, y + 0.5, x, y + L); g.quadraticCurveTo(x - 0.5, y + 0.5, x - L, y); g.quadraticCurveTo(x - 0.5, y - 0.5, x, y - L); g.fill();
+  }
+  // 水晶。star が 2 なら横に小さな柱1つ、3 なら2つ＋きらめき。高さはおよそ 19×s
   function gem(g, P, kind, star, x, y, s, t) {
-    s = s || 1; t = t || 0; var tone = gemTone(P, star);
+    s = s || 1; t = t || 0; var c = gemTone(P, star);
     g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
-    if (star >= 2) { g.save(); g.translate(5.6, 4.8); g.rotate(0.55); g.scale(0.5, 0.5); crystalBody(g, P, tone); g.restore(); }
-    if (star >= 3) { g.save(); g.translate(-5.8, 5.4); g.rotate(-0.6); g.scale(0.42, 0.42); crystalBody(g, P, tone); g.restore(); }
-    crystalBody(g, P, tone);
-    var sign = SIGNS[kind]; if (sign) { g.save(); g.translate(0, 0.6); g.strokeStyle = P.ink; g.lineWidth = 1.15; sign(g); g.restore(); }
-    if (star >= 3) {   // きらめき（光なので縁取らない）
-      var k = 0.6 + Math.sin(t * 3) * 0.4, L = 2.6 + k * 1.6;
-      g.fillStyle = 'rgba(255,255,255,' + (0.5 + k * 0.5) + ')'; g.beginPath(); var sx = 6.4, sy = -8;
-      g.moveTo(sx, sy - L); g.quadraticCurveTo(sx + 0.5, sy - 0.5, sx + L, sy); g.quadraticCurveTo(sx + 0.5, sy + 0.5, sx, sy + L); g.quadraticCurveTo(sx - 0.5, sy + 0.5, sx - L, sy); g.quadraticCurveTo(sx - 0.5, sy - 0.5, sx, sy - L); g.fill();
-    }
+    if (star >= 2) { g.save(); g.translate(6.2, 4.6); g.rotate(0.5); prism(g, P, c, 2.6, 5.2); g.restore(); }
+    if (star >= 3) { g.save(); g.translate(-6.4, 5.2); g.rotate(-0.55); prism(g, P, c, 2.2, 4.4); g.restore(); }
+    var gl = g.createRadialGradient(0, 1, 0, 0, 1, 7); gl.addColorStop(0, alpha(mix(c[0], '#ffffff', 0.5), 0.75)); gl.addColorStop(1, alpha(c[0], 0)); g.fillStyle = gl; ell(g, 0, 1, 7, 7); g.fill();   // 中の光
+    prism(g, P, c, 5.6, 9.6);
+    var sign = SIGNS[kind]; if (sign) { g.save(); g.translate(0, 0.4); g.strokeStyle = mix(c[1], '#000000', 0.35); g.lineWidth = 1.2; sign(g); g.restore(); }
+    g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.moveTo(-4.4, -4.6); g.lineTo(-3.2, -5.6); g.lineTo(-3.2, 1); g.lineTo(-4.4, 2); g.closePath(); g.fill();   // ガラスの光の筋
+    if (star >= 3) twinkle(g, 6.6, -8.2, 2.4 + Math.sin(t * 3) * 1, 0.9);
     g.restore();
   }
   // 装備の枠（画面の表示）：丸い板に水晶、下にレベルの点3つ。cool（0〜1）はリチャージの残り、kind が null なら空き
@@ -613,52 +614,42 @@ window.Kabe = (function () {
     for (i = 0; i < 3; i++) { g.fillStyle = i < lv ? tone[0] : alpha(P.uiInk, 0.25); ell(g, x - 4.5 + i * 4.5, y + r + 3.2, 1.5, 1.5); g.fill(); }
   }
 
-  // ガチャ所：棚の上の小さな家。(x, y) は床の真ん中。lit=false で灯りが消えた（使ったあと）
+  function glowAt(g, P, x, y, r, a, color) { var gl = g.createRadialGradient(x, y, 1, x, y, r); gl.addColorStop(0, alpha(color || P.glow, a)); gl.addColorStop(1, alpha(color || P.glow, 0)); g.fillStyle = gl; ell(g, x, y, r, r); g.fill(); }
+  // ガチャ所（案D「ランタン塔」）：細い土の塔のてっぺんがガラスの灯りで、中を結晶が回る。(x, y) は床の真ん中。lit=false で使ったあと（灯りが消える）
   function gachaHouse(g, P, x, y, t, lit) {
-    var w = 46, wh = 30, roofH = 20, top = y - wh;
+    var top = y - 30, i;
     g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
-    if (lit) { var gl = g.createRadialGradient(x - 10, top + 12, 2, x - 10, top + 12, 34); gl.addColorStop(0, alpha(P.glow, 0.3)); gl.addColorStop(1, alpha(P.glow, 0)); g.fillStyle = gl; ell(g, x - 10, top + 12, 34, 34); g.fill(); }
-    solid(g, function () { rr(g, x + 10, top - roofH + 2, 7, 14, [2, 2, 0, 0]); }, P.metal, P.metalShade, P.ink, 0.8, 1);   // 煙突
-    if (lit) for (var i = 0; i < 3; i++) { var k = (t * 0.35 + i / 3) % 1; g.fillStyle = alpha(P.uiInk, 0.22 * (1 - k)); ell(g, x + 13.5 + Math.sin(k * 5 + i) * 2.5, top - roofH - 1 - k * 18, 2 + k * 3, 2 + k * 3); g.fill(); }   // けむり
-    solid(g, function () { rr(g, x - w / 2 + 3, top, w - 6, wh, [0, 0, 3, 3]); }, P.terrainLight, P.terrainShade, P.ink, 1.4, 1.1);   // 壁
-    g.fillStyle = alpha(P.terrainShade, 0.5); for (var j = 1; j < 3; j++) g.fillRect(x - w / 2 + 4, top + j * 10, w - 8, 1);
-    solid(g, function () {   // 屋根
-      g.beginPath(); g.moveTo(x - w / 2 - 3, top + 2); g.quadraticCurveTo(x - w / 2 - 4, top - 1, x - w / 2, top - 3); g.lineTo(x - 2, top - roofH);
-      g.quadraticCurveTo(x, top - roofH - 1.5, x + 2, top - roofH); g.lineTo(x + w / 2, top - 3); g.quadraticCurveTo(x + w / 2 + 4, top - 1, x + w / 2 + 3, top + 2); g.closePath();
-    }, P.metal, P.metalShade, P.ink, 1.6, 1.1);
-    g.strokeStyle = P.metalLight; g.lineWidth = 1; g.beginPath(); g.moveTo(x - w / 2 + 2, top - 4); g.lineTo(x - 3, top - roofH + 1.5); g.stroke();
-    solid(g, function () { ell(g, x - 10, top + 12, 6.5, 6.5); }, lit ? P.glow : P.uiPanel, lit ? mix(P.glow, '#000000', 0.2) : P.ink, P.ink, 0.8, 0.9);   // 丸窓
-    if (lit) mote(g, P, x - 10, top + 12, t, 0.6, 1);
-    g.strokeStyle = P.ink; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x - 16.5, top + 12); g.lineTo(x - 3.5, top + 12); g.moveTo(x - 10, top + 5.5); g.lineTo(x - 10, top + 18.5); g.stroke();
-    solid(g, function () { g.beginPath(); g.moveTo(x + 3, y); g.lineTo(x + 3, top + 13); g.arc(x + 9, top + 13, 6, Math.PI, 0); g.lineTo(x + 15, y); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.8, 0.9);   // 扉
-    g.fillStyle = lit ? P.glow : P.metalLight; ell(g, x + 12.5, top + 20, 1.1, 1.1); g.fill();
-    // 看板：屋根の上に、結晶の印の丸い板
-    var sy = top - roofH - 9;
-    solid(g, function () { ell(g, x, sy, 6.5, 6.5); }, lit ? P.uiPanel : P.metalShade, P.ink, P.ink, 0.6, 0.9);
-    if (lit) mote(g, P, x, sy, t, 0.5, 2); else { g.fillStyle = alpha(P.uiInk, 0.35); ell(g, x, sy, 1.6, 1.6); g.fill(); }
-    // 軒先のランタン（揺れる）
-    g.save(); g.translate(x - w / 2 + 1, top + 2); g.rotate(Math.sin(t * 1.8) * 0.15);
-    g.strokeStyle = P.ink; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, 5); g.stroke();
-    if (lit) { var lg = g.createRadialGradient(0, 9, 1, 0, 9, 10); lg.addColorStop(0, alpha(P.glow, 0.4)); lg.addColorStop(1, alpha(P.glow, 0)); g.fillStyle = lg; ell(g, 0, 9, 10, 10); g.fill(); }
-    solid(g, function () { rr(g, -2.6, 5, 5.2, 7, 2); }, lit ? P.glow : P.uiMuted, P.metalShade, P.ink, 0.6, 0.8);
-    g.restore();
+    if (lit) glowAt(g, P, x, top - 12, 38, 0.3 + Math.sin(t * 2) * 0.04);
+    solid(g, function () { g.beginPath(); g.moveTo(x - 13, y); g.lineTo(x - 10, top); g.lineTo(x + 10, top); g.lineTo(x + 13, y); g.closePath(); }, P.terrainLight, P.terrainShade, P.ink, 1.4, 1.1);
+    g.fillStyle = alpha(P.terrainShade, 0.55); for (i = 1; i < 4; i++) g.fillRect(x - 11.5 + i * 0.4, top + i * 7.5, 23 - i * 0.8, 1);   // 石の段
+    solid(g, function () { g.beginPath(); g.moveTo(x - 4.5, y); g.lineTo(x - 4.5, y - 8); g.arc(x, y - 8, 4.5, Math.PI, 0); g.lineTo(x + 4.5, y); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.6, 0.9);   // 扉
+    g.fillStyle = lit ? P.glow : P.metalLight; ell(g, x + 2.4, y - 5, 0.8, 0.8); g.fill();
+    solid(g, function () { rr(g, x - 14, top - 3, 28, 4, 2); }, P.metal, P.metalShade, P.ink, 0.6, 1);   // 手すり
+    g.fillStyle = lit ? alpha(P.glow, 0.45) : alpha(P.uiPanel, 0.8); rr(g, x - 9, top - 17, 18, 14, 3); g.fill();   // ガラスの灯り
+    if (lit) for (i = 0; i < 4; i++) { var a = t * 1.5 + i * 1.6; mote(g, P, x + Math.cos(a) * 5, top - 10 + Math.sin(a) * 2.5, t, 0.32, i); }
+    g.strokeStyle = P.ink; g.lineWidth = 1.1; rr(g, x - 9, top - 17, 18, 14, 3); g.stroke(); g.beginPath(); g.moveTo(x, top - 17); g.lineTo(x, top - 3); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 6.5, top - 14); g.lineTo(x - 6.5, top - 7); g.stroke();
+    solid(g, function () { g.beginPath(); g.moveTo(x - 12, top - 16); g.quadraticCurveTo(x, top - 31, x + 12, top - 16); g.closePath(); }, P.metal, P.metalShade, P.ink, 1.2, 1.1);   // 屋根
+    solid(g, function () { ell(g, x, top - 27, 2, 2); }, P.metal, P.metalShade, P.ink, 0.4, 0.9);
     g.restore();
   }
 
-  // ガチャの玉（ガチャ画面）：鉄の台にガラスの玉、中を結晶が回る。spin（0〜1）で揺れて速く回る
-  function gachaOrb(g, P, x, y, t, spin) {
-    spin = spin || 0; var sh = spin ? Math.sin(t * 40) * 1.6 * spin : 0, R = 26, i;
+  // ガチャの釜（案D「光の釜」）：脚つきの鉄の釜で、中の光がぶくぶく泡立つ。spin（0〜1）で泡と湯気が増え、揺れる。
+  // liquid：中の光の色（省略で glow。演出でレア度の色に変える）
+  function gachaPot(g, P, x, y, t, spin, liquid) {
+    spin = spin || 0; liquid = liquid || P.glow;
+    var sh = spin > 0.3 ? Math.sin(t * 38) * 1.4 * spin : 0, i;
     g.save(); g.translate(x + sh, y); g.lineJoin = 'round'; g.lineCap = 'round';
-    solid(g, function () { rr(g, -20, R - 6, 40, 22, [4, 4, 6, 6]); }, P.metal, P.metalShade, P.ink, 1.4, 1.1);   // 台
-    solid(g, function () { rr(g, -6, R + 3, 12, 8, 2); }, P.ink, P.ink, null, 0, 0);   // 出口
-    solid(g, function () { ell(g, 11, R + 6, 3.2, 3.2); }, P.accent, P.accentShade, P.ink, 0.6, 0.9);   // つまみ
-    g.save(); g.translate(11, R + 6); g.rotate(t * spin * 8); g.strokeStyle = P.ink; g.lineWidth = 1; g.beginPath(); g.moveTo(-2.2, 0); g.lineTo(2.2, 0); g.stroke(); g.restore();
-    var gl = g.createRadialGradient(0, -2, 4, 0, -2, R + 14); gl.addColorStop(0, alpha(P.glow, 0.25 + spin * 0.25)); gl.addColorStop(1, alpha(P.glow, 0)); g.fillStyle = gl; ell(g, 0, -2, R + 14, R + 14); g.fill();
-    g.fillStyle = alpha(P.uiPanel, 0.9); ell(g, 0, -2, R, R); g.fill();   // ガラス
-    for (i = 0; i < 7; i++) { var a = t * (0.8 + spin * 5) + i * 0.9, rr2 = 8 + (i % 3) * 5; mote(g, P, Math.cos(a) * rr2, -2 + Math.sin(a) * rr2 * 0.8 + 4, t, 0.45, i); }
-    g.strokeStyle = P.ink; g.lineWidth = 2.2; ell(g, 0, -2, R, R); g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 2; g.beginPath(); g.arc(0, -2, R - 5, Math.PI * 1.08, Math.PI * 1.42); g.stroke();
-    solid(g, function () { rr(g, -10, -R - 6, 20, 6, 2); }, P.metal, P.metalShade, P.ink, 0.8, 1);   // ふた
+    glowAt(g, P, 0, -6, 42, 0.22 + spin * 0.3, liquid);
+    [-16, 16].forEach(function (dx) { solid(g, function () { rr(g, dx - 3, 14, 6, 20, 2); }, P.metal, P.metalShade, P.ink, 0.6, 1); });   // 脚
+    for (i = 0; i < 3 + Math.round(spin * 3); i++) { var k = (t * (0.4 + spin) + i / (3 + spin * 3)) % 1; g.fillStyle = alpha(P.uiInk, (0.15 + spin * 0.2) * (1 - k)); ell(g, -10 + (i % 3) * 10 + Math.sin(k * 6 + i) * 3, -14 - k * (30 + spin * 16), 4 + k * 6, 4 + k * 6); g.fill(); }   // 湯気
+    solid(g, function () { g.beginPath(); g.moveTo(-30, -10); g.quadraticCurveTo(-32, 24, 0, 24); g.quadraticCurveTo(32, 24, 30, -10); g.closePath(); }, P.metal, P.metalShade, P.ink, 1.8, 1.2);   // 釜
+    g.fillStyle = alpha(liquid, 0.75 + spin * 0.2); ell(g, 0, -10, 28, 5.5); g.fill();   // 光の湯
+    g.fillStyle = alpha('#ffffff', 0.25 + spin * 0.2); ell(g, -4, -10.5, 16, 2.4); g.fill();
+    for (i = 0; i < 5 + Math.round(spin * 6); i++) { var bk = (t * (1 + spin * 3) + i * 0.37) % 1, bx = -20 + ((i * 23) % 40); g.fillStyle = alpha('#ffffff', 0.8 * (1 - bk)); ell(g, bx, -10 - bk * (4 + spin * 6), 1.4 + bk * 1.6, 1.4 + bk * 1.6); g.fill(); }   // 泡
+    solid(g, function () { rr(g, -33, -13, 66, 5, 2.5); }, P.metalLight, P.metal, P.ink, 0.6, 1.1);   // ふち
+    g.strokeStyle = P.metalLight; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 2, 22, Math.PI * 0.15, Math.PI * 0.4); g.stroke();
+    [-1, 1].forEach(function (d) { g.strokeStyle = P.ink; g.lineWidth = 1.6; g.beginPath(); g.arc(d * 33, -2, 4, -Math.PI / 2, Math.PI / 2, d < 0); g.stroke(); });   // 取っ手
     g.restore();
   }
   // 出た水晶のまわりの光（レア度の色。光なので縁取らない）。k は 0→1 で広がる
@@ -735,7 +726,7 @@ window.Kabe = (function () {
     spinAngle: spinAngle, spinner: spinner, shutterState: shutterState, shutter: shutter, fan: fan, FAN_BAND: FAN_BAND,
     rise: rise, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaOrb: gachaOrb, gemBurst: gemBurst,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaPot: gachaPot, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
