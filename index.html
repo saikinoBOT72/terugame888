@@ -170,7 +170,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.19e';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.19f';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
    動きの数値（simulator.html で決めた値）
@@ -189,20 +189,22 @@ const MOVE = {
 const CELL = 18, COLS = 20;          // 1マス18px、横20マス
 const W = CELL * COLS, H = 640;
 const R = 11, HB = 10, HIT = 8;      // 見た目の半径 / 地形との当たり / トゲ・敵との当たり
-const PX_PER_M = 60;
+const PX_PER_M = 15;                 // 1m＝15px（体感に合わせて、もとの60pxの4倍の数字が出る）
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
 
 const MAX_HP = 3, INVINCIBLE = 1.1;
-const LAVA = { delay: 3, speed: 20 };   // 一定の速さ（px/秒）。追いつき・加速なし
+const LAVA = { delay: 3, speed: 30 };   // 一定の速さ（px/秒）。追いつき・加速なし
 // 障害物：箱の大きさ、回る棒の長さ、出入りトゲ q のずれ（秒）、トゲの面の厚み、扇風機の押す強さ
 const OB = { boxX: { w: 26, h: 18 }, boxY: { w: 20, h: 26 }, spin: 40, popOff: 1.6, teeth: 5 };
 const FAN = { acc: 1000, max: 230 };
+// 壁に hold 秒ついていると wobble 秒グラグラして、反対向きに push px/秒で離れて落ちる（すべりの水晶があれば、ゆっくり滑り落ちる）
+const CLING = { hold: 5, wobble: 2, push: 50 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
 // lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate（0.1＝10mで1個）
-const GACHA = { every: 50, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 10, lavaRate: 0.1 };
+const GACHA = { every: 200, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 40, lavaRate: 0.025 };
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
@@ -212,6 +214,10 @@ const GEMS = {
     desc: v => `空中で長押しすると${v.t}秒ふんばる（落ちるのがゆっくり）` },
   triple: { name: '3段ジャンプ', short: '3段', star: 2, lv: [{ cd: 8 }, { cd: 5 }, { cd: 3 }],
     desc: v => `空中でもう1回跳べる。使ったら${v.cd}秒でたまる` },
+  slide: { name: 'かべすべり', short: 'すべり', star: 1, lv: [{ v: 45 }, { v: 28 }, { v: 15 }],
+    desc: v => `グラグラした壁から落ちずに、ゆっくり滑り落ちる（${Math.round(v.v / PX_PER_M * 10) / 10}m/秒）` },
+  predict: { name: '予測線', short: '予測', star: 2, lv: [{ t: 0.5, air: false }, { t: 1.1, air: false }, { t: 1.1, air: true }],
+    desc: v => `${v.air ? '蹴りと2段ジャンプ' : '蹴り'}でどう跳ぶかの線が出る（${v.t}秒先まで）` },
   turn: { name: '振り向き', short: '振向', star: 3, lv: [{ on: 1 }, { on: 2 }, { on: 3 }],
     desc: v => ['床の上で', '床と壁で', '床・壁・2段ジャンプで'][v.on - 1] + '、画面の押した側（←→キー）へ跳ぶ' + (v.on >= 2 ? '。壁側を押すと壁ぞいに跳び上がる' : '') },
 };
@@ -702,7 +708,7 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 /* ---------- 高さ100mごとのプール ---------- */
 const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_zigzag', 'z1_longwall', 'z1_sideleft'] },
-  { from: 100, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
+  { from: 400, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
@@ -850,7 +856,7 @@ function physStep(w, b, dt) {
   if (b.grace > 0) b.grace -= dt;
   if (b.noStick > 0 && (b.noStick -= dt) <= 0) b.vx = b.hopDir * 60;   // 壁ぞいの跳び上がり（振り向き）：終わったら壁へ寄せて張り付き直す
   if (b.side !== 0) {
-    b.slideV += (MOVE.slide - b.slideV) * Math.min(1, dt * MOVE.slideAccel);
+    b.slideV += ((b.slideTo || MOVE.slide) - b.slideV) * Math.min(1, dt * MOVE.slideAccel);   // slideTo：かべすべりの水晶（ゲームだけ）
     let tx = -b.wn.y, ty = b.wn.x; if (ty < 0) { tx = -tx; ty = -ty; }
     b.vx = tx * b.slideV - b.wn.x * 40; b.vy = ty * b.slideV - b.wn.y * 40;
   } else if (b.ground) { b.vx = 0; b.vy = 40; }
@@ -1041,7 +1047,7 @@ function nextPiece() {
   const recent = world.placed.slice(-2).map(p => p.id);
   let cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow) && !recent.includes(id));
   if (!cands.length) cands = pool.pieces.filter(id => connector(PIECES[id].rows[0]) === connector(topRow));
-  const within = (m - pool.from) / 100;   // プールの中で上に行くほど難しいパーツが出やすい
+  const within = (m - pool.from) / 400;   // プールの中で上に行くほど難しいパーツが出やすい
   const wt = id => { const d = PIECES[id].diff; return d <= 1 + within * 2.5 ? 1 : 0.25; };
   let r = Math.random() * cands.reduce((s, id) => s + wt(id), 0);
   for (const id of cands) if ((r -= wt(id)) < 0) return id;
@@ -1057,7 +1063,7 @@ function newGame() {
   P = newBody(2 * CELL + HB, -HB, -1);
   P.squash = 0; live = null;
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
-    crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0 };
+    crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0 };
   cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = [];
   bands.clear();
   ensureAhead();
@@ -1119,6 +1125,7 @@ function update(dt) {
   const hv = gemVal('hover');
   if (canAct(P)) G.hoverLeft = hv ? hv.t : 0;
   else if (hv && holding && P.vy > HOVER_V && G.hoverLeft > 0) { P.vy = HOVER_V; G.hoverLeft -= dt; }
+  clingTimer(dt);
   pickGems();
   if (state !== 'play') return;
   if (ev === 'wall' || ev === 'floor') {
@@ -1129,7 +1136,7 @@ function update(dt) {
   P.squash += (0 - P.squash) * Math.min(1, dt * 10);
   updatePose(dt);
   G.best = Math.max(G.best, heightM());
-  if (Math.floor(G.best / 10) > G.mark) { G.mark = Math.floor(G.best / 10); sfx.tick(); floaters.push({ text: G.mark * 10 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
+  if (Math.floor(G.best / 50) > G.mark) { G.mark = Math.floor(G.best / 50); sfx.tick(); floaters.push({ text: G.mark * 50 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
 
   cam.y += (P.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
   cam.y = Math.min(cam.y, 60 - H);
@@ -1146,6 +1153,18 @@ function update(dt) {
   }
   if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; die(); }
 }
+/* ---------- 壁に長くついているとグラグラして離れる ---------- */
+function clingTimer(dt) {
+  if (!P.side) { G.clingT = 0; P.slideTo = 0; return; }
+  const before = G.clingT; G.clingT += dt;
+  if (before < CLING.hold && G.clingT >= CLING.hold) sfx.wobble();
+  if (G.clingT < CLING.hold + CLING.wobble) return;
+  const sl = gemVal('slide');
+  if (sl) { P.slideTo = sl.v; return; }   // かべすべり：張り付いたまま、ゆっくり下へ
+  const side = P.side; dust(P.x + side * HB, P.y, -side, 6);
+  P.side = 0; P.vx = -side * CLING.push; P.vy = 0; P.slideV = 0; G.clingT = 0;
+}
+
 /* ---------- 結晶を拾う・ガチャ所に降り立つ ---------- */
 function pickGems() {
   for (const g of world.gems) {
@@ -1286,7 +1305,9 @@ function drawPlayer() {
   if (!live) updatePose(1);
   const face = p.side ? -p.side : (p.face || 1);
   ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
-  ctx.save(); ctx.translate(p.x, p.y);
+  let wob = 0;
+  if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  ctx.save(); ctx.translate(p.x + wob, p.y);
   if (p.side) ctx.rotate(Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI));
   const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0;
   ctx.scale(1 + p.squash * 0.35 - st, 1 - p.squash * 0.3 + st);
@@ -1294,6 +1315,29 @@ function drawPlayer() {
   ctx.restore();
   ctx.globalAlpha = 1;
   if (air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { ctx.fillStyle = p.air > 0 ? PAL.playerShade : PAL.glow; ctx.beginPath(); ctx.arc(p.x, p.y + 19, 1.6, 0, Math.PI * 2); ctx.fill(); }
+}
+
+// 予測線の水晶：いま押したらどう跳ぶかを、体のコピーで先に動かして点線で出す（着地で止める）
+function predictPath(dj) {
+  const b = Object.assign({}, P, { wn: { ...P.wn } }), v = gemVal('predict'), pts = [];
+  if (dj) { airJump(b); if (b.air < 0) b.air = 0; } else kick(world, b, 0);
+  for (let i = 1, n = Math.round(v.t / DT); i <= n; i++) {
+    const ev = physStep(world, b, DT);
+    if (i % 5 === 0) pts.push([b.x, b.y]);
+    if (ev === 'wall' || ev === 'floor') { pts.push([b.x, b.y, 1]); break; }
+  }
+  return pts;
+}
+function drawPredict() {
+  const v = gemVal('predict'); if (!v || state !== 'play') return;
+  let pts = null, faint = false;
+  if (canAct(P)) pts = predictPath(false);
+  else if (v.air && (P.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { pts = predictPath(true); faint = true; }
+  if (!pts) return;
+  pts.forEach(([x, y, end], i) => {
+    const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4));
+    ctx.fillStyle = rgba(PAL.glow, end ? 0.9 : a); ctx.beginPath(); ctx.arc(x, y, end ? 3 : 1.6, 0, Math.PI * 2); ctx.fill();
+  });
 }
 
 /* ---------- 障害物・溶岩・エフェクト ---------- */
@@ -1422,7 +1466,7 @@ function drawHud() {
     ctx.fillStyle = cool ? PAL.uiMuted : PAL.glow; ctx.fillText(txt, W - HUD_GAP - ew / 2, ey + 10.5);
   });
   if (state === 'play' && G.lavaY > cam.y + H) {
-    const m = Math.max(0, Math.round((G.lavaY - P.y) / PX_PER_M)), txt = `▼ 溶岩まで ${m}m`, near = m < 6;
+    const m = Math.max(0, Math.round((G.lavaY - P.y) / PX_PER_M)), txt = `▼ 溶岩まで ${m}m`, near = m < 24;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
     pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.rise : null);
     ctx.fillStyle = near ? PAL.ink : PAL.uiInk; ctx.fillText(txt, W / 2, H - HUD_GAP - 10.5);
@@ -1451,7 +1495,7 @@ function draw() {
   drawStations();
   drawGems();
   if (showCheck) drawCheck();
-  if (state !== 'dying' && state !== 'end') drawPlayer();
+  if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); }
   drawParticles();
   drawLava();
   ctx.restore();
@@ -1503,6 +1547,7 @@ const sfx = {
   hurt() { tone(420, 0.3, 'triangle', 0.12, 160, 0, 0.003); tone(400, 0.3, 'triangle', 0.08, 150, 0.02, 0.003); },
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
   lava() { tone(240, 0.9, 'sine', 0.14, 60, 0, 0.01); noise(0.8, 0.05, 100, 900); },
+  wobble() { tone(140, 0.18, 'triangle', 0.06, 110, 0, 0.003); tone(150, 0.18, 'triangle', 0.05, 115, 0.2, 0.003); },
   tick() { tone(1320, 0.25, 'sine', 0.06, 0, 0, 0.005); },
   gem() { tone(1180, 0.12, 'sine', 0.05, 1560, 0, 0.003); },
   gacha() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.25, 'triangle', 0.07, 0, i * 0.07, 0.005)); },
@@ -1512,11 +1557,11 @@ const sfx = {
 /* ---------- menus & loop ---------- */
 const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
-function renderBest() { const b = store.get('kabe_best', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
+function renderBest() { const b = store.get('kabe_best4', 0); $('bestTitle').textContent = b ? `最高 ${b}m` : ''; }
 function startGame() { showOnly(null); newGame(); state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
-  const m = Math.floor(G.best), best = store.get('kabe_best', 0);
-  if (m > best) store.set('kabe_best', m);
+  const m = Math.floor(G.best), best = store.get('kabe_best4', 0);
+  if (m > best) store.set('kabe_best4', m);
   $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
@@ -1624,6 +1669,7 @@ function loop(now) {
   draw();
   requestAnimationFrame(loop);
 }
+if (store.get('kabe_best4', null) == null && store.get('kabe_best', 0)) store.set('kabe_best4', store.get('kabe_best', 0) * 4);   // 1m の長さを変えたので、前の記録を4倍にして引き継ぐ
 resize(); renderBest(); newGame();
 if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS Rounded 1c"`).catch(() => {});
 requestAnimationFrame(loop);
