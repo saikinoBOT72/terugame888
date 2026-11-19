@@ -384,23 +384,31 @@ window.Kabe = (function () {
     hurt: { name: 'ダメージ', tilt: -0.32, sq: 0.06, hands: [[-11, -6], [10.5, -7]], feet: [[-7.5, 12], [6.5, 10]], scarf: [[-4, -1], [-8, -8], [-13, -14], [-14, -21], [-12, -28]], expr: 'hurt', look: [-1, 0], hem: 1.2 }
   };
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
+  // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
   function scarfTail(g, P, pts, t, w0) {
-    w0 = w0 || 3.3;
-    var wav = pts.map(function (p, i) { return [p[0] + Math.sin(t * 7 + i * 1.3) * 0.25 * i, p[1] + Math.cos(t * 7 + i * 1.1) * 0.35 * i]; });
-    var s = spline(wav, 7), L = [], R = [];
-    for (var i = 0; i < s.length; i++) {
-      var a = s[Math.max(0, i - 1)], b = s[Math.min(s.length - 1, i + 1)], nx = -(b[1] - a[1]), ny = b[0] - a[0], d = Math.hypot(nx, ny) || 1; nx /= d; ny /= d;
-      var w = w0 * (1 - 0.45 * i / s.length); L.push([s[i][0] + nx * w, s[i][1] + ny * w]); R.push([s[i][0] - nx * w, s[i][1] - ny * w]);
+    w0 = w0 || 3.4;
+    var o = pts[0], k = 0.62;
+    var front = pts.map(function (p, i) { return [o[0] + (p[0] - o[0]) * k + Math.sin(t * 6 + i * 1.3) * 0.15 * i, o[1] + (p[1] - o[1]) * k + Math.cos(t * 6 + i * 1.1) * 0.2 * i]; });
+    var back = front.map(function (p, i) { var f = i / (front.length - 1); return [o[0] + (p[0] - o[0]) * 0.75 + f * 1.2, o[1] + (p[1] - o[1]) * 0.75 + f * 2.6]; });
+    ribbon(g, P, back, w0 * 0.85, P.scarfShade, mix(P.scarfShade, '#000000', 0.18), false);
+    ribbon(g, P, front, w0, P.scarf, P.scarfShade, true);
+  }
+  function ribbon(g, P, pts, w0, base, shade, stripes) {
+    var s = spline(pts, 5), L = [], R = [], n = s.length;
+    for (var i = 0; i < n; i++) {
+      var a = s[Math.max(0, i - 1)], b = s[Math.min(n - 1, i + 1)], nx = -(b[1] - a[1]), ny = b[0] - a[0], d = Math.hypot(nx, ny) || 1; nx /= d; ny /= d;
+      var w = w0 * (1 - 0.2 * i / n); L.push([s[i][0] + nx * w, s[i][1] + ny * w]); R.push([s[i][0] - nx * w, s[i][1] - ny * w]);
     }
+    var e = s[n - 1], f = s[n - 2], dx = e[0] - f[0], dy = e[1] - f[1], dl = Math.hypot(dx, dy) || 1;
     var shape = function () {
       g.beginPath(); g.moveTo(L[0][0], L[0][1]); L.forEach(function (p) { g.lineTo(p[0], p[1]); });
-      var e = s[s.length - 1], f = s[s.length - 3], dx = e[0] - f[0], dy = e[1] - f[1];
-      g.lineTo(e[0] + dx * 0.9 + dy * 0.35, e[1] + dy * 0.9 - dx * 0.35); g.lineTo(e[0] + dx * 0.2, e[1] + dy * 0.2); g.lineTo(e[0] + dx * 0.9 - dy * 0.35, e[1] + dy * 0.9 + dx * 0.35);
-      for (var j = R.length - 1; j >= 0; j--) g.lineTo(R[j][0], R[j][1]); g.closePath();
+      g.lineTo(e[0] - dx / dl * 1.6, e[1] - dy / dl * 1.6);   // はしの切れ込み（内側へ）
+      for (var j = n - 1; j >= 0; j--) g.lineTo(R[j][0], R[j][1]); g.closePath();
     };
-    solid(g, shape, P.scarf, P.scarfShade, P.playerLine, 1.1, 1.0);
-    g.strokeStyle = P.scarfStripe; g.lineWidth = 0.7;
-    for (var k = 6; k < s.length - 4; k += 7) { g.beginPath(); g.moveTo(L[k][0], L[k][1]); g.lineTo(R[k][0], R[k][1]); g.stroke(); }
+    solid(g, shape, base, shade, P.playerLine, stripes ? 1.1 : 0.6, 1.0);
+    if (!stripes) return;
+    g.strokeStyle = P.scarfStripe; g.lineWidth = 0.8;
+    [0.62, 0.78].forEach(function (q) { var k2 = Math.round(q * (n - 1)); g.beginPath(); g.moveTo(L[k2][0], L[k2][1]); g.lineTo(R[k2][0], R[k2][1]); g.stroke(); });
   }
   // 首に巻いた帯：体の丸みに沿って真ん中が少し下がる（まっすぐな帯にしない）
   function scarfWrap(g, P, cx, cy, w, h) {
