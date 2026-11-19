@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.28c';
+const VERSION = '2026.11.29a';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -650,7 +650,7 @@ function clearBands() { for (const band of bands.values()) band.c.width = band.c
 addEventListener('resize', resize);
 
 let state = 'title', world = null, P = null, G = null, inputBuf = 0, inputDir = 0, holding = false, debug = false, showCheck = false;
-const cam = { y: 0, shake: 0 };
+const cam = { y: 0, shake: 0, lead: 0 };
 const checkCache = {};
 let particles = [], floaters = [], flyers = [], trail = [];
 
@@ -706,7 +706,7 @@ function newGame() {
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
-  cam.y = 60 - H; cam.shake = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
+  cam.y = 60 - H; cam.shake = 0; cam.lead = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
   clearBands(); if (glfx) glReset();
   if (TEST_FROM) {
     while (world.rows.length * CELL / PX_PER_M < TEST_FROM) placePiece(nextPiece());
@@ -824,7 +824,12 @@ function update(dt) {
 
   const zoneNow = poolAt(G.best).name;
   if (zoneNow !== G.zone) { G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
-  cam.y += (P.y - H * 0.6 - cam.y) * Math.min(1, dt * 5);
+  // カメラの先読み：上へ速く飛ぶほど上を広く、壁に張り付いたら少し上、落ちるときは下。溶岩が近いと下を見せる
+  const lavaGap = G.lavaDelay > 0 ? 1e9 : G.lavaY - P.y;
+  let lead = canAct(P) ? (P.side ? 26 : 0) : clampN(-P.vy * 0.15, -45, 70);
+  if (lavaGap < 320) lead = Math.min(lead, 0) - (1 - lavaGap / 320) * 80;
+  cam.lead += (lead - cam.lead) * Math.min(1, dt * 2.4);
+  cam.y += (P.y - H * 0.6 - cam.lead - cam.y) * Math.min(1, dt * 5);
   cam.y = Math.min(cam.y, 60 - H);
   ensureAhead();
 
@@ -1125,7 +1130,8 @@ let live = null;
 // 動きの差分（同じ場面でもポーズを選び分ける・宙返り・向き替え・まばたき・待ちの動作）
 function resetAnim() {
   Object.assign(A, { faceS: 1, blink: 0, blinkNext: 2, flip: 0, flipDur: 0.42, flipKind: '', flipDir: 1, rot: 0, kickPose: 'kick', heavy: 0, grabT: 0,
-    dizzyT: 0, hurtSpin: 0, hurtDir: 1, cheerPose: 'cheer', cheerPrev: 0, hopY: 0, idleSeed: Math.random() * 100, happyPrev: 0, fistT: 0 });
+    dizzyT: 0, hurtSpin: 0, hurtDir: 1, cheerPose: 'cheer', cheerPrev: 0, hopY: 0, idleSeed: Math.random() * 100, happyPrev: 0, fistT: 0,
+    rest: null, sc: null, scLen: 1, airHad: true, glanceT: 0, glanceNext: 1.5, glance: null });
 }
 const rnd01 = n => { const v = Math.sin(n * 91.7 + 13.1) * 43758.5; return v - Math.floor(v); };
 // 2段ジャンプのとき：前宙・くるり・そのまま を選ぶ
@@ -1165,6 +1171,27 @@ function poseId() {
   return 'jump';
 }
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+// 目線：壁に張り付いている・立っているあいだ、ときどき近くの結晶や次に跳ぶ壁をちらっと見る（0.6秒）
+const GLANCE_POSES = { cling: 1, clingUp: 1, grab: 1, stand: 1, land: 1 };
+function glanceAt(dt, id) {
+  if (!GLANCE_POSES[id] || state !== 'play') { A.glance = null; A.glanceT = 0; return null; }
+  A.glanceNext -= dt; A.glanceT = Math.max(0, A.glanceT - dt);
+  if (A.glanceNext <= 0) {
+    A.glanceNext = 1.3 + Math.random() * 1.6;
+    let best = null, bd = 140;
+    for (const g of world.gems) if (!g.got) { const d = Math.hypot(g.x - P.x, g.y - P.y); if (d < bd) { bd = d; best = g; } }
+    if (best) A.glance = { x: best.x, y: best.y };
+    else if (P.side && Math.random() < 0.6) {   // 次に跳ぶ壁：反対側の壁の少し上
+      const r = Math.floor(-(P.y - 70) / CELL), dir = -P.side; let c = Math.floor(P.x / CELL);
+      for (let k = 0; k < COLS && !isWall(raw(world, c + dir, r)); k++) c += dir;
+      A.glance = { x: (c + 0.5) * CELL, y: P.y - 70 };
+    } else A.glance = null;
+    if (A.glance) A.glanceT = 0.6;
+  }
+  if (!A.glance || A.glanceT <= 0) return null;
+  const dx = A.glance.x - P.x, dy = A.glance.y - P.y, d = Math.hypot(dx, dy) || 1, fs = Math.sign(A.faceDraw) || 1;
+  return [clampN(dx / d * fs * 1.3, -0.7, 1), clampN(dy / d * 1.3, -1, 1)];   // 体の向きの後ろは見きれない
+}
 // ポーズは急に変えない：手・傾き・つぶれ・目線・マフラー・すそを少しずつ寄せる（カタログの GhostMoves）
 function updatePose(dt) {
   // タイマー
@@ -1199,13 +1226,11 @@ function updatePose(dt) {
   const keep = { scarf: live.scarf, hands: live.hands, look: live.look, hem: live.hem, tilt: live.tilt, sq: live.sq };
   live = Kabe.POSES.live = Object.assign({}, Q, keep, { id });
   const k = Math.min(1, dt * 10), kh = Math.min(1, dt * 18), t = G.time;
-  // マフラー：ポーズの形に、速さで流される分とはためきを足す
-  const air = !canAct(P), sp = Math.hypot(P.vx, P.vy), fs = Math.sign(A.faceDraw) || 1;
-  const dvx = air ? clampN(P.vx * fs, -300, 300) * 0.006 : 0, dvy = air ? clampN(P.vy, -420, 700) * 0.009 : 0, flut = air ? Math.min(1, sp / 450) : 0.15;
-  live.scarf.forEach((p, i) => {
-    const kk = k * (1 - i * 0.14), tx = Q.scarf[i][0] - dvx * i, ty = Q.scarf[i][1] - dvy * i + Math.sin(t * 15 - i * 1.2) * flut * i * 0.7;
-    p[0] += (tx - p[0]) * kk; p[1] += (ty - p[1]) * kk;
-  });
+  // マフラー：ポーズの形（A.rest）へ少しずつ寄せ、それを目当てに、ひもとして動かす（scarfStep）
+  const air = !canAct(P);
+  if (!A.rest) A.rest = Q.scarf.map(p => p.slice());
+  A.rest.forEach((p, i) => { const kk = k * (1 - i * 0.14); p[0] += (Q.scarf[i][0] - p[0]) * kk; p[1] += (Q.scarf[i][1] - p[1]) * kk; });
+  scarfStep(dt);
   live.hands.forEach((p, i) => { p[0] += (Q.hands[i][0] - p[0]) * kh; p[1] += (Q.hands[i][1] - p[1]) * kh; });
   live.hem += ((Q.hem || 0) + (air ? clampN(P.vy / 260, -1.4, 1.8) : 0) - live.hem) * k * 0.7;
   live.tilt += (Q.tilt - live.tilt) * kh; live.sq += (Q.sq - live.sq) * kh;
@@ -1227,6 +1252,8 @@ function updatePose(dt) {
   let look = Q.look;
   if (id === 'stand' && G.standT > 2) look = [Math.sin(G.standT * 1.3) > 0 ? 1 : -0.9, Math.sin(G.standT * 0.7) * 0.4];
   if (id === 'jump' || id === 'apex') look = [1, clampN(P.vy / 300, -0.8, 0.8)];   // 進む先を見る
+  if (id === 'fall' || id === 'panic') look = [0.6, 1];   // 落ちるときは下（着く所）を見る
+  const gl = glanceAt(dt, id); if (gl) { look = gl; live.tilt += gl[1] * 0.07 * kh; }   // 見る方へ頭も少し向ける
   live.look[0] += (look[0] - live.look[0]) * kh; live.look[1] += (look[1] - live.look[1]) * kh;
   // 表情の上書き：うれしい（結晶・節目）、こわい（溶岩が近い）
   if (id !== 'hurt' && id !== 'sleep' && id !== 'dizzy') {
@@ -1235,26 +1262,80 @@ function updatePose(dt) {
   }
   live.blink = A.blink > 0;
 }
+/* ---------- マフラーのひも：世界の座標で動かし、ポーズの形へゆるく引き戻す ----------
+   体に遅れてついてくる・壁と床にめりこまない・溶岩の熱で上へあおられる・扇風機の風に流される。
+   2段ジャンプを使い切ると短くしおれ、壁や床で戻るとぴんと張る（残っているかがマフラーの形でわかる） */
+// おばけを描く位置・傾き・つぶれ（描くときとマフラーで共通）
+function bodyXf() {
+  const p = P, t = G.time, face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
+  let wob = 0;
+  if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;   // 立っているときは息をする
+  const rot = (p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0) + A.rot;
+  const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0;
+  return { ax: p.x + wob, ay: p.y - breathe * 10 + A.hopY, rot, sx: 1 + p.squash * 0.35 - st - breathe, sy: 1 - p.squash * 0.3 + st + breathe, face, air };
+}
+// ポーズの点 → 世界の点 の 2×2（向きは符号だけ使う。裏返る途中のつぶれは描くときに足される）
+function poseMat(X, Q) {
+  const fs = Math.sign(X.face) || 1, ct = Math.cos(Q.tilt), st = Math.sin(Q.tilt), cr = Math.cos(X.rot), sr = Math.sin(X.rot), a = 1 - Q.sq * 0.6, b = 1 + Q.sq;
+  const m00 = fs * X.sx * ct * a, m01 = -fs * X.sx * st * b, m10 = X.sy * st * a, m11 = X.sy * ct * b;
+  return [cr * m00 - sr * m10, cr * m01 - sr * m11, sr * m00 + cr * m10, sr * m01 + cr * m11];
+}
+const SCARF_K = 0.62;   // カタログの scarfTail が点を根元へ縮める割合
+function scarfStep(dt) {
+  if (!G || !P || !A.rest || !live) return;
+  const X = bodyXf(), M = poseMat(X, live), R0 = A.rest, n = R0.length, o = R0[0], t = G.time;
+  const has = P.air > 0 || (gemLv('triple') && G.tripleCd <= 0), spent = X.air && !has && state !== 'title';
+  A.scLen += ((spent ? 0.72 : 1) - A.scLen) * Math.min(1, dt * (spent ? 5 : 16));
+  const K = SCARF_K * A.scLen;
+  const rest = R0.map(p => { const lx = o[0] + (p[0] - o[0]) * K, ly = o[1] + (p[1] - o[1]) * K; return [X.ax + M[0] * lx + M[1] * ly, X.ay + M[2] * lx + M[3] * ly]; });
+  if (!A.sc || Math.hypot(A.sc[0][0] - rest[0][0], A.sc[0][1] - rest[0][1]) > 80) A.sc = rest.map(p => [p[0], p[1], p[0], p[1]]);   // [x, y, 前の x, 前の y]
+  const S = A.sc;
+  // 2段ジャンプが戻った：根元から外へはじく
+  if (A.airHad === false && !spent) for (let i = 1; i < n; i++) { const q = S[i], dx = q[0] - S[0][0], dy = q[1] - S[0][1], d = Math.hypot(dx, dy) || 1; q[2] -= dx / d * i * 0.55; q[3] -= dy / d * i * 0.55 + i * 0.25; }
+  A.airHad = !spent;
+  // 風：溶岩の熱は上へ、扇風機は風の向きへ
+  let wx = 0, wy = 0;
+  const gap = G.lavaY - P.y; if (state === 'play' && G.lavaDelay <= 0 && gap < 260) wy -= 520 * (1 - gap / 260);
+  for (const f of world.fans) if (Math.abs(P.y - f.y) < Kabe.FAN_BAND + 14 && (P.x - f.x) * f.dir > -12 && (P.x - f.x) * f.dir < f.reach + 20) wx += f.dir * 1100;
+  const sp = Math.hypot(P.vx, P.vy), flut = (X.air ? Math.min(1, sp / 450) : 0.1) * (spent ? 0.3 : 1), grav = spent ? 620 : 230;
+  let rem = Math.min(dt, 0.05);
+  while (rem > 1e-6) {
+    const h = Math.min(rem, DT); rem -= h;
+    S[0][0] = S[0][2] = rest[0][0]; S[0][1] = S[0][3] = rest[0][1];
+    for (let i = 1; i < n; i++) {
+      const q = S[i], a = S[i - 1], f = i / (n - 1), vx = (q[0] - q[2]) * 0.965, vy = (q[1] - q[3]) * 0.965;
+      q[2] = q[0]; q[3] = q[1];
+      const tx = q[0] - a[0], ty = q[1] - a[1], tl = Math.hypot(tx, ty) || 1, fl = Math.sin(t * 16 - i * 1.25) * flut * 750 * f;   // はためき：ひもに直角に
+      const gx = wx * f - ty / tl * fl, gy = grav + wy * (0.5 + 0.5 * f) + Math.sin(t * 7 + i * 2) * Math.abs(wy) * 0.35 + tx / tl * fl;
+      q[0] += vx + gx * h * h; q[1] += vy + gy * h * h;
+      const rk = 1 - Math.exp(-h * (spent ? 4.5 : 15) * (1 - f * 0.55));   // ポーズの形へ引き戻す（先ほどゆるい）
+      q[0] += (rest[i][0] - q[0]) * rk; q[1] += (rest[i][1] - q[1]) * rk;
+    }
+    for (let it = 0; it < 3; it++) for (let i = 1; i < n; i++) {   // 長さを保つ（根元から順に）・壁と床にめりこまない
+      const a = S[i - 1], q = S[i], L = Math.hypot(rest[i][0] - rest[i - 1][0], rest[i][1] - rest[i - 1][1]);
+      const dx = q[0] - a[0], dy = q[1] - a[1], d = Math.hypot(dx, dy) || 1e-6, k = (d - L) / d;
+      q[0] -= dx * k; q[1] -= dy * k;
+      if (P.side) { const nx = P.wn.x, ny = P.wn.y, dd = (q[0] - P.x + nx * HB) * nx + (q[1] - P.y + ny * HB) * ny; if (dd < 1.2) { q[0] += nx * (1.2 - dd); q[1] += ny * (1.2 - dd); } }
+      if (P.ground && q[1] > P.y + HB + 2.5) q[1] = P.y + HB + 2.5;
+    }
+  }
+  // 世界の点 → ポーズの点（描くときの縮め方の分は戻す）
+  const inv = 1 / (M[0] * M[3] - M[1] * M[2]);
+  live.scarf = S.map(q => { const dx = q[0] - X.ax, dy = q[1] - X.ay, lx = (M[3] * dx - M[1] * dy) * inv, ly = (M[0] * dy - M[2] * dx) * inv; return [o[0] + (lx - o[0]) / SCARF_K, o[1] + (ly - o[1]) / SCARF_K]; });
+}
 function drawPlayer() {
   const p = P, t = G.time;
   if (!live) updatePose(1);
-  const face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
-  ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
-  let wob = 0;
-  if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  const X = bodyXf();
   // 残像：速く飛んでいるあいだ、うすい影が後ろに残る
   if (!calm) for (const a of trail) { ctx.globalAlpha = 0.22 * a.life / 0.22; ctx.save(); ctx.translate(a.x, a.y); Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, a.face, 1); ctx.restore(); }
   ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
-  const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;   // 立っているときは息をする
-  ctx.save(); ctx.translate(p.x + wob, p.y - breathe * 10 + A.hopY);
-  if (p.side) ctx.rotate(Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI));
-  if (A.rot) ctx.rotate(A.rot);
-  const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0;
-  ctx.scale(1 + p.squash * 0.35 - st - breathe, 1 - p.squash * 0.3 + st + breathe);
-  Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, face, 1);
+  ctx.save(); ctx.translate(X.ax, X.ay); if (X.rot) ctx.rotate(X.rot); ctx.scale(X.sx, X.sy);
+  Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, X.face, 1);
   ctx.restore();
   ctx.globalAlpha = 1;
-  if (air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { ctx.fillStyle = p.air > 0 ? PAL.playerShade : PAL.glow; ctx.beginPath(); ctx.arc(p.x, p.y + 19, 1.6, 0, Math.PI * 2); ctx.fill(); }
+  if (X.air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { ctx.fillStyle = p.air > 0 ? PAL.playerShade : PAL.glow; ctx.beginPath(); ctx.arc(p.x, p.y + 19, 1.6, 0, Math.PI * 2); ctx.fill(); }
 }
 
 // 予測線の水晶：いま押したらどう跳ぶかを、体のコピーで先に動かして点線で出す（着地で止める）
@@ -1619,14 +1700,9 @@ function predictGL() {
 function playerGL() {
   const p = P, t = G.time;
   if (!live) updatePose(1);
-  const Q = live, face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
-  let wob = 0;
-  if (p.side && G.clingT > CLING.hold && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - CLING.hold) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  const Q = live, X = bodyXf(), face = X.face, { ax, ay, rot, sx, sy, air } = X;
   // 残像：向きごとに1枚描いて、各位置に薄く置く
   if (!calm) for (const a of trail) wspr(`trail|${a.face}`, a.x, a.y, ghostBB(Q, a.face), () => Kabe.ghost(ctx, PAL, 'sheet', 'live', a.x, a.y, t, a.face, 1), 0.22 * a.life / 0.22, false);
-  const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;
-  const ax = p.x + wob, ay = p.y - breathe * 10 + A.hopY, rot = (p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0) + A.rot;
-  const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0, sx = 1 + p.squash * 0.35 - st - breathe, sy = 1 - p.squash * 0.3 + st + breathe;
   wspr(null, ax, ay, ghostBB(Q, face, { rot, sx, sy }), () => {
     ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
     ctx.translate(ax, ay); if (rot) ctx.rotate(rot); ctx.scale(sx, sy);
@@ -2789,7 +2865,7 @@ if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS
 // 文字の絵は使い回すので、フォントが届いたら描き直す
 if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
-window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
+window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
 </script>
 </body>
