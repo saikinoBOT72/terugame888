@@ -252,7 +252,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.25b';
+const VERSION = '2026.11.26a';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -295,7 +295,7 @@ const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（�
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
   greed: { name: '欲ばり', short: '欲', star: 1, lv: [{ lava: 1.5, chance: 0.5 }, { lava: 1.75, chance: 0.75 }, { lava: 2, chance: 1 }],
-    desc: v => `溶岩が${v.lava}倍速い。結晶を拾うと${Math.round(v.chance * 100)}%で2個になる` },
+    desc: v => `${riseName()}が${v.lava}倍速い。結晶を拾うと${Math.round(v.chance * 100)}%で2個になる` },
   hover: { name: 'ホバリング', short: 'ホバ', star: 1, lv: [{ t: 0.3 }, { t: 0.5 }, { t: 0.8 }],
     desc: v => `空中で長押しすると${v.t}秒ふんばる（落ちるのがゆっくり）` },
   triple: { name: '3段ジャンプ', short: '3段', star: 2, lv: [{ cd: 8 }, { cd: 5 }, { cd: 3 }],
@@ -1022,6 +1022,8 @@ const bandPal = r0 => palAt((r0 + BAND / 2) * CELL / PX_PER_M);   // 地形の�
 const FONT = '"M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", system-ui, sans-serif';
 const HUD_GAP = 8;
 const rgba = Kabe.alpha;
+// 下から迫るものの名前（ゾーンで変わる：地下は溶岩、地上は毒）
+const riseName = () => ({ lava: '溶岩', poison: '毒', mud: '泥', storm: '嵐', void: '虚空' })[Kabe.motifOf(PAL).rise] || '溶岩';
 
 function rr(g, x, y, w, h, rad) { Kabe.rr(g, x, y, w, h, rad); }
 
@@ -1352,7 +1354,7 @@ function drawHud() {
   pill(W - HUD_GAP - tmw, HUD_GAP + 38, tmw, 17);
   ctx.fillStyle = PAL.uiMuted; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 47);
   if (state === 'play' && G.lavaY > cam.y + H) {
-    const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ 溶岩まで ${m.toFixed(1)}m`, near = m < 3;
+    const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ ${riseName()}まで ${m.toFixed(1)}m`, near = m < 3;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
     pill(W / 2 - w2 / 2, H - HUD_GAP - 22, w2, 22, near ? PAL.rise : null);
     ctx.fillStyle = near ? PAL.ink : PAL.uiInk; ctx.fillText(txt, W / 2, H - HUD_GAP - 10.5);
@@ -1587,7 +1589,7 @@ function lavaGL() {
   if (y > bottom) return;
   const k = GLW.k, t = G.time, TAU = Math.PI * 2, md = v => ((v % TAU) + TAU) % TAU;
   glfx.scene.lava({ ly: (y * k + GLW.WY) / k, ox: GLW.WX / k, p1: md(t * 2.2), p2: md(-t * 1.4), p3: md(t * 1.6), cL: RGB(PAL.riseLight), cR: RGB(PAL.rise), cT: RGB(PAL.riseTop) });
-  const kind = (Kabe.MOTIF[PAL.id] || Kabe.MOTIF.underground).rise, still = kind !== 'storm';
+  const kind = Kabe.motifOf(PAL).rise, still = kind === 'lava' || kind === 'mud';
   for (const c of Kabe.riseCrusts(PAL, 0, y, W, bottom - y, t)) {
     if (c.cy > bottom) continue;
     wspr(still ? `crust|${c.i}|${c.cw}` : null, c.cx, c.cy, [-c.cw / 2 - 3, -8, c.cw / 2 + 4, 9], () => Kabe.riseCrust(ctx, PAL, c, t));
@@ -2204,7 +2206,7 @@ function startGame() { showOnly(null); newGame(); G.zoneT = 3; state = 'play'; $
 function showEnd() {
   const m = Math.floor(G.best), best = store.get('kabe_best2', 0);
   if (m > best && !G.test) store.set('kabe_best2', m);
-  $('endTitle').textContent = { lava: '溶岩に呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた' }[G.cause] || 'おしまい';
+  $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   for (const [a, b, isNew] of [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
@@ -2283,9 +2285,9 @@ function renderGacha() {
   const b3 = $('btnRoll3'); b3.textContent = '3回'; const sm3 = document.createElement('small'); sm3.textContent = `結晶${GACHA.cost * 3}`; b3.append(sm3);
   b3.hidden = G.crystals < GACHA.cost * 3; b3.disabled = spinning;
   const lv = $('btnLava'), gain = lavaGain();
-  lv.textContent = gain > 0 ? `溶岩を${GACHA.lavaTo}mまで近づけて 結晶+${gain}` : `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`;
+  lv.textContent = gain > 0 ? `${riseName()}を${GACHA.lavaTo}mまで近づけて 結晶+${gain}` : `${riseName()}まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上はなれていれば交換できる）`;
   lv.disabled = spinning || gain <= 0;
-  if (gain <= 0) lv.textContent = `溶岩まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上で交換）`;
+  if (gain <= 0) lv.textContent = `${riseName()}まで ${lavaDist().toFixed(1)}m（${GACHA.lavaTo + 1 / GACHA.lavaRate}m以上で交換）`;
   const hb = $('btnHeal'), hc = healCost(), hs = document.createElement('span'); hs.className = 'hp'; hs.textContent = '♥';
   hb.textContent = ''; hb.append(hs, G.hp >= MAX_HP ? ' 満タン' : ` +1 結晶${hc}`);
   hb.disabled = spinning || G.hp >= MAX_HP || G.crystals < hc;
@@ -2600,7 +2602,7 @@ $('btnHeal').onclick = () => {
 $('btnLava').onclick = () => {
   const gain = lavaGain(); if (gain <= 0 || show.active) return;
   G.lavaY = P.y + GACHA.lavaTo * PX_PER_M; G.lavaDelay = 0; G.crystals += gain;
-  setResult(`溶岩が ${GACHA.lavaTo}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); shake(6); renderGacha();
+  setResult(`${riseName()}が ${GACHA.lavaTo}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); shake(6); renderGacha();
 };
 $('btnGachaGo').onclick = leaveGacha;
 // 演出ひかえめ：画面の揺れ・白い光・残像を止め、火の粉を減らす（酔いやすい人向け）

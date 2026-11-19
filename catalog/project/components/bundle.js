@@ -91,7 +91,7 @@ window.Kabe = (function () {
   /* ---------- ゾーンの「しるし」：形は同じ決まり、モチーフだけ変える ---------- */
   var MOTIF = {
     underground: { grain: 'pebble', lip: 'moss', under: 'root', decor: 'mushroom', far: 'stalactite', rise: 'lava' },
-    surface: { grain: 'stone', lip: 'grass', under: 'root', decor: 'flower', far: 'hill', rise: 'mud' },
+    surface: { grain: 'stone', lip: 'grass', under: 'root', decor: 'flower', far: 'hill', rise: 'poison' },
     sky: { grain: 'puff', lip: 'cloud', under: 'mist', decor: 'sprout', far: 'cloud', rise: 'storm' },
     space: { grain: 'crater', lip: 'dust', under: 'crystal', decor: 'crystal', far: 'planet', rise: 'void' }
   };
@@ -577,6 +577,11 @@ window.Kabe = (function () {
   function riseCrust(g, P, c, t) {
     var m = motifOf(P), i = c.i, cx = c.cx, cy = c.cy, cw = c.cw;
     if (m.rise === 'lava' || m.rise === 'mud') { g.fillStyle = mix(P.rise, '#000000', 0.3); rr(g, cx - cw / 2, cy - 2, cw, 4, 2); g.fill(); if (m.rise === 'lava') { g.strokeStyle = P.riseTop; g.lineWidth = 0.8; g.beginPath(); g.moveTo(cx - cw * 0.2, cy - 1.5); g.lineTo(cx, cy + 0.2); g.lineTo(cx + cw * 0.25, cy - 1); g.stroke(); } }
+    else if (m.rise === 'poison') {   // 毒の沼：ふくらんではじける泡と、暗いしみ
+      var bk = ((t * 0.6 + hash(i, 4)) % 1), br = (0.15 + bk * 0.35) * cw;
+      g.fillStyle = alpha(mix(P.rise, '#000000', 0.35), 0.6); ell(g, cx + cw * 0.3, cy + 3, cw * 0.35, 1.8); g.fill();
+      if (bk < 0.92) { g.fillStyle = alpha(P.riseLight, 0.55); ell(g, cx, cy, br, br * 0.9); g.fill(); g.strokeStyle = P.riseTop; g.lineWidth = 0.9; ell(g, cx, cy, br, br * 0.9); g.stroke(); g.fillStyle = 'rgba(255,255,255,.6)'; ell(g, cx - br * 0.35, cy - br * 0.35, br * 0.22, br * 0.18); g.fill(); }
+    }
     else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
     else { g.fillStyle = alpha(P.riseTop, 0.6); ell(g, cx, cy, 1, 1); g.fill(); }
   }
