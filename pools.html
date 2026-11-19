@@ -46,7 +46,7 @@
     <h1>プール一覧</h1>
     <a class="back" href="index.html">← ゲームにもどる</a>
   </header>
-  <p class="lead">高さ100mごとに、そのプールのパーツからランダムにつながります（上に行くほど★の多いパーツが出やすい）。障害物は動いて見えます。<br>ガチャ所は25mごとに差し込み、結晶はパーツを置くときに壁ぎわへ自動で散らします。</p>
+  <p class="lead">高さ100mごとに、そのプールのパーツからランダムにつながります（上に行くほど★の多いパーツが出やすい）。障害物は動いて見えます。<br>ガチャ所は60mごとに差し込み、結晶はパーツを置くときに壁ぎわへ自動で散らします。</p>
   <div class="bar" id="bar" aria-label="ゾーンの色"></div>
   <ul class="legend">
     <li><code>#</code> 壁</li><li><code>^</code> トゲ</li><li><code>/ \</code> 斜め</li><li><code>p q</code> 出入りトゲ</li><li><code>&gt; &lt;</code> 扇風機</li>
@@ -152,7 +152,7 @@ POOLS.forEach((pool, i) => {
   sec.append(h, sub, grid); root.append(sec);
 });
 const used = new Set(POOLS.flatMap(p => p.pieces)), special = ['z1_start', ...Object.keys(PIECES).filter(id => PIECES[id].station)], rest = Object.keys(PIECES).filter(id => !used.has(id) && !special.includes(id));
-[['特別なパーツ', 'いちばん下のスタートと、25mごとのガチャ所（形は毎回ここから選ぶ）', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
+[['特別なパーツ', 'いちばん下のスタートと、60mごとのガチャ所（形は毎回ここから選ぶ）', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
   if (!ids.length) return;
   const sec = document.createElement('section'), h = document.createElement('h2'), sub = document.createElement('p'), grid = document.createElement('div');
   h.textContent = title; sub.className = 'sub'; sub.textContent = note; grid.className = 'grid';

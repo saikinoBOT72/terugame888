@@ -262,7 +262,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29f';
+const VERSION = '2026.11.29g';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -300,7 +300,7 @@ const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
 // every：ガチャ所を置く間隔（m）、cost：1回の結晶、perPiece：1パーツに置く結晶の数、refund：Lv3 の水晶がかぶったときに戻る結晶
 // lavaTo・lavaRate：ガチャ所で「溶岩を lavaTo m まで近づける」と、近づけた1mにつき結晶 lavaRate（0.1＝10mで1個）
-const GACHA = { every: 25, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 5, lavaRate: 0.2, healCost: 10 };   // healCost：HP回復の1回目の結晶（n回目は n 倍）
+const GACHA = { every: 60, cost: 10, perPiece: [2, 4], refund: 5, slots: 2, lavaTo: 5, lavaRate: 0.2, healCost: 10 };   // healCost：HP回復の1回目の結晶（n回目は n 倍）
 const RARITY = { 1: { w: 60 }, 2: { w: 30 }, 3: { w: 10 } };   // レア度（★の数）ごとの出やすさ
 // 水晶。同じ水晶を1個＝Lv1、2個＝Lv2、3個＝Lv3。lv[0..2] がレベルごとの数値
 const GEMS = {
