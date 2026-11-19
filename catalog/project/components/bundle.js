@@ -97,6 +97,12 @@ window.Kabe = (function () {
   };
 
   /* ---------- 背景：帯2枚＋遠景＋ただよう粒 ---------- */
+  var dustCache = {};
+  function dustTable(n) {
+    var D = [];
+    for (var k = 0; k < n; k++) D.push({ b: Math.min(31, Math.floor(hash(k, 9) * 32)), x: hash(k, 5), y: hash(k, 6), v: 1 + hash(k, 7), s: 0.7 + hash(k, 8) });
+    return D.sort(function (p, q) { return p.b - q.b; });
+  }
   function background(g, P, x, y, w, h, t, scroll) {
     scroll = scroll || 0;
     var gr = g.createLinearGradient(0, y, 0, y + h); gr.addColorStop(0, P.bgTop); gr.addColorStop(1, P.bgBottom);
@@ -124,13 +130,17 @@ window.Kabe = (function () {
         if (hash(j, 7) > 0.6) { var py = y + hash(j, 8) * h, pr = 5 + hash(j, 9) * 9; ell(g, sx, py, pr, pr); g.fill(); g.strokeStyle = P.far; g.lineWidth = 1.2; ell(g, sx, py, pr * 1.7, pr * 0.45, -0.3); g.stroke(); }
       }
     }
+    // 細かい粒：濃さを32段に分けて、同じ濃さの粒は1回で塗る（1粒ずつ塗るより速い。濃さの差は目に見えない）。粒ごとの乱数は先に作っておく
     g.fillStyle = P.uiInk;
-    var n = Math.floor(w * h / 900);
+    var n = Math.floor(w * h / 900), a0 = m.far === 'planet' ? 0.25 : 0.05, a1 = m.far === 'planet' ? 0.4 : 0.08, sp = m.far === 'planet' ? 0.2 : 1;
+    var D = dustCache[n] || (dustCache[n] = dustTable(n)), b = -1;
     for (var k = 0; k < n; k++) {
-      g.globalAlpha = (m.far === 'planet' ? 0.25 : 0.05) + hash(k, 9) * (m.far === 'planet' ? 0.4 : 0.08);
-      var px = x + hash(k, 5) * w, pyy = y + ((hash(k, 6) * h - t * 5 * (1 + hash(k, 7)) * (m.far === 'planet' ? 0.2 : 1)) % h + h) % h, s = 0.7 + hash(k, 8);
-      ell(g, px, pyy, s, s); g.fill();
+      var d = D[k];
+      if (d.b !== b) { if (b >= 0) { g.globalAlpha = a0 + (b + 0.5) / 32 * a1; g.fill(); } b = d.b; g.beginPath(); }
+      var px = x + d.x * w, pyy = y + ((d.y * h - t * 5 * d.v * sp) % h + h) % h;
+      g.moveTo(px + d.s, pyy); g.ellipse(px, pyy, d.s, d.s, 0, 0, Math.PI * 2);
     }
+    if (b >= 0) { g.globalAlpha = a0 + (b + 0.5) / 32 * a1; g.fill(); }
     g.globalAlpha = 1;
   }
 
