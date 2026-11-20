@@ -1,0 +1,21 @@
+<!-- @dsCard group="上空" height=260 width=760 subtitle="上空の仕掛け：雲の足場・機雷・曲がるトゲブロック・突風・雷の柱・風車" -->
+<style>
+.sk-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; padding: 10px; }
+@media (max-width: 560px) { .sk-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+</style>
+<div class="sk-row" id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+function fig(label, draw) {
+  var f = document.createElement('figure'); f.className = 'kabe-fig'; var cv = Kabe.canvas(70, 90, 1.6, label), cap = document.createElement('figcaption'); cap.textContent = label;
+  f.appendChild(cv.c); f.appendChild(cap); root.appendChild(f);
+  Kabe.animate(function (t) { var P = Kabe.pal('sky'), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, 70, 90); Kabe.background(g, P, 0, 0, 70, 90, t, 0); draw(g, P, t); });
+}
+fig('雲の足場', function (g, P, t) { Kabe.cloudPlat(g, P, 8, 52, 54, t); Kabe.ghost(g, P, 'sheet', 'stand', 35, 40, t, 1, 1); });
+fig('ただよう機雷', function (g, P, t) { Kabe.mine(g, P, 35, 45 + Math.sin(t * 2.2) * 16); });
+fig('曲がるトゲブロック', function (g, P, t) { var pts = [[22, 14], [22, 66], [52, 66]]; Kabe.railPath(g, P, pts); var u = (t * 30) % 164; if (u > 82) u = 164 - u; var x = 22, y = 14 + Math.min(52, u); if (u > 52) { y = 66; x = 22 + u - 52; } Kabe.spikeBlock(g, P, x - 9, y - 18, 18, 36); });
+fig('突風', function (g, P, t) { var on = (t % 3.4) > 1.8; if (on) Kabe.fan(g, P, 4, 45, 'R', 64, t * 2); Kabe.gustVent(g, P, 4, 45, 1, !on && (t % 3.4) > 1.1 && t % 0.24 < 0.12); });
+fig('雷の柱', function (g, P, t) { var ph = t % 2.8; if (ph > 2.35) Kabe.lightningBolt(g, 35, 18, 72, 1, Math.floor(t * 18)); Kabe.lightningRod(g, P, 35, 10, 1, ph > 1.65); Kabe.lightningRod(g, P, 35, 80, -1, ph > 1.65); });
+fig('風車', function (g, P, t) { Kabe.windmill(g, P, 35, 45, 26, t * 0.9); });
+</script>

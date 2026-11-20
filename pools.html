@@ -83,14 +83,25 @@ const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Ma
   bar.append(b);
 });
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
-  O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場' };
+  O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '{': '突風', '}': '突風', W: '風車' };
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 
 // パーツ1つを描く。rows は上の行から
 function prepare(pc) {
   const rows = pc.rows.slice().reverse(), h = rows.length, at = (c, r) => (rows[r] || '')[c] || '.';
   const map = rows.map(r => r.replace(/[Kk]/g, '#').replace(/[^#.^/\\]/g, '.'));
-  const grid = K.grid(map, '.'), obs = [];
+  const grid = K.grid(map, '.'), obs = [], seen = new Set();
+  // 曲がるトゲブロックの道すじ：同じ文字のつながりを端からたどって、角の点だけ残す
+  const railOf = (c0, r0, ch) => {
+    const cells = [], q = [[c0, r0]]; seen.add(c0 + ',' + r0);
+    while (q.length) { const [c, r] = q.pop(); cells.push([c, r]); for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (c + dc) + ',' + (r + dr); if (at(c + dc, r + dr) === ch && !seen.has(k)) { seen.add(k); q.push([c + dc, r + dr]); } } }
+    const nb = ([c, r]) => cells.filter(([a, b]) => Math.abs(a - c) + Math.abs(b - r) === 1);
+    let cur = cells.find(p => nb(p).length <= 1) || cells[0]; const order = [cur], used = new Set([cur.join()]);
+    for (;;) { const nx = nb(cur).find(p => !used.has(p.join())); if (!nx) break; order.push(nx); used.add(nx.join()); cur = nx; }
+    const pts = []; order.forEach((p, i) => { const a = order[i - 1], b = order[i + 1]; if (!a || !b || p[0] - a[0] !== b[0] - p[0] || p[1] - a[1] !== b[1] - p[1]) pts.push([(p[0] + 0.5) * CELL, (p[1] + 0.5) * CELL]); });
+    let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    return { k: 'rail', pts, len, w: ch === 'J' ? 18 : 36, h: ch === 'J' ? 36 : 18 };
+  };
   rows.forEach((row, r) => [...row].forEach((ch, c) => {
     const x = c * CELL, y = r * CELL;
     if (ch === 'p' || ch === 'q') obs.push({ k: 'pop', x, y, q: ch === 'q', dir: at(c - 1, r) === '#' ? 'L' : at(c + 1, r) === '#' ? 'R' : at(c, r + 1) === '#' ? 'B' : 'T' });
@@ -105,6 +116,13 @@ function prepare(pc) {
     if ((ch === 'Z' || ch === 'B') && at(c - 1, r) !== ch) { let e = c; while (at(e + 1, r) === ch) e++; const d = wall(c - 1) ? 1 : -1; obs.push({ k: ch === 'Z' ? 'stake' : 'bridge', x0: d > 0 ? x : (e + 1) * CELL, y: y + CELL / 2, dir: d, len: (e - c + 1) * CELL, off: c * 0.4 + r * 0.37 }); }
     if (ch === 'S') obs.push({ k: 'spring', x, y });
     if (ch === '%' && at(c - 1, r) !== '%') { let e = c; while (at(e + 1, r) === '%') e++; obs.push({ k: 'crumble', x, y, n: e - c + 1 }); }
+    // 上空の仕掛け
+    if (ch === '~' && at(c - 1, r) !== '~') { let e = c; while (at(e + 1, r) === '~') e++; obs.push({ k: 'cloud', x, y, w: (e - c + 1) * CELL }); }
+    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: c * 0.37 + r * 0.61 });
+    if (ch === 'W') obs.push({ k: 'mill', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 0.9 : -0.9 });
+    if (ch === '|' && at(c, r - 1) !== '|') { let e = r; while (at(c, e + 1) === '|') e++; obs.push({ k: 'bolt', x: x + CELL / 2, y0: y + CELL / 2, y1: (e + 0.5) * CELL, off: c * 0.53 }); }
+    if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: r * 0.47 }); }
+    if ((ch === 'J' || ch === 'L') && !seen.has(c + ',' + r)) obs.push(railOf(c, r, ch));
   }));
   if (pc.station) obs.push({ k: 'house', x: (pc.station.c + 0.5) * CELL, y: (pc.rows.length - pc.station.r) * CELL });   // G のマスに家
   const kinds = [...new Set(rows.join('').split('').filter(ch => NAMES[ch]).map(ch => NAMES[ch]))];
@@ -131,6 +149,16 @@ function draw(g, P, d, t) {
     else if (o.k === 'bridge') { const st = K.bridgeState(t, { offset: o.off }); K.bridge(g, P, o.x0, o.y, o.dir, o.len, st.ang, st.s === 'warn' && st.e % 0.3 < 0.15); }
     else if (o.k === 'spring') K.spring(g, P, o.x, o.y, 0);
     else if (o.k === 'crumble') K.crumble(g, P, o.x, o.y, o.n, 0, t);
+    else if (o.k === 'cloud') K.cloudPlat(g, P, o.x, o.y, o.w, t);
+    else if (o.k === 'mine') K.mine(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / 2.8) * 22);
+    else if (o.k === 'mill') K.windmill(g, P, o.x, o.y, 28, K.spinAngle(t, o.speed));
+    else if (o.k === 'bolt') { const ph = ((t + o.off) % 2.8 + 2.8) % 2.8; if (ph > 2.35) K.lightningBolt(g, o.x, o.y0 + 8, o.y1 - 8, 1, Math.floor(t * 18)); K.lightningRod(g, P, o.x, o.y0, 1, ph > 1.65); K.lightningRod(g, P, o.x, o.y1, -1, ph > 1.65); }
+    else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
+    else if (o.k === 'rail') {   // 道すじを一定の速さで往復（本編は角で少し止まる）
+      K.railPath(g, P, o.pts); let u = (t * 50) % (o.len * 2); if (u > o.len) u = o.len * 2 - u;
+      let x = o.pts[0][0], y = o.pts[0][1]; for (let i = 1; i < o.pts.length; i++) { const a = o.pts[i - 1], b = o.pts[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (u <= d) { x = a[0] + (b[0] - a[0]) * u / d; y = a[1] + (b[1] - a[1]) * u / d; break; } u -= d; x = b[0]; y = b[1]; }
+      K.spikeBlock(g, P, x - o.w / 2, y - o.h / 2, o.w, o.h);
+    }
   }
 }
 const cards = [];
@@ -143,6 +171,7 @@ function card(id, pools, noStar) {
   const tg = (txt, cls) => { const s = document.createElement('span'); s.textContent = txt; if (cls) s.className = cls; tags.append(s); };
   tg(`${(pc.rows.length * CELL / PX_PER_M).toFixed(1)}m`);
   d.kinds.forEach(k => tg(k));
+  if (pc.rain) tg('雨');
   if (pools) pools.forEach(n => tg(n, 'pool'));
   el.append(cv.c, name, tags);
   cards.push({ cv, d, m: card.m || 0 });

@@ -122,6 +122,16 @@ window.Kabe = (function () {
       { name: '夕焼けの峰', amb: 1.18, bloom: 0.4, lightK: 0.5, weather: { wind: 0.2, motes: 1 }, motif: { decor: 'sprout', hangRate: 0.3 },
         col: { bgTop: '#f0b48c', bgBottom: '#fbe3c2', far: '#e6b9a0', strataA: '#f3cfb4', strataB: '#f6d8bf', terrain: '#d9ad86', terrainLight: '#f4d8b4', terrainShade: '#b78a66',
           terrainDeep: '#ba9170', terrainLine: '#c89e78', terrainGrain: '#e8c49e', accent: '#a8c86a', accentShade: '#86a64e', glow: '#ffe08a' } }
+    ],
+    // 上空（800〜1200m）：だんだん雲が厚く、暗くなって嵐へ。雨は雨のパーツだけで降る
+    sky: [
+      { name: '雲の入り口', amb: 1.2, bloom: 0.4, lightK: 0.45, weather: { wind: 0.3 } },
+      { name: '風の回廊', amb: 1.15, bloom: 0.4, lightK: 0.45, weather: { wind: 0.8 },
+        col: { bgTop: '#5f8fd6', bgBottom: '#bcd6fb', far: '#d8e6fd' } },
+      { name: '雷の通り道', amb: 1.0, bloom: 0.45, lightK: 0.55, weather: { wind: 0.4 },
+        col: { bgTop: '#4a5f8f', bgBottom: '#98abd0', far: '#c2cde6', strataA: '#8fa5cc', strataB: '#9db1d6' } },
+      { name: '嵐の前', amb: 0.92, bloom: 0.45, lightK: 0.6, weather: { wind: 0.6 },
+        col: { bgTop: '#3d4a74', bgBottom: '#7f8fb8', far: '#a8b4d4', strataA: '#7a8db6', strataB: '#8798c0' } }
     ]
   };
   var stageCache = {};
@@ -562,6 +572,72 @@ window.Kabe = (function () {
     g.strokeStyle = alpha(P.metalLight, 0.5); g.beginPath(); g.moveTo(x + 3.5, y + h - 3.5); g.lineTo(x + w - 3.5, y + 3.5); g.stroke();
     shine(g, x + 4.5, y + 3.5, 2.6, 1.3, 0.35);
     [[3.4, 3.4], [w - 3.4, 3.4], [3.4, h - 3.4], [w - 3.4, h - 3.4]].forEach(function (b) { bolt(g, P, x + b[0], y + b[1], 1.2); });
+  }
+  /* ---------- 上空の仕掛け ---------- */
+  // 雲の足場（下からすり抜けて、上に乗れる。痛くないので縁取らない）。x〜x+w、y は上の面
+  function cloudPlat(g, P, x, y, w, t) {
+    var n = Math.max(2, Math.round(w / 9)), i, bx, r;
+    g.fillStyle = 'rgba(205,216,236,0.95)';
+    for (i = 0; i < n; i++) { bx = x + (i + 0.5) * w / n; r = 5.5 + hash(i, w, 3) * 2.5; ell(g, bx, y + 6.5, r + 1, r * 0.75); g.fill(); }   // 下の影
+    g.fillStyle = '#f4f7ff';
+    for (i = 0; i < n; i++) { bx = x + (i + 0.5) * w / n; r = 5 + hash(i, w, 2) * 3 + Math.sin((t || 0) * 1.5 + i) * 0.4; ell(g, bx, y + 4, r + 1.5, r * 0.8); g.fill(); }
+    g.fillStyle = '#ffffff'; g.fillRect(x + 2, y, w - 4, 3);   // 乗る面
+    g.fillStyle = 'rgba(255,255,255,0.8)'; for (i = 0; i < n; i += 2) { ell(g, x + (i + 0.4) * w / n, y + 2, 2.4, 1.2); g.fill(); }
+  }
+  // ただよう機雷：トゲのついた金属の玉
+  function mine(g, P, x, y, r) {
+    r = r || 8; var i, a;
+    blade(g, P, function () { g.beginPath(); for (i = 0; i < 16; i++) { a = i / 16 * Math.PI * 2; var rr2 = i % 2 ? r + 0.5 : r + 5; g.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); } g.closePath(); });
+    metalSolid(g, P, function () { ell(g, x, y, r, r); }, 1.3);
+    shine(g, x - r * 0.35, y - r * 0.4, r * 0.32, r * 0.18, 0.5);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(x, y, r * 0.55, 0.3, 2.6); g.stroke();
+  }
+  // 曲がるトゲブロック：四つの面ぜんぶにトゲ（縦長・横長）
+  function spikeBlock(g, P, x, y, w, h) {
+    [[0, h, -Math.PI / 2, h], [w, 0, Math.PI / 2, h], [0, 0, 0, w], [w, h, Math.PI, w]].forEach(function (sd) { g.save(); g.translate(x + sd[0], y + sd[1]); g.rotate(sd[2]); teethRow(g, P, sd[3]); g.restore(); });
+    metalSolid(g, P, function () { rr(g, x, y, w, h, 3); }, 1.6);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; rr(g, x + 3, y + 3, w - 6, h - 6, 1.5); g.stroke();
+    shine(g, x + 4.5, y + 3.5, 2.6, 1.3, 0.35);
+    [[3.4, 3.4], [w - 3.4, 3.4], [3.4, h - 3.4], [w - 3.4, h - 3.4]].forEach(function (b) { bolt(g, P, x + b[0], y + b[1], 1.2); });
+  }
+  // 曲がるトゲブロックの道すじ（点の並び）
+  function railPath(g, P, pts) {
+    g.strokeStyle = alpha(P.metalShade, 0.75); g.lineWidth = 2; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath();
+    pts.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
+    pts.forEach(function (p, i) { solid(g, function () { ell(g, p[0], p[1], i === 0 || i === pts.length - 1 ? 2.6 : 2, i === 0 || i === pts.length - 1 ? 2.6 : 2); }, P.metalShade, mix(P.metalShade, '#000000', 0.3), null, 0.5); });
+  }
+  // 風車：短い羽が4枚。a は回った角度
+  function windmill(g, P, x, y, len, a) {
+    for (var i = 0; i < 4; i++) {
+      var aa = a + i * Math.PI / 2, c = Math.cos(aa), sn = Math.sin(aa), T = function (u, v) { return [x + u * c - v * sn, y + u * sn + v * c]; };
+      var pts = [[4, -2], [len - 5, -4.2], [len, 0], [len - 5, 4.2], [4, 2]].map(function (p) { return T(p[0], p[1]); });
+      blade(g, P, function () { g.beginPath(); pts.forEach(function (p, j) { if (j) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.closePath(); });
+    }
+    metalSolid(g, P, function () { ell(g, x, y, 5.5, 5.5); }, 1.1);
+    bolt(g, P, x - 0.4, y - 0.4, 1.8);
+  }
+  // 避雷針（雷の柱の両はし）。dir 1＝下向き（上の針）、-1＝上向き（下の針）。lit：光っている
+  function lightningRod(g, P, x, y, dir, lit) {
+    metalSolid(g, P, function () { rr(g, x - 6, y - 3.5, 12, 7, 2); }, 1.1);
+    solid(g, function () { g.beginPath(); g.moveTo(x - 2.2, y + 3 * dir); g.lineTo(x, y + 10 * dir); g.lineTo(x + 2.2, y + 3 * dir); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.6, 1);
+    if (lit) { g.fillStyle = 'rgba(255,255,255,0.9)'; ell(g, x, y + 10 * dir, 2.4, 2.4); g.fill(); }
+    bolt(g, P, x - 3.2, y, 1); bolt(g, P, x + 3.2, y, 1);
+  }
+  // 雷（白い光の折れ線）。k：0〜1 の強さ、seed で形が変わる
+  function lightningBolt(g, x, y0, y1, k, seed) {
+    var pts = [[x, y0]], n = Math.max(3, Math.round((y1 - y0) / 12)), i;
+    for (i = 1; i < n; i++) pts.push([x + (hash(i, seed, 7) - 0.5) * 10, y0 + (y1 - y0) * i / n]);
+    pts.push([x, y1]);
+    var line = function (w, col) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.beginPath(); pts.forEach(function (p, j) { if (j) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke(); };
+    line(9, 'rgba(220,235,255,' + (0.25 * k) + ')'); line(4, 'rgba(235,245,255,' + (0.7 * k) + ')'); line(1.6, 'rgba(255,255,255,' + k + ')');
+  }
+  // 突風の口（壁につく金属の通気口）。warn：もうすぐ吹く（ふちが光る）
+  function gustVent(g, P, x, y, dir, warn) {
+    var w = 7, h = 26, x0 = dir > 0 ? x : x - w;
+    metalSolid(g, P, function () { rr(g, x0, y - h / 2, w, h, 2); }, 1.2);
+    g.strokeStyle = P.metalShade; g.lineWidth = 1.2;
+    for (var i = -2; i <= 2; i++) { g.beginPath(); g.moveTo(x0 + 1.5, y + i * 4.5); g.lineTo(x0 + w - 1.5, y + i * 4.5 + 1.5); g.stroke(); }
+    if (warn) { g.strokeStyle = 'rgba(255,255,255,0.85)'; g.lineWidth = 1.2; rr(g, x0 - 0.5, y - h / 2 - 0.5, w + 1, h + 1, 2.4); g.stroke(); }
   }
   // 箱の通り道（両端に留め金）
   function track(g, P, x0, y0, x1, y1) {
@@ -1416,7 +1492,7 @@ window.Kabe = (function () {
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
