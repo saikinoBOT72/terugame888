@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.26">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.27">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -343,6 +343,7 @@
           <a href="simulator.html">シミュレーター<small>壁ジャンプの数値</small></a>
           <a href="?perf">重さを見る<small>1フレームの内訳（?perf）</small></a>
           <button id="btnTestGems" type="button" hidden>水晶を選ぶ<small>テストプレイ用</small></button>
+          <button id="btnAllWear" type="button">着せ替え全部：オフ<small>ソロでも全部の品物・色を選べる（持ち物は変えない）</small></button>
         </div>
       </div>
       <div class="logo">
@@ -480,12 +481,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.26"></script>
-<script src="data/pieces.js?v=2026.12.26"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.27"></script>
+<script src="data/pieces.js?v=2026.12.27"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.26';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.27';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -3883,7 +3884,9 @@ const WARDROBE = [
 // 2人対戦では着せ替えは全部使える。着ているものは 1P・2P それぞれ別に覚える（ソロの着せ替えは変えない）。2P のはじめはからし色
 const LOOK_KEY = VERSUS ? 'kabe_vs_look' + VERSUS.side : 'kabe_look2';
 const LOOK = Object.assign({}, store.get(LOOK_KEY, VERSUS ? (VERSUS.side ? { scarf: { item: 'stripe', color: 'karashi' } } : store.get('kabe_look2', {})) : {}));
-const ownedOf = (cat, it) => VERSUS ? it.colors.map(c => c.id) : OWNED[cat.id + '.' + it.id] || [];
+// 開発用「着せ替え全部」：オンの間はソロでも全部の品物・色を持っている扱い（本当の持ち物 kabe_owned は変えないので、オフで元に戻る）
+let ALL_WEAR = store.get('kabe_dev_allwear', false);
+const ownedOf = (cat, it) => VERSUS || ALL_WEAR ? it.colors.map(c => c.id) : OWNED[cat.id + '.' + it.id] || [];
 function saveMeta() { if (!VERSUS) { store.set('kabe_candles', candles); store.set('kabe_owned', OWNED); } store.set(LOOK_KEY, LOOK); }
 function wearAll() {
   for (const cat of WARDROBE) {
@@ -4068,6 +4071,9 @@ function tgRender(focusId) {
 }
 function tgOpen(from) { tgFrom = from; $('tgMsg').textContent = ''; tgRender(); showOnly('gems'); }
 $('btnTestGems').onclick = () => tgOpen('title');
+function allWearLabel() { const b = $('btnAllWear'); b.firstChild.textContent = '着せ替え全部：' + (ALL_WEAR ? 'オン' : 'オフ'); }
+$('btnAllWear').onclick = () => { ALL_WEAR = !ALL_WEAR; store.set('kabe_dev_allwear', ALL_WEAR); allWearLabel(); wearAll(); sfx.tick(); };   // オフにすると持っていない物は外れる
+allWearLabel();
 $('btnPauseGems').onclick = () => tgOpen('pause');
 $('btnTgClear').onclick = () => { TG.gems = {}; TG.equip = []; $('tgMsg').textContent = '全部なしにした'; tgRender(); };
 $('btnTgDone').onclick = () => {
