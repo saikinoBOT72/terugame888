@@ -699,7 +699,7 @@ window.Kabe = (function () {
   function bridgeState(t, o) {
     o = o || {}; var st = cycleState(t, [['down', o.down || 2.2], ['warn', o.warn || 0.7], ['rise', 0.35], ['up', o.up || 1.6], ['fall', 0.35]], o.offset), a = 0;
     if (st.s === 'rise') a = smooth(st.k); else if (st.s === 'up') a = 1; else if (st.s === 'fall') a = 1 - smooth(st.k);
-    st.ang = a * Math.PI / 2 * 0.92; st.solid = a === 0; return st;   // 乗れるのは下りきっている間だけ（動いている板は本編で体を押す）
+    st.ang = a * Math.PI / 2; st.solid = a === 0; return st;   // 上がりきるとまっすぐ立つ（本編では壁の手前の面になる）   // 乗れるのは下りきっている間だけ（動いている板は本編で体を押す）
   }
   // part：'plank'＝回る板だけ、'base'＝蝶番の台とランプだけ（本編は板を ang＝0 で1回描いて GPU で回す）
   function bridge(g, P, x0, y, dir, len, ang, lit, part) {

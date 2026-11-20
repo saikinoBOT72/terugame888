@@ -262,7 +262,7 @@
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.29g';
+const VERSION = '2026.11.30a';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -904,9 +904,19 @@ function updateObstacles() {
   for (const o of world.obs) {
     if (Math.abs(o.yMid - P.y) > H) { o.cx = null; continue; }
     if (o.type === 'stake') { o.st = Kabe.stakeState(t, { offset: o.offset }); if (o.st.hurt) world.stakeAmt[o.r] = o.st.amount; continue; }
-    if (o.type === 'bridge') {   // 跳ね橋：下りている間だけ乗れる（押し出しは上下だけ）
+    if (o.type === 'bridge') {   // 跳ね橋：下りきっている間は乗れる、上がりきっている間は壁と同じ面（張り付ける）
       o.st = Kabe.bridgeState(t, { offset: o.offset });
-      o.om = o.angT != null && t > o.angT ? (o.st.ang - o.ang) / (t - o.angT) : 0; o.ang = o.st.ang; o.angT = t;   // 角度と回る速さ（押すとき使う）
+      const dt0 = o.angT != null && t > o.angT ? t - o.angT : 0;
+      let av = o.st.ang;
+      // 壁と板のあいだに体がある：板は体に当たった所で止まる（体をすり抜けない・壁へ押しこまない）
+      const bx = (P.x - o.x0) * o.dir, by = o.y - P.y, BR = HB + 4.5;
+      if (bx < HB + 6 && by > -HB && by < o.len + HB && Math.atan2(by, bx) >= (o.av ?? 0) - 0.02) { const d = Math.hypot(bx, by); av = Math.min(av, d <= BR ? 0 : Math.max(0, Math.atan2(by, bx) - Math.asin(BR / d))); }   // 板がまだ体を追いこしていないときだけ
+      if (o.av != null && av > o.av) av = Math.min(av, o.av + 6 * dt0);   // 止められていた板は、ゆっくり上がりきる
+      o.om = dt0 ? (av - (o.av ?? av)) / dt0 : 0; o.ang = o.av = av; o.angT = t;   // 角度と回る速さ（押すとき・描くとき使う）
+      if (o.st.s === 'up' && av >= Math.PI / 2 - 0.01) {   // 上がりきった板：外側の面と上の面（壁の手前に立つ板にくっつく）
+        const xf = o.x0 + o.dir * 4.5, top = o.y - o.len, E = (ax, ay, bx2, by2, nx, ny) => world.dynEdges.push({ ax, ay, bx: bx2, by: by2, nx, ny, dyn: o, minX: Math.min(ax, bx2), maxX: Math.max(ax, bx2), minY: Math.min(ay, by2), maxY: Math.max(ay, by2) });
+        E(xf, top, xf, o.y + 8, o.dir, 0); E(Math.min(o.x0, xf), top, Math.max(o.x0, xf), top, 0, -1);   // 面は蝶番の台の下まで（低い所から壁へ入りこまない）
+      }
       if (o.st.solid) {
         const a = Math.min(o.x0, o.x0 + o.dir * o.len), b = Math.max(o.x0, o.x0 + o.dir * o.len);
         const over = P.x + HB - 1 > a && P.x - HB + 1 < b && P.y + HB - 1 > o.y - 4.5 && P.y - HB + 1 < o.y + 4.5;   // 下りきった瞬間に体と重なっていたら、離れるまで板の面を作らない（急に押し出さない）
@@ -1411,7 +1421,7 @@ function surfaceDraw(sp, seg, vis) {
     } else if (o.type === 'bridge') {
       const st = o.st || Kabe.bridgeState(t, { offset: o.offset }), lit = st.s === 'warn' && st.e % 0.3 < 0.15, still = st.s === 'down' || st.s === 'warn' || st.s === 'up';
       // 板は1回だけ描いて蝶番のまわりに回し、台とランプは止まった絵
-      sp(`bplank|${o.dir}|${o.len}`, o.x0, o.y, [-o.len - 8, -8, o.len + 8, 8], () => Kabe.bridge(ctx, PAL, o.x0, o.y, o.dir, o.len, 0, false, 'plank'), 1, true, -st.ang * o.dir);
+      sp(`bplank|${o.dir}|${o.len}`, o.x0, o.y, [-o.len - 8, -8, o.len + 8, 8], () => Kabe.bridge(ctx, PAL, o.x0, o.y, o.dir, o.len, 0, false, 'plank'), 1, true, -(o.av ?? st.ang) * o.dir);
       sp(`bbase|${o.dir}|${lit}`, o.x0, o.y, [-12, -22, 12, 12], () => Kabe.bridge(ctx, PAL, o.x0, o.y, o.dir, o.len, 0, lit, 'base'));
     } else if (o.type === 'crumble') {
       for (const cell of o.cells) {
