@@ -996,16 +996,16 @@ window.Kabe = (function () {
   var GEM_KINDS = {
     greed: { name: '欲ばり', star: 1 }, hover: { name: 'ホバリング', star: 1, fuda: '長押し' }, slide: { name: 'かべすべり', star: 1 },
     bigjump: { name: '大ジャンプ', star: 1 }, fastkick: { name: '速蹴り', star: 1 }, highair: { name: '高い2段ジャンプ', star: 1 },
-    dive: { name: '急降下', star: 1, fuda: '下スワイプ' }, grip: { name: 'ねばり', star: 1 }, longinv: { name: 'ながい無敵', star: 1 }, magnet: { name: '磁石', star: 1 },
+    dive: { name: '急降下', star: 1, fuda: '下' }, grip: { name: 'ねばり', star: 1 }, longinv: { name: 'ながい無敵', star: 1 }, magnet: { name: '磁石', star: 1 },
     triple: { name: '3段ジャンプ', star: 2 }, predict: { name: '予測線', star: 2 }, charge: { name: '溜め蹴り', star: 2, fuda: '長押し' },
-    landjump: { name: '着地ジャンプ', star: 2 }, dash: { name: '横っ飛び', star: 2, fuda: '横スワイプ' }, interest: { name: '利子', star: 2 },
+    landjump: { name: '着地ジャンプ', star: 2 }, dash: { name: '横っ飛び', star: 2, fuda: '下' }, interest: { name: '利子', star: 2 },
     turn: { name: '振り向き', star: 3, fuda: '左右' }, brake: { name: 'ブレーキ', star: 3 }
   };
   var GEM_ORDER = ['greed', 'magnet', 'interest', 'hover', 'slide', 'grip', 'bigjump', 'fastkick', 'highair', 'dive', 'longinv', 'triple', 'predict', 'charge', 'landjump', 'dash', 'turn', 'brake'];
-  // 操作の札：色（レア度のミント・青・金、赤とはかぶらない）と印
+  // 操作の札：色（レア度のミント・青・金、赤とはかぶらない）と印。画面は 左・右・下 の3つで、下の帯が特殊ゾーン
   var FUDA = {
     'なし': { color: '#a99fb0', mark: '・', how: '操作しない（いつも効く）' }, '長押し': { color: '#f39bc8', mark: '長', how: '押し続ける' },
-    '下スワイプ': { color: '#f5a56b', mark: '↓', how: '空中で下へはらう' }, '横スワイプ': { color: '#c29bf5', mark: '↔', how: '空中で左右へはらう' },
+    '下': { color: '#f5a56b', mark: '下', how: '画面の下（特殊ゾーン）を押す' },
     '2本指': { color: '#c9e36a', mark: '2', how: '2本の指で押す' }, '左右': { color: '#d9b48c', mark: '◐', how: '画面の左右を押す' }
   };
   function fudaOf(kind) { return (GEM_KINDS[kind] && GEM_KINDS[kind].fuda) || 'なし'; }

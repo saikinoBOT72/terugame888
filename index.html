@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30f">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30h">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -51,7 +51,7 @@
   .ov {
     position: absolute; inset: 0; box-sizing: border-box;
     display: flex; align-items: center; justify-content: center;
-    padding: calc(var(--u) * 18px); background: rgba(30, 24, 38, .45);
+    padding: calc(var(--u) * 18px); padding-top: calc(var(--u) * 18px + env(safe-area-inset-top, 0px)); padding-bottom: calc(var(--u) * 18px + env(safe-area-inset-bottom, 0px)); background: rgba(30, 24, 38, .45);
   }
   .card {
     width: 100%; box-sizing: border-box; display: grid; justify-items: center; gap: calc(var(--u) * 10px);
@@ -87,7 +87,7 @@
   .stats .new { color: var(--teal); }
   /* タイトル（仮）：絵を見せるため板は使わず、上にロゴ・下にボタン */
   #ovTitle {
-    flex-direction: column; justify-content: space-between; padding-top: calc(var(--u) * 70px); padding-bottom: calc(var(--u) * 40px);
+    flex-direction: column; justify-content: space-between; padding-top: calc(var(--u) * 70px + env(safe-area-inset-top, 0px)); padding-bottom: calc(var(--u) * 40px + env(safe-area-inset-bottom, 0px));
     background: linear-gradient(rgba(30,24,38,.8), rgba(30,24,38,.1) 42%, rgba(30,24,38,.1) 58%, rgba(30,24,38,.8));
   }
   .logo { display: grid; justify-items: center; gap: calc(var(--u) * 8px); text-align: center; }
@@ -151,7 +151,7 @@
   .gtile:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
   .gdesc { min-height: 2.9em; font-size: calc(var(--u) * 11.5px); line-height: 1.45; text-align: left; width: 100%; }
   .gdesc b { color: var(--cream); }
-  /* 操作の札：色の丸に印（なし＝灰・長押し＝ピンク・下スワイプ＝オレンジ・横スワイプ＝紫・左右＝砂色） */
+  /* 操作の札：色の丸に印（なし＝灰・長押し＝ピンク・下（特殊ゾーン）＝オレンジ・左右＝砂色） */
   .fuda { display: inline-grid; place-items: center; width: calc(var(--u) * 14px); height: calc(var(--u) * 14px); border-radius: 50%; background: var(--fc); color: #2b2235; font-style: normal; font-weight: 800; font-size: calc(var(--u) * 8.5px); line-height: 1; }
   .gtile > .fuda { position: absolute; top: calc(var(--u) * -6px); left: calc(var(--u) * -5px); box-shadow: 0 0 0 calc(var(--u) * 2px) var(--panel); }
   /* テストの水晶選び：1行に 印・名前（押すと装備）・Lv の4つのボタン */
@@ -180,7 +180,7 @@
   .grow b { font-size: calc(var(--u) * 12.5px); } .grow b .st { color: var(--tone); margin-right: .3em; }
   .grow span { display: block; color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.4; }
   #pauseBtn {
-    position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px);
+    position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + env(safe-area-inset-bottom, 0px));
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
     background: color-mix(in srgb, var(--ui-panel) 85%, transparent); border: 0; border-radius: 50%; cursor: pointer;
   }
@@ -197,6 +197,7 @@
 </style>
 </head>
 <body>
+<div id="safeProbe" aria-hidden="true" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)"></div>
 <div id="app">
   <div id="frame">
     <canvas id="cv" aria-label="ゲーム画面"></canvas>
@@ -231,6 +232,7 @@
         <div class="how">
           <div><b>壁でタップ</b><span>反対の壁へ蹴る</span></div>
           <div><b>空中でタップ</b><span>2段ジャンプ。押す時間で着地点が変わる</span></div>
+          <div><b>画面の下</b><span>特殊ゾーン。「下」の水晶（急降下・横っ飛び）を使う</span></div>
           <div><b>壁は滑らない</b><span>着地点を選んで登ろう</span></div>
         </div>
         <p class="small">D：地形の線　V：パーツの到達チェック</p>
@@ -286,12 +288,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30f"></script>
-<script src="data/pieces.js?v=2026.11.30f"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30h"></script>
+<script src="data/pieces.js?v=2026.11.30h"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30f';
+const VERSION = '2026.11.30h';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -309,7 +311,9 @@ const MOVE = {
 
 /* ---------- 画面と単位 ---------- */
 const CELL = 18, COLS = 20;          // 1マス18px、横20マス
-const W = CELL * COLS, H = 640;
+const W = CELL * COLS;
+let H = 640;   // 画面の縦（ゲームの px）。縦長の端末では端末に合わせてのばす（resize）
+const SAFE = { top: 0, bottom: 0 };   // ノッチ・ホームバーの分（ゲームの px）。HUD をよけて置く
 const R = 11, HB = 10, HIT = 8;      // 見た目の半径 / 地形との当たり / トゲ・敵との当たり
 const PX_PER_M = 120;                // 1m＝120px（体感に合わせて、はじめの60pxの2倍の長さ。数字は1/2）
 const DT = 1 / 120;                  // 物理は固定ステップ（チェックと同じ動きになるように）
@@ -351,19 +355,19 @@ Object.assign(GEMS, {
   bigjump: { name: '大ジャンプ', star: 1, lv: [{ h: 0.08 }, { h: 0.15 }, { h: 0.25 }], desc: v => `壁や床を蹴ると、${Math.round(v.h * 100)}%高く跳ぶ` },
   fastkick: { name: '速蹴り', star: 1, lv: [{ x: 1.1 }, { x: 1.2 }, { x: 1.3 }], desc: v => `蹴ったときの横の速さが${Math.round((v.x - 1) * 100)}%上がり、壁から壁へ早く着く` },
   highair: { name: '高い2段ジャンプ', star: 1, lv: [{ h: 0.15 }, { h: 0.3 }, { h: 0.5 }], desc: v => `2段ジャンプ（3段目も）が${Math.round(v.h * 100)}%高く跳ぶ` },
-  dive: { name: '急降下', star: 1, lv: [{ m: 1.2 }, { m: 1.5 }, { m: 2 }], desc: v => `空中で下へはらうと、真下へ${v.m}倍の速さで落ちる（↓キー）` },
+  dive: { name: '急降下', star: 1, lv: [{ m: 1.2 }, { m: 1.5 }, { m: 2 }], desc: v => `空中で画面の下を押すと、真下へ${v.m}倍の速さで落ちる（↓キー）` },
   grip: { name: 'ねばり', star: 1, lv: [{ t: 3 }, { t: 4.5 }, { t: 7 }], desc: v => `壁にグラグラせずつかまっていられる時間が${v.t}秒になる（いつもは2秒）` },
   longinv: { name: 'ながい無敵', star: 1, lv: [{ t: 1.6 }, { t: 2.2 }, { t: 2.5 }], desc: v => `ダメージのあとの無敵が${v.t}秒になる（いつもは1.1秒）` },
   magnet: { name: '磁石', star: 1, lv: [{ r: 2 }, { r: 3.5 }, { r: 5 }], desc: v => `${v.r}マス以内の結晶を吸い寄せる` },
   charge: { name: '溜め蹴り', star: 2, lv: [{ m: 1.2 }, { m: 1.4 }, { m: 1.6 }], desc: v => `壁や床で押し続けて溜め、離すと強く蹴る（0.6秒で最大${v.m}倍。短く押せばいつもの蹴り）` },
   landjump: { name: '着地ジャンプ', star: 2, lv: [{ w: 0.08 }, { w: 0.12 }, { w: 0.16 }], desc: v => `床に着いてから${v.w}秒以内に押すと、20%高く跳ぶ（着く前に押した分には効かない）` },
-  dash: { name: '横っ飛び', star: 2, lv: [{ cd: 6 }, { cd: 4 }, { cd: 2.5 }], desc: v => `空中で左右へはらうと、その向きへまっすぐ3マス飛ぶ。使ったら${v.cd}秒でたまる（Z・Xキー）` },
+  dash: { name: '横っ飛び', star: 2, lv: [{ cd: 6 }, { cd: 4 }, { cd: 2.5 }], desc: v => `空中で画面の下の左右を押すと、その向きへひゅんっと4マス飛ぶ。使ったら${v.cd}秒でたまる（Z・Xキー）` },
   interest: { name: '利子', star: 2, lv: [{ p: 0.1, max: 4 }, { p: 0.15, max: 6 }, { p: 0.25, max: 10 }], desc: v => `ガチャ所に着くたび、持っている結晶が${Math.round(v.p * 100)}%増える（1回に${v.max}個まで）` },
   brake: { name: 'ブレーキ', star: 3, lv: [{ k: 0.8 }, { k: 0.65 }, { k: 0.5 }], desc: v => `${riseName()}が3m以内まで来ると${v.k}倍の速さになる（欲ばりで増えた分には効かない）` },
 });
 const FUDA = Kabe.FUDA || { 'なし': { color: '#a99fb0', mark: '・', how: '' } };
 const fudaOf = id => (Kabe.fudaOf ? Kabe.fudaOf(id) : 'なし');   // 操作の札（同じ札の水晶は同時に1つまで）。古い描画ライブラリが残っていても止まらない
-const FUDA_HOW = { hover: '空中で押し続ける', charge: '壁・床で押し続けて離す', dash: '空中で左右へはらう', dive: '空中で下へはらう', turn: '画面の左右を押す' };
+const FUDA_HOW = { hover: '空中で押し続ける', charge: '壁・床で押し続けて離す', dash: '空中で画面の下の左右を押す', dive: '空中で画面の下を押す', turn: '画面の左右を押す' };
 const KICK_CAP = { up: 1.6, side: 1.4 };   // 水晶を掛け合わせても、蹴りの強さは 上×1.6・横×1.4 まで
 const holdT = () => gemVal('grip') ? gemVal('grip').t : CLING.hold;   // グラグラするまで
 const GEM_ORDER = Kabe.GEM_ORDER.filter(id => GEMS[id]);   // 並び順はカタログと同じ
@@ -694,8 +698,11 @@ const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, up: 0, ge
 const cvCtx = ctx;
 
 function resize() {
-  const box = $('app').getBoundingClientRect();
-  scale = Math.min((box.width || innerWidth) / W, (box.height || innerHeight) / H);
+  const box = $('app').getBoundingClientRect(), bw = box.width || innerWidth, bh = box.height || innerHeight;
+  H = Math.round(clamp(W * bh / bw, 640, 960));   // 縦長の端末は縦をのばして画面いっぱいに（横長・タブレットは 640 のまま）
+  scale = Math.min(bw / W, bh / H);
+  const sp = getComputedStyle($('safeProbe')); SAFE.top = (parseFloat(sp.paddingTop) || 0) / scale; SAFE.bottom = (parseFloat(sp.paddingBottom) || 0) / scale;
+  $('gShow').dataset.h = H;
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
   cv.style.width = frameEl.style.width = cw + 'px'; cv.style.height = frameEl.style.height = ch + 'px';
@@ -830,8 +837,8 @@ function doDive() {
 // 横っ飛び：空中で左右へまっすぐ3マス（0.15秒、重さなし）
 function doDash(dir) {
   const v = gemVal('dash'); if (state !== 'play' || !v || canAct(P) || G.dashCd > 0 || !dir) return;
-  G.dashT = 0.15; G.dashDir = dir; G.dashCd = v.cd; G.diving = false; P.vx = dir * 360; P.vy = 0; P.face = dir;
-  kickLines(P.x, P.y, dir * 400, 0); puffCloud(P.x - dir * 6, P.y + 4); sfx.dash();
+  G.dashT = 0.13; G.dashDir = dir; G.dashCd = v.cd; G.diving = false; G.hovering = false; P.vx = dir * 560; P.vy = 0; P.face = dir; P.squash = 0.34; A.flip = 0;
+  for (let i = 0; i < 3; i++) kickLines(P.x - dir * i * 6, P.y + (i - 1) * 4, dir * 600, 0); puffCloud(P.x - dir * 8, P.y + 2); sfx.dash();   // ひゅんっ
 }
 function tryAct() {
   const turn = gemLv('turn') ? GEMS.turn.lv[gemLv('turn') - 1].on : 0, dir = turn ? inputDir : 0;
@@ -846,8 +853,7 @@ function tryAct() {
     const r = Math.floor(-P.y / CELL), c = Math.floor(P.x / CELL), dir = Math.sign(P.vx);
     if (dir) { let k = 0; while (k < COLS && !isWall(raw(world, c + dir * (k + 1), r))) k++; const dist = dir > 0 ? (c + k + 1) * CELL - HB - P.x : P.x - (c - k) * CELL - HB; if (dist / Math.abs(P.vx) < 0.08) return; }
     airJump(P); airBoost(P); inputBuf = 0; P.squash = -0.3;
-    const fx0 = P.x, fy0 = P.y + 10, fx = () => { sfx.air(); puffCloud(fx0, fy0); };
-    if (G.deferFx) G.pendFx = fx; else fx();   // スワイプかもしれない間は、音と雲をあとで出す（取り消したら出さない）
+    sfx.air(); puffCloud(P.x, P.y + 10);
     if (triple) { P.air = 0; G.tripleCd = gemVal('triple').cd; }
     if (turn >= 2 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * Math.min(gemVal('fastkick') ? gemVal('fastkick').x : 1, KICK_CAP.side) * (turn >= 3 ? 1 : 0.7)); P.face = dir; }   // Lv2〜 2段ジャンプも押した側へ（Lv3 は蹴りと同じ横の速さ）
     G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
@@ -895,12 +901,14 @@ function update(dt) {
   const vy0 = P.vy, ev = physStep(world, P, dt);
   G.tripleCd = Math.max(0, G.tripleCd - dt);
   G.dashCd = Math.max(0, (G.dashCd || 0) - dt); G.diveCd = Math.max(0, (G.diveCd || 0) - dt);
-  if (G.dashT > 0) { G.dashT -= dt; if (canAct(P)) G.dashT = 0; else { P.vx = G.dashDir * 360; P.vy = 0; if (G.dashT <= 0) P.vx = G.dashDir * MOVE.kickVx * 0.6; } }   // 横っ飛び：重さなしでまっすぐ
+  if (G.dashT > 0) { G.dashT -= dt; if (canAct(P)) G.dashT = 0; else { P.vx = G.dashDir * 560; P.vy = 0; if (Math.random() < 0.5) trail.push({ x: P.x, y: P.y, face: G.dashDir, life: 0.22 }); if (G.dashT <= 0) P.vx = G.dashDir * MOVE.kickVx * 0.55; } }   // 横っ飛び：重さなしで速くまっすぐ（残像を濃く）
   if (canAct(P)) G.diving = false; else if (G.diving && P.vy > 1000) P.vy = 1000;   // 急降下は 1秒に1000px まで（床をすり抜けない）
   if (G.charging) { if (!canAct(P)) G.charging = false; else { const was = G.chargeT; G.chargeT += dt; if (was < 0.6 && G.chargeT >= 0.6) sfx.chargeFull(); if (Math.random() < dt * 30) { const a = Math.random() * Math.PI * 2, r = 22 + Math.random() * 10; particles.push({ kind: 'dot', x: P.x + Math.cos(a) * r, y: P.y + Math.sin(a) * r, vx: -Math.cos(a) * r * 3, vy: -Math.sin(a) * r * 3, g: 0, life: 0.3, max: 0.3, r: 1.1, col: PAL.glow, glow: 1 }); } } }   // 溜め蹴り：光が集まる
   const hv = gemVal('hover');
   if (canAct(P)) G.hoverLeft = hv ? hv.t : 0;
-  else if (hv && holding && !G.dashT && !G.diving && G.hoverLeft > 0 && (G.hovering || P.vy > 0)) { P.vy = Math.max(-80, P.vy - 1500 * dt); G.hoverLeft -= dt; G.hovering = true; }   // ぱたぱた：落ち始めたら少し浮き上がる
+  else if (hv && holding && !G.dashT && !G.diving && G.hoverLeft > 0 && (G.hovering || P.vy > 0)) {   // ぱたぱた：落ち始めたら、ふわっとゆっくり浮き上がる（速さをなめらかに寄せる・横もゆるむ）
+    P.vy += (-120 + Math.sin(G.time * 7) * 40 - P.vy) * Math.min(1, dt * 5); P.vx *= 1 - Math.min(1, dt * 1.6); G.hoverLeft -= dt; G.hovering = true;
+  }
   if (!(hv && holding && !canAct(P) && G.hoverLeft > 0 && !G.diving)) G.hovering = false;
   const mg = gemVal('magnet');   // 磁石：近くの結晶を吸い寄せる
   if (mg) for (const g of world.gems) { if (g.got) continue; const dx = P.x - g.x, dy = P.y - g.y, d = Math.hypot(dx, dy); if (d < mg.r * CELL && d > 1) { const k = Math.min(1, dt * 360 / d); g.x += dx * k; g.y += dy * k; } }
@@ -1175,7 +1183,7 @@ function updateEffects(dt) {
   for (const f of floaters) { f.life -= dt; f.y -= 22 * dt; }
   for (const a of trail) a.life -= dt;
   trail = trail.filter(a => a.life > 0);
-  if (G) { G.flash = Math.max(0, (G.flash || 0) - dt * 5); G.zoneT = Math.max(0, (G.zoneT || 0) - dt); G.dark = darkAt(Math.max(0, -(cam.y + H * 0.55) / PX_PER_M)); }
+  if (G) { G.flash = Math.max(0, (G.flash || 0) - dt * 5); G.zoneT = Math.max(0, (G.zoneT || 0) - dt); G.zoneHint = Math.max(0, (G.zoneHint || 0) - dt); G.dark = darkAt(Math.max(0, -(cam.y + H * 0.55) / PX_PER_M)); }
   spawnEmbers(dt); spawnWarnSparks(dt); spawnSplash(dt); syncWeather(dt);
   for (const f of flyers) { f.t += dt; if (f.t >= 0.5 && !f.done) { f.done = true; if (G) G.coinBump = 1; } }
   flyers = flyers.filter(f => f.t < 0.5);
@@ -1753,6 +1761,7 @@ function drawParticles() {
 /* ---------- 画面の表示（丸い板 ui-panel 85%・文字 ui-ink） ---------- */
 function pill(x, y, w, h, color) { ctx.fillStyle = color || rgba(PAL.uiPanel, 0.85); rr(ctx, x, y, w, h, h / 2); ctx.fill(); }
 function drawHud() {
+  ctx.save(); ctx.translate(0, SAFE.top);   // 上の表示はノッチの下へ
   pill(HUD_GAP, HUD_GAP, 64, 22);
   for (let i = 0; i < MAX_HP; i++) Kabe.heart(ctx, PAL, 22 + i * 18, 13, i < G.hp);
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1787,6 +1796,9 @@ function drawHud() {
   ctx.textAlign = 'center'; ctx.font = `500 10px ${FONT}`; const tmw = ctx.measureText(time).width + 16;
   pill(W - HUD_GAP - tmw, HUD_GAP + 38, tmw, 17);
   ctx.fillStyle = PAL.uiMuted; ctx.fillText(time, W - HUD_GAP - tmw / 2, HUD_GAP + 47);
+  ctx.restore(); ctx.save(); ctx.translate(0, -SAFE.bottom);   // 下の表示はホームバーの上へ
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if (specialGem()) { const zt = H - zoneH() + SAFE.bottom; ctx.strokeStyle = rgba(FUDA['下'].color, 0.22); ctx.lineWidth = 1; ctx.setLineDash([3, 6]); ctx.beginPath(); ctx.moveTo(0, zt); ctx.lineTo(W, zt); ctx.stroke(); ctx.setLineDash([]); }   // 下の特殊ゾーンのさかい（うすく）
   if (state === 'play' && G.lavaY > cam.y + H) {
     const m = Math.max(0, (G.lavaY - P.y) / PX_PER_M), txt = `▼ ${riseName()}まで ${m.toFixed(1)}m`, near = m < 3;
     ctx.font = `800 12px ${FONT}`; const w2 = ctx.measureText(txt).width + 24;
@@ -1797,6 +1809,7 @@ function drawHud() {
   // FPS（左下）
   const ft = `${HUDK.fps} FPS`; ctx.font = `500 10px ${FONT}`; ctx.textAlign = 'center'; const fw = ctx.measureText(ft).width + 14;
   pill(HUD_GAP, H - HUD_GAP - 17, fw, 17); ctx.fillStyle = HUDK.fps < 45 ? PAL.rise : PAL.uiMuted; ctx.fillText(ft, HUD_GAP + fw / 2, H - HUD_GAP - 8);
+  ctx.restore();
 }
 
 // シェーダーの絵が上をおおうときは、下の2Dの canvas を見えなくする（読み取りとタップはそのまま。画面の重ね合わせが1枚へる）
@@ -2089,7 +2102,7 @@ const HUDK = { last: '', fps: 60, fpsT: 0 };
 function hudKey() {
   if (state === 'title') return 't|' + TITLE.fade.toFixed(2);
   const lava = state === 'play' && G.lavaY > cam.y + H ? ((G.lavaY - P.y) / PX_PER_M).toFixed(1) : '';
-  const anim = G.coinBump > 0 || flyers.length || G.zoneT > 0 || G.inv > 0 ? G.time.toFixed(3) : Math.floor(G.time * 12);   // 動いている間は毎フレーム、ふだんは結晶の印のきらめき（12こま/秒）
+  const anim = G.coinBump > 0 || flyers.length || G.zoneT > 0 || G.inv > 0 || G.zoneHint > 0 ? G.time.toFixed(3) : Math.floor(G.time * 12);   // 動いている間は毎フレーム、ふだんは結晶の印のきらめき（12こま/秒）
   return [state, Math.floor(G.best), Math.floor(G.crystals), G.hp, G.time.toFixed(1), anim, lava, G.equip.join(','), G.tripleCd.toFixed(1), G.hoverLeft.toFixed(2), HUDK.fps, PAL.uiPanel, showCheck ? checkLabel : ''].join('|');
 }
 function fxShown() {
@@ -2099,7 +2112,7 @@ function fxShown() {
   const key = hudKey(); if (key === HUDK.last) return;
   HUDK.last = key;
   ctx = hudCtx; ctx.setTransform(k, 0, 0, k, 0, 0); ctx.clearRect(0, 0, W, H);
-  if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); }
+  if (state !== 'title' && !PERF.off.hud) { drawHud(); drawZoneBanner(); drawZoneHint(); }
   if (state === 'title' && TITLE.fade > 0) { ctx.fillStyle = rgba(Kabe.mixHex(PAL.bgTop, '#000000', 0.5), TITLE.fade); ctx.fillRect(0, 0, W, H); }
   ctx = cvCtx;
 }
@@ -2143,7 +2156,7 @@ function drawFrame() {
   glcv.hidden = true; hudcv.hidden = true; showCv(true);
   drawLighting();
   if (G && G.flash > 0 && !calm) { ctx.fillStyle = rgba('#ffffff', G.flash * 0.35); ctx.fillRect(0, 0, W, H); }
-  if (state !== 'title') { drawHud(); drawZoneBanner(); }
+  if (state !== 'title') { drawHud(); drawZoneBanner(); drawZoneHint(); }
   else if (TITLE.fade > 0) { ctx.fillStyle = rgba(Kabe.mixHex(PAL.bgTop, '#000000', 0.5), TITLE.fade); ctx.fillRect(0, 0, W, H); }
 }
 /* =====================================================================
@@ -2706,11 +2719,29 @@ function drawSpores() {
     }
   }
 }
+// 画面の分け方を一瞬見せる（スタートした瞬間と、ガチャ所を出たとき）：さかいの線が中からのび、3つの面がうすく光って消える（文字は出さない）
+const ZH = 1.8;
+function drawZoneHint() {
+  const left = G.zoneHint || 0; if (left <= 0) return;
+  const T = ZH - left, zt = H - zoneH(), sp = specialGem(), turn = gemLv('turn'), fc = sp ? FUDA['下'].color : PAL.uiMuted;
+  const ease = k => 1 - Math.pow(1 - clamp(k, 0, 1), 3), a1 = ease(T / 0.28), a2 = ease((T - 0.1) / 0.32);
+  ctx.save(); ctx.globalAlpha = Math.min(1, left / 0.45);
+  // うすい色の面（左右は光の色、下は札の色）
+  ctx.fillStyle = rgba(PAL.glow, 0.06 * a2); ctx.fillRect(0, 0, W / 2 - 1, zt - 1); ctx.fillRect(W / 2 + 1, 0, W / 2, zt - 1);
+  ctx.fillStyle = rgba(fc, 0.16 * a1); ctx.fillRect(0, zt + 1, W, H - zt);
+  // さかいの線：横は真ん中から左右へ、縦はさかいから上へ。先に小さな光
+  ctx.strokeStyle = 'rgba(255,255,255,.85)'; ctx.lineWidth = 1.6; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(W / 2 - W / 2 * a1, zt); ctx.lineTo(W / 2 + W / 2 * a1, zt); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(W / 2, zt); ctx.lineTo(W / 2, zt - (zt - SAFE.top - 60) * a2); ctx.stroke();
+  if (a1 < 1) { Kabe.twinkle(ctx, W / 2 - W / 2 * a1, zt, 5, 0.9); Kabe.twinkle(ctx, W / 2 + W / 2 * a1, zt, 5, 0.9); }
+  if (a2 > 0 && a2 < 1) Kabe.twinkle(ctx, W / 2, zt - (zt - SAFE.top - 60) * a2, 5, 0.9);
+  ctx.restore();
+}
 // 層の見出し：新しい層に入ったら上に出す（100mごと）
 function drawZoneBanner() {
-  if (!(G.zoneT > 0)) return;
+  if (!(G.zoneT > 0) || G.zoneT > 3) return;   // 3秒より多いのは「まだ出さない」（分け方を見せている間）
   const T = 3 - G.zoneT, inK = Math.min(1, T / 0.4), out = Math.min(1, G.zoneT / 0.5), a = Math.min(inK, out);
-  const pool = poolAt(G.best), y = 118 + (1 - inK) * -16;
+  const pool = poolAt(G.best), y = 118 + SAFE.top + (1 - inK) * -16;
   ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `800 22px ${FONT}`; const tw = ctx.measureText(pool.name).width;
   const w = tw + 60; pill(W / 2 - w / 2, y - 26, w, 52, rgba(PAL.uiPanel, 0.9));
@@ -2796,7 +2827,7 @@ const sfx = {
   door() { tone(392, 0.2, 'sine', 0.07, 0, 0, 0.01); tone(523, 0.3, 'sine', 0.06, 0, 0.1, 0.01); },
   start() { [392, 523, 659, 784].forEach((f, i) => tone(f, 0.35, 'sine', 0.08, 0, i * 0.1, 0.01)); },
   dive() { tone(520, 0.18, 'triangle', 0.08, 180, 0, 0.004); noise(0.12, 0.03, 600, 3000); },
-  dash() { noise(0.16, 0.05, 1500, 7000); tone(700, 0.12, 'sine', 0.05, 1100, 0, 0.004); },
+  dash() { noise(0.18, 0.07, 2500, 9000); tone(1500, 0.16, 'sine', 0.05, 420, 0, 0.003); },   // ひゅんっ（高い音がすっと下がる）
   chargeStart() { tone(330, 0.6, 'sine', 0.04, 660, 0, 0.05); },
   chargeFull() { tone(990, 0.15, 'sine', 0.06, 0, 0, 0.003); tone(1320, 0.2, 'sine', 0.04, 0, 0.05, 0.003); },
   chargeKick(m) { tone(200, 0.25, 'triangle', Math.min(0.16, 0.1 * m), 600, 0, 0.003); noise(0.15, 0.05, 400, 4000); },
@@ -2865,7 +2896,8 @@ function renderBest() {
     el.textContent = '記録は残らない・結晶つき　'; const a = document.createElement('a'); a.href = location.pathname; a.textContent = 'ふつうに遊ぶ'; a.style.color = 'var(--teal)'; el.append(a);
   }
 }
-function startGame() { showOnly(null); newGame(); G.zoneT = 3; state = 'play'; $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
+function startGame() { showOnly(null); newGame(); G.zoneHint = ZH; G.zoneT = 3 + ZH; state = 'play';   // 分け方を見せてから層の見出し
+  $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
   const m = Math.floor(G.best), best = store.get('kabe_best2', 0);
   if (m > best && !G.test) store.set('kabe_best2', m);
@@ -2984,7 +3016,7 @@ function openGacha(st) {
   renderGacha(); showOnly('gacha'); sfx.door();
   $(G.crystals >= GACHA.cost ? 'btnRoll' : 'btnGachaGo').focus({ preventScroll: true });
 }
-function leaveGacha() { if (show.active) return; showOnly(null); state = 'play'; if (G.pulls.length) G.cheerT = 1; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
+function leaveGacha() { if (show.active) return; showOnly(null); state = 'play'; G.zoneHint = ZH; if (G.pulls.length) G.cheerT = 1; $('pauseBtn').hidden = false; last = performance.now(); acc = 0; }
 // 操作の札の1行（色の丸と「操作：…」）
 function fudaLine(id) {
   const fu = fudaOf(id), el = document.createElement('span'); el.className = 'fudaLine';
@@ -3218,8 +3250,8 @@ const showFx = (() => {
     pass(PL, fb[0], qw, qh, () => { use(PL, 's', 0, fb[1].t); gl.uniform2f(PL.u('d'), 0, 1 / qh); });
     pass(PC, null, W2, H2, () => {
       use(PC, 's', 0, srcT); use(PC, 'b', 1, fb[0].t);
-      gl.uniform2f(PC.u('res'), W2, H2); gl.uniform2f(PC.u('lc'), lx / 360, ly / 640); gl.uniform3f(PC.u('tint'), tone[0], tone[1], tone[2]);
-      gl.uniform4f(PC.u('shock'), shockOn ? S.shock.x / 360 : 0, shockOn ? S.shock.y / 640 : 0, shockOn ? sk * 0.75 : 0, shockOn ? S.shock.k * (1 - sk / 0.9) : 0);
+      gl.uniform2f(PC.u('res'), W2, H2); const gy0 = (H - 640) / 2; gl.uniform2f(PC.u('lc'), lx / 360, (ly + gy0) / H); gl.uniform3f(PC.u('tint'), tone[0], tone[1], tone[2]);
+      gl.uniform4f(PC.u('shock'), shockOn ? S.shock.x / 360 : 0, shockOn ? (S.shock.y + gy0) / H : 0, shockOn ? sk * 0.75 : 0, shockOn ? S.shock.k * (1 - sk / 0.9) : 0);
       gl.uniform1f(PC.u('t'), T); gl.uniform1f(PC.u('rays'), calm ? rays * 0.4 : rays); gl.uniform1f(PC.u('bloomK'), (calm ? 0.35 : 0.5) + brew * 0.3 + (popped ? 0.1 : 0));
       gl.uniform1f(PC.u('flash'), S.flash); gl.uniform1f(PC.u('chroma'), calm ? 0 : 0.25 + S.flash * 1.6 + S.shake * 0.05); gl.uniform1f(PC.u('heat'), calm ? 0 : brew * (1 - hush)); gl.uniform1f(PC.u('grain'), calm ? 0 : 0.035);
     });
@@ -3265,6 +3297,7 @@ uiCanvas($('gShow'), (g, t, w, h) => {
   const bgc = Kabe.gemTone(PAL, popped ? S.best : S.tier)[0], bgg = g.createLinearGradient(0, 0, 0, h);
   bgg.addColorStop(0, Kabe.mix(dark, bgc, 0.1)); bgg.addColorStop(0.55, dark); bgg.addColorStop(1, Kabe.mix(dark, '#000000', 0.5));
   g.fillStyle = bgg; g.fillRect(-20, -20, w + 40, h + 40);
+  g.translate(0, (h - 640) / 2); h = 640;   // 縦長の画面では、演出（360×640 で作ってある）を真ん中に置く
   g.save(); g.globalCompositeOperation = 'lighter';
   for (let i = 0; i < 16; i++) { const ph = (t * (0.03 + (i % 4) * 0.012) + i * 0.161) % 1, bx = ((i * 97.3) % w) + Math.sin(t * 0.5 + i) * 12, by = h * (1.1 - ph * 1.3), br = 6 + (i % 5) * 5;
     const bg2 = g.createRadialGradient(bx, by, 0, bx, by, br); bg2.addColorStop(0, rgba(i % 3 ? bgc : PAL.glow, 0.14 * Math.sin(ph * Math.PI))); bg2.addColorStop(1, rgba(bgc, 0)); g.fillStyle = bg2; g.fillRect(bx - br, by - br, br * 2, br * 2); }
@@ -3457,32 +3490,19 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 document.addEventListener('selectstart', e => e.preventDefault());
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-// 空中で下・横スワイプの水晶を付けているとき：押した瞬間にいつもどおり跳び（待たない）、0.06秒以内に指が動いてスワイプだと分かったら、
-// 跳ぶ前の状態に戻してから急降下・横っ飛びをする。跳びの音と雲は、スワイプでないと決まってから出す
-const SW = { p: null };
-const snapAct = () => ({ P: { x: P.x, y: P.y, vx: P.vx, vy: P.vy, air: P.air, face: P.face, squash: P.squash }, G: { airT: G.airT, tripleCd: G.tripleCd, hoverLeft: G.hoverLeft },
-  A: { flip: A.flip, flipKind: A.flipKind, flipDur: A.flipDur, flipDir: A.flipDir, rot: A.rot }, inputBuf });
-const undoAct = s => { Object.assign(P, s.P); Object.assign(G, s.G); Object.assign(A, s.A); inputBuf = s.inputBuf; };
-const flushSW = () => { SW.p = null; const f = G && G.pendFx; if (G) G.pendFx = null; if (f) f(); };   // タップだった：あとにしていた音と雲を出す
+// 画面は 左・右・下 の3つ。左右はいつものタップ（振り向きの水晶では押した側へ）、下の帯は特殊ゾーン（「下」の水晶：急降下・横っ飛び）
+const zoneH = () => Math.round(Math.max(90, H * 0.15) + SAFE.bottom);   // 下の特殊ゾーンの高さ（ゲームの px）
+const specialGem = () => G && G.equip.find(id => fudaOf(id) === '下');
+function special(side) {   // 空中だけ「下」の水晶を使う。壁・床では いつもの蹴り、水晶がなければ いつものタップ
+  const id = specialGem();
+  if (!id || state !== 'play' || canAct(P)) { press(side); return; }
+  if (id === 'dive') doDive(); else doDash(side);
+}
 cv.addEventListener('pointerdown', e => {
-  e.preventDefault(); const r = cv.getBoundingClientRect(), dir = e.clientX - r.left < r.width / 2 ? -1 : 1;
-  if (state === 'play' && !canAct(P) && (gemLv('dive') || gemLv('dash'))) {
-    const snap = snapAct(); G.deferFx = true; G.pendFx = null; press(dir); G.deferFx = false;
-    SW.p = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), k: r.width / W, snap }; return;
-  }
-  press(dir);
+  e.preventDefault(); const r = cv.getBoundingClientRect(), gx = (e.clientX - r.left) / r.width * W, gy = (e.clientY - r.top) / r.height * H, side = gx < W / 2 ? -1 : 1;
+  if (gy > H - zoneH()) special(side); else press(side);
 });
-cv.addEventListener('pointermove', e => {
-  const s = SW.p; if (!s || s.id !== e.pointerId) return;
-  const dx = (e.clientX - s.x) / s.k, dy = (e.clientY - s.y) / s.k; if (Math.hypot(dx, dy) < 10) return;
-  const dive = dy > Math.abs(dx) && gemLv('dive'), dash = Math.abs(dx) > Math.abs(dy) && gemLv('dash');
-  if (!(dive || dash) || canAct(P)) { flushSW(); return; }   // スワイプの水晶が無い向き、またはもう壁や床に着いた：タップのまま
-  SW.p = null; G.pendFx = null; undoAct(s.snap);   // 跳びを取り消す
-  if (dive) doDive(); else doDash(Math.sign(dx));
-});
-const swipeTick = () => { const s = SW.p; if (s && performance.now() - s.t > 60) flushSW(); };
-const up = e => { if (SW.p && SW.p.id === e.pointerId) flushSW(); release(); };
-addEventListener('pointerup', up); addEventListener('pointercancel', up);
+addEventListener('pointerup', release); addEventListener('pointercancel', release);
 // ボタンをはなしたら、ぽよんと戻す（.pop をつけ直す）
 document.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('button, a.sub'); if (!b || b.disabled) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
 document.addEventListener('animationend', e => { if (e.animationName === 'pop') e.target.classList.remove('pop'); });
@@ -3494,7 +3514,7 @@ addEventListener('keydown', e => {
     e.preventDefault(); if (e.repeat) return;
     if (state === 'title') { if (!ov.title.hidden) startGame(); } else press(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0);
   }
-  else if ((e.key === 'ArrowDown' || e.key === 's') && !e.repeat) { e.preventDefault(); doDive(); }   // 急降下
+  else if ((e.key === 'ArrowDown' || e.key === 's') && !e.repeat) { e.preventDefault(); if (state === 'play') special(P.face || 1); }   // 下の特殊ゾーンと同じ
   else if ((e.key === 'z' || e.key === 'x') && !e.repeat) doDash(e.key === 'z' ? -1 : 1);   // 横っ飛び else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play') $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
   else if (e.key === 'd' || e.key === 'D') debug = !debug;
   else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;
@@ -3521,7 +3541,7 @@ function loop(now) {
   else if (state === 'gacha') updateGacha(frame);
   else if (state === 'dying') G.time += frame;
   const tB = performance.now();
-  swipeTick(); updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
+  updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
   const t0 = performance.now();
   draw();
   const tD = performance.now();
