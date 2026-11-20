@@ -1,0 +1,19 @@
+<!-- @dsCard group="キャラ" height=300 width=760 subtitle="着せ替え：ろうそく・石灯籠・マフラーの色" -->
+<style>
+.wd-row { display: grid; grid-template-columns: 110px 150px minmax(0, 1fr); gap: 10px; padding: 10px; align-items: center; }
+.wd-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .wd-row { grid-template-columns: 1fr 1fr; } .wd-cols { grid-column: 1 / -1; } }
+</style>
+<div class="wd-row" id="root"></div>
+<script>
+(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
+var root = document.getElementById('root');
+function fig(w, h, zoom, label, draw) {
+  var f = document.createElement('figure'); f.className = 'kabe-fig'; var cv = Kabe.canvas(w, h, zoom, label), cap = document.createElement('figcaption'); cap.textContent = label;
+  f.appendChild(cv.c); f.appendChild(cap); Kabe.animate(function (t) { var P = Kabe.pal('underground'), g = cv.g; g.setTransform(cv.k, 0, 0, cv.k, 0, 0); g.clearRect(0, 0, w, h); Kabe.background(g, P, 0, 0, w, h, t, 0); draw(g, P, t); }); return f;
+}
+root.appendChild(fig(40, 40, 2.4, 'ろうそく', function (g, P, t) { Kabe.candle(g, P, 20, 23, 1.3, t); }));
+root.appendChild(fig(70, 92, 1.6, '石灯籠', function (g, P, t) { var k = (t % 4) / 4, st = k < 0.33 ? 1 : k < 0.66 ? 2 : 3; Kabe.gachaLantern(g, P, 35, 47, t, 0.3, Kabe.gemTone(P, st)[0]); }));
+var cols = document.createElement('div'); cols.className = 'wd-cols'; root.appendChild(cols);
+Kabe.SCARF_COLORS.forEach(function (c) { cols.appendChild(fig(44, 40, 1.6, c.name + ' ' + '★★★'.slice(0, c.star), function (g, P, t) { Kabe.scarfItem(g, P, 23, 16, 1.2, t, c.id); })); });
+</script>

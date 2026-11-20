@@ -1,4 +1,4 @@
-/** 壁蹴りタワーの素材ライブラリ（window.Kabe）。単位はゲーム内の px、1マス = 18px。 */
+/** おばけじゃんぴんぐの素材ライブラリ（window.Kabe）。単位はゲーム内の px、1マス = 18px。 */
 type ZoneId = 'underground' | 'surface' | 'sky' | 'space';
 /** ゾーンの色。tokens.json の名前をキャメルケースにしたもの（bg-top → bgTop）。 */
 interface Palette { id: ZoneId; [token: string]: string; }
@@ -58,6 +58,20 @@ declare const Kabe: {
   gachaHouse(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, lit: boolean): void;
   /** ガチャのフラスコ。spin 0〜1 で液が波打ち湯気が出る。liquid は液の色。口は y-46、台の下は y+42 */
   gachaFlask(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
+  /** 着せ替えガチャの石灯籠（spin：0〜1 の盛り上がり、liquid：窓の火の色＝レア度の予告） */
+  gachaLantern(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
+  /** ろうそく（着せ替えガチャの通貨）。s：大きさ、lit=false で火なし */
+  candle(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, s?: number, t?: number, lit?: boolean): void;
+  CANDLE: { wax: string; waxShade: string; flame: string; flameOut: string };
+  /** マフラーの品物アイコン（輪としっぽ）。colorId は SCARF_COLORS の id */
+  scarfItem(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, s: number, t: number, colorId?: string): void;
+  /** マフラーの形と色（chara.html でいじる）。color は SCARF_COLORS の id */
+  SCARF: { [k: string]: number | string };
+  SCARF_DEF: { [k: string]: number | string };
+  /** マフラーの色（着せ替え）。red は tokens の scarf。star はレア度 */
+  SCARF_COLORS: { id: string; name: string; star: number; scarf?: string; shade?: string; stripe?: string }[];
+  /** マフラーの色だけ SCARF.color に差し替えたパレット */
+  scarfPal(P: Palette): Palette;
   /** 十字のきらめき（光） */
   twinkle(g: CanvasRenderingContext2D, x: number, y: number, len: number, alpha: number): void;
   /** 出た水晶のまわりの光。k は 0→1 で広がる */

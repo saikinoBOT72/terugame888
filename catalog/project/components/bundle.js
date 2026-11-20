@@ -1,4 +1,4 @@
-/* 壁蹴りタワー 素材ライブラリ（window.Kabe）
+/* おばけじゃんぴんぐ 素材ライブラリ（window.Kabe）
    すべての素材をこのファイルの関数で描く。色は tokens.json（tokens.css の変数）から読む。
    単位はゲーム内の px（1マス = 18px）。 */
 window.Kabe = (function () {

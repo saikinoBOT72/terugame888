@@ -8,7 +8,7 @@
 |---|---|
 | `index.html` | 本編。`bundle.js`（`Kabe`）・`tokens.css`・`data/pieces.js` を読み込む |
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編と `pools.html` が共通で読む |
-| （タイトル） | `#ovTitle`：プレイ・着せ替え（`WARDROBE` に表を足すと増える。着ているものは store `kabe_look`）・設定（`#ovSettings`）。右上「開発」に chara・pools・simulator・?perf |
+| （タイトル） | `#ovTitle`：プレイ・着せ替え（`WARDROBE`：分類→品物→色。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`、演出は水晶ガチャと同じ `show`（`kind: 'look'`）とシェーダー `showFx`、器は `Kabe.gachaLantern`）・設定（`#ovSettings`）。ろうそく（`kabe_candles`）は結果画面で 10m ごとに1本（`META`）。右上「開発」に chara・pools・simulator・?perf |
 | `pools.html` | プールとパーツの一覧（動く見本） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `chara.html` | キャラの動き・表情・マフラーを再生して試すページ（本編のポーズ切り替えとマフラーのひもを写したもの。マフラーの形は `Kabe.SCARF`。本編の `updatePose`・`scarfStep` を変えたらこちらも合わせる） |
@@ -33,7 +33,7 @@
 | 統一カタログ | https://claude.ai/artifact/Wsug5KamAvvHNbWAuxyc7e | `catalog/project/` |
 
 - 本編：`python3 tools/build_artifact.py index.html <スクラッチ>/kabegeri-game.html`（読み込むファイルを埋め込んだ1ファイル）を `url` 付きで publish。出し直す前に、いまの版を `read` して全部読む必要があるので重い。ユーザーに頼まれたときだけ。
-- カタログ：変えたファイルだけを `root: catalog`、`file_path` は `design-system.json` の絶対パス、`url` 付きで1回の publish。直前に `project/design-system.json` を `read` して `lastChange` だけ書き換える。`index.d.ts` は `{"from": ..., "contentType": "text/plain"}`。`tokens.css` は自分で書いた（`tokens.json` を変えたら作り直す）。見本は `<!-- @dsCard group=… height=… -->` で始める。
+- カタログ：変えたファイルだけを `root: catalog`、`file_path` は `design-system.json` の絶対パス、`url` 付きで1回の publish。直前に `project/design-system.json` を `read` して `lastChange` だけ書き換える。`index.d.ts` は `{"from": ..., "contentType": "text/plain"}`。`tokens.css` はカタログのページが作るので送らない（手元の `tokens.css` は本編用に自分で作り直す）。送る前に `list`（scope files）の sha256 と手元を比べて、違うファイルを全部送る。見本は `<!-- @dsCard group=… height=… -->` で始める。
 
 ## 確かめ方（自分でテスト用スクリプトを書かない）
 - パーツ・動き・当たり判定：`node tools/check.js`（1つなら `node tools/check.js z1_funnel`）。全部 OK・詰み0が必須。回る棒・箱・シャッターはチェックでは「無い」扱いなので、壁の張り付き位置に届かないかは自分で確かめる。
