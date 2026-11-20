@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.13">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.14">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -269,9 +269,31 @@
   .grow span { display: block; color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.4; }
   body.vs #pauseBtn, body.vs .dev { display: none !important; }
   body.vs .vsTag { position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px); z-index: 60; padding: calc(var(--u) * 2px) calc(var(--u) * 10px); border-radius: 999px; background: var(--vc); color: #120d18; font-weight: 800; font-size: calc(var(--u) * 14px); pointer-events: none; }
-  body.vs .vsWarn { position: absolute; left: 50%; bottom: calc(var(--u) * 14px); transform: translateX(-50%); z-index: 60; padding: calc(var(--u) * 4px) calc(var(--u) * 12px); border-radius: 999px; background: rgba(20,15,28,.9); color: #fff4e6; font-weight: 800; font-size: calc(var(--u) * 14px); white-space: nowrap; pointer-events: none; }
-  body.vs .vsWarn.near { background: #c94a2a; }
-  body.vs .vsWarn[hidden] { display: none; }
+  /* 画面の下の札（復活待ち・2人対戦のガチャ所の中の溶岩） */
+  .respWarn { position: absolute; left: 50%; bottom: calc(var(--u) * 14px); transform: translateX(-50%); z-index: 60; padding: calc(var(--u) * 4px) calc(var(--u) * 12px); border-radius: 999px; background: rgba(20,15,28,.9); color: #fff4e6; font-weight: 800; font-size: calc(var(--u) * 14px); white-space: nowrap; pointer-events: none; }
+  .respWarn.near { background: color-mix(in srgb, var(--hazard, #8a8f99) 70%, #000); }
+  /* モード選び（タイトル）：シンプルジャンプ／アドバンス */
+  .modeSel { display: inline-flex; gap: calc(var(--u) * 4px); padding: calc(var(--u) * 4px); background: rgba(20,15,28,.6); border-radius: 999px; border: 2px solid rgba(255,244,230,.18); }
+  .mBtn { font: inherit; font-weight: 800; font-size: calc(var(--u) * 14px); color: var(--dim); background: transparent; border: 0; border-radius: 999px; padding: calc(var(--u) * 6px) calc(var(--u) * 14px); cursor: pointer; transition: background .15s, color .15s; }
+  .mBtn.on { color: var(--ink); background: var(--glow); }
+  .mBtn:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .modeDesc { margin: calc(var(--u) * -4px) 0 0 !important; font-size: calc(var(--u) * 11.5px); color: var(--cream) !important; opacity: .85; text-align: center; max-width: calc(var(--u) * 300px);
+    background: rgba(0,0,0,.28); border-radius: calc(var(--u) * 10px); padding: calc(var(--u) * 2px) calc(var(--u) * 10px); }
+  /* 2人対戦のタイトル（左右に分かれる）：ガチャ・設定などソロの物は出さない。1P にモード・スタート、2P は着せ替えだけ */
+  .vsHead, .vsWait, .vsBack { display: none !important; }
+  body.vs .vsHead { display: flex !important; position: absolute; left: 50%; top: calc(var(--u) * 12px); transform: translateX(-50%); align-items: center; gap: calc(var(--u) * 8px); z-index: 2; white-space: nowrap; }
+  body.vs .vsBadge { font-weight: 800; font-size: calc(var(--u) * 18px); color: #1b1426; background: var(--vc, #8fd0ff); border-radius: 999px; padding: 0 calc(var(--u) * 14px); }
+  body.vs.p2 { --vc: #f2b544; }
+  body.vs .vsPad { font-weight: 800; font-size: calc(var(--u) * 12px); color: var(--dim); background: rgba(0,0,0,.35); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 10px); animation: blink 1.4s ease-in-out infinite; }
+  body.vs .vsPad.on { color: var(--cream); animation: none; }
+  @keyframes blink { 50% { opacity: .45; } }
+  body.vs .dev, body.vs .chips, body.vs #btnLook, body.vs #btnSettings, body.vs #btnDuo, body.vs .ver, body.vs .tagline { display: none !important; }
+  body.vs .menu3 { grid-template-columns: 1fr; width: calc(var(--u) * 140px); }
+  body.vs.p1 .vsBack { display: inline-block !important; }
+  body.vs.p2 .playRow { display: none !important; }
+  body.vs.p2 .vsWait { display: block !important; font-weight: 800; color: var(--cream); background: rgba(0,0,0,.3); border-radius: 999px; padding: calc(var(--u) * 4px) calc(var(--u) * 14px); }
+  body.vs.p2 .mBtn { pointer-events: none; }   /* モードは 1P が決める（2P は見るだけ） */
+  body.vs.p2 .mBtn:not(.on) { display: none; }
   body.vs button.vsSel { outline: calc(var(--u) * 3px) solid #fff; outline-offset: calc(var(--u) * 2px); }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + env(safe-area-inset-bottom, 0px));
@@ -300,6 +322,7 @@
     <canvas id="hud" class="layer" aria-hidden="true"></canvas>
     <button id="pauseBtn" type="button" aria-label="一時停止" hidden>II</button>
     <section id="ovTitle" class="ov">
+      <div class="vsHead"><span class="vsBadge" id="vsBadge">1P</span><span class="vsPad" id="vsPad">コントローラーのボタンで参加</span></div>
       <div class="dev">
         <button class="devBtn" id="btnDev" type="button" aria-expanded="false">開発 ▾</button>
         <div class="devList" id="devList" hidden>
@@ -317,9 +340,16 @@
       <canvas class="uic tGhost" id="tGhost" data-w="200" data-h="150" aria-hidden="true"></canvas>
       <div class="titleBottom">
         <div class="chips"><p class="bestChip" id="bestTitle"></p><span class="candleChip" aria-label="持っているろうそく"><canvas class="uic" data-candle data-w="16" data-h="20" aria-hidden="true"></canvas><b class="candleN">0</b></span></div>
+        <div class="modeSel" role="radiogroup" aria-label="モード">
+          <button class="mBtn" type="button" role="radio" data-mode="simple">シンプルジャンプ</button>
+          <button class="mBtn" type="button" role="radio" data-mode="advance">アドバンス</button>
+        </div>
+        <p class="modeDesc" id="modeDesc"></p>
+        <p class="vsWait">1P がスタートするのを待ってね</p>
         <div class="playRow">
           <button class="btn big" id="btnStart" type="button">ひとりで</button>
           <a class="btn duo" id="btnDuo" href="versus.html">ふたりで<small>対戦</small></a>
+          <button class="sub vsBack" id="btnVsBack" type="button">もどる</button>
         </div>
         <div class="menu3">
           <button class="mbtn" id="btnWardrobe" type="button"><canvas class="uic ic" id="icWard" data-w="26" data-h="20" aria-hidden="true"></canvas>着せ替え</button>
@@ -432,12 +462,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.13"></script>
-<script src="data/pieces.js?v=2026.12.13"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.14"></script>
+<script src="data/pieces.js?v=2026.12.14"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.13';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.14';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -540,6 +570,11 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
+// 2人対戦（versus.html の中、?vs=0|1）のときだけ。くわしくは下の「2人対戦」の区切り
+const VERSUS = (() => { const q = new URLSearchParams(location.search); return q.has('vs') && window.parent !== window ? { side: +q.get('vs') || 0, seed: (+q.get('seed') >>> 0) || 1, ghost: null } : null; })();
+const seeded = a => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+let trnd = Math.random;   // 地形を決める乱数（対戦のときだけ種つき）
+let MODE = store.get(VERSUS ? 'kabe_vs_mode' : 'kabe_mode', 'advance');   // simple（シンプルジャンプ）／advance（アドバンス）。下の「モード」の区切り
 
 function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], rains: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
   stakeRow: {}, stakeAmt: null, crumbleAt: {}, broken: new Set(), springs: [], springHit: {}, gusts: [], clouds: [], railSeen: new Set(), time: 0, gustAlways: null }; }
@@ -954,7 +989,7 @@ function placePiece(id) {
   world.placed.push({ id, r0, r1 });
   if (pc.rain) world.rains.push([r0, r1]);   // 雨のパーツの行
   if (pc.station) world.stations.push({ x: (pc.station.c + 0.5) * CELL, y: -(r0 + pc.station.r) * CELL, used: false });   // G のマスに家（下の床の上）
-  else if (id !== 'z1_start' && !vsDeath()) scatterGems(r0, r1);   // 2人対戦の「デスマッチ」は結晶なし
+  else if (id !== 'z1_start' && !simpleMode()) scatterGems(r0, r1);   // シンプルジャンプは結晶なし
 }
 // 結晶：壁ぎわの空きマス（張り付くと取れる所）に数個。つなぎ目の2行は避ける。トゲのそばにも置く（取りに行くと危ない）
 // 仕掛けと重ならないように：仕掛けのとなりのマス、筒の撃つ行、回る棒から3マス以内、振り子の下（軸から4マス）には置かない
@@ -984,7 +1019,7 @@ const connector = row => row.replace(/[^#]/g, '.');
 function nextPiece() {
   const lastP = world.placed[world.placed.length - 1], topRow = PIECES[lastP.id].rows[PIECES[lastP.id].rows.length - 1];
   const m = world.rows.length * CELL / PX_PER_M, pool = poolAt(m).pieces.length ? poolAt(m) : POOLS.filter(p => p.pieces.length && p.from <= m).pop();   // 空のプール（作りかけ）は飛ばして、その前のプールを使う
-  if (m >= world.nextGacha && !vsDeath()) {   // ガチャ所（2人対戦の「デスマッチ」は無し）：形のちがうものから選ぶ（前と同じ形は避ける）
+  if (m >= world.nextGacha && !simpleMode()) {   // ガチャ所（シンプルジャンプは無し）：形のちがうものから選ぶ（前と同じ形は避ける）
     const gs = GACHA_PIECES.filter(id => connector(PIECES[id].rows[0]) === connector(topRow)), pick = gs.filter(id => id !== world.lastGacha);
     if (gs.length) { const id = (pick.length ? pick : gs)[Math.floor(trnd() * (pick.length || gs.length))]; world.nextGacha += GACHA.every; world.lastGacha = id; return id; }
   }
@@ -1027,6 +1062,7 @@ function newGame() {
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, pressAt: -9, landAt: -9, dashCd: 0, diveCd: 0, dashT: 0, dashDir: 1, diving: false, charging: false, chargeT: 0, invMax: INVINCIBLE, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
+  if (simpleMode()) { G.hp = 1; G.safe = []; G.downs = 0; }   // シンプルジャンプ：HP なし（1回でやられる）
   cam.y = 60 - H; cam.shake = 0; cam.lead = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
   clearBands(); if (glfx) glReset();
   if (TEST_FROM) {
@@ -1123,7 +1159,7 @@ function hurt(dirX, cause, wallSpike = false) {
   if (G.hp <= 0) { G.cause = cause; die(); }
 }
 function die() {
-  if (vsDeath() && G.cause !== 'lava') vsDown();   // 2人対戦の「デスマッチ」：溶岩以外なら少し下から復活
+  if (simpleMode() && G.cause !== 'lava') respDown();   // シンプルジャンプ：溶岩以外なら少し下から復活
   state = 'dying'; G.dieT = 0; $('pauseBtn').hidden = true; shake(10); G.flash = 1;
   sfx[G.cause === 'lava' ? 'lava' : 'die']();
   for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 140; particles.push({ kind: 'puff', x: P.x, y: P.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.9, max: 0.9, r: 3 + Math.random() * 4 }); }
@@ -1216,7 +1252,7 @@ function update(dt) {
     G.lavaY -= LAVA.speed * (bk && near ? bk.k + (gr - 1) : gr) * dt;   // ブレーキは欲ばりで増えた分には効かない
   }
   if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; die(); }
-  if (vsDeath()) vsSafe();
+  if (simpleMode()) respSafe();
 }
 /* ---------- ぽよんブロック（H）：乗る・張り付くと SKY.bounceDelay 秒で、ぷるっとしてから横へはじく ---------- */
 function bounceTouch() {
@@ -1460,7 +1496,7 @@ function updateEffects(dt) {
   flyers = flyers.filter(f => f.t < 0.5);
   if (G) G.coinBump = Math.max(0, G.coinBump - dt * 4);
   floaters = floaters.filter(f => f.life > 0);
-  if (state === 'dying') { G.dieT += dt; if (G.resp) { vsRespCam(dt); if (G.dieT > VERSUS_RESPAWN) vsRespawn(); } else if (G.dieT > 1.1) end(); }
+  if (state === 'dying') { G.dieT += dt; if (G.resp) { respCam(dt); if (G.dieT > RESP.wait) respawn(); } else if (G.dieT > 1.1) end(); }
 }
 function end() { state = 'end'; if (VERSUS) { parent.__vsEnd && parent.__vsEnd(VERSUS.side, Math.floor(G.best)); return; } showEnd(); }
 function dust(x, y, dir, n) {
@@ -2091,7 +2127,7 @@ function drawParticles() {
 function pill(x, y, w, h, color) { ctx.fillStyle = color || rgba(PAL.uiPanel, 0.85); rr(ctx, x, y, w, h, h / 2); ctx.fill(); }
 function drawHud() {
   ctx.save(); ctx.translate(0, SAFE.top);   // 上の表示はノッチの下へ
-  if (!vsDeath()) { pill(HUD_GAP, HUD_GAP, 64, 22); for (let i = 0; i < MAX_HP; i++) Kabe.heart(ctx, PAL, 22 + i * 18, 13, i < G.hp); }   // 「デスマッチ」は HP・結晶・水晶を出さない
+  if (!simpleMode()) { pill(HUD_GAP, HUD_GAP, 64, 22); for (let i = 0; i < MAX_HP; i++) Kabe.heart(ctx, PAL, 22 + i * 18, 13, i < G.hp); }   // シンプルジャンプは HP・結晶・水晶を出さない
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const label = `${Math.floor(G.best)}m`;
   ctx.font = `800 15px ${FONT}`; const tw = ctx.measureText(label).width;
@@ -2102,7 +2138,7 @@ function drawHud() {
   ctx.fillStyle = PAL.uiMuted; ctx.font = `500 10px ${FONT}`; ctx.fillText(zone, W / 2, HUD_GAP + 27);
   // 結晶の数（ハートの下）。拾うと粒が飛んできて、板が少しふくらむ
   const bump = 1 + G.coinBump * 0.12;
-  if (!vsDeath()) {
+  if (!simpleMode()) {
   ctx.save(); ctx.translate(HUD_GAP + 32, HUD_GAP + 37); ctx.scale(bump, bump); ctx.translate(-(HUD_GAP + 32), -(HUD_GAP + 37));
   pill(HUD_GAP, HUD_GAP + 26, 64, 22);
   Kabe.mote(ctx, PAL, HUD_GAP + 13, HUD_GAP + 37, G.time, 0.7, 0);
@@ -2114,7 +2150,7 @@ function drawHud() {
     Kabe.mote(ctx, PAL, f.sx + (HUD_GAP + 13 - f.sx) * e, f.sy + (HUD_GAP + 37 - f.sy) * e - Math.sin(k * Math.PI) * 30, G.time, 0.55, f.seed);
   }
   // 装備の枠2つ（右上）：リチャージ中・ホバリングの残りは暗い扇形
-  if (!vsDeath()) for (let i = 0; i < GACHA.slots; i++) {
+  if (!simpleMode()) for (let i = 0; i < GACHA.slots; i++) {
     const id = G.equip[i], x = W - HUD_GAP - 14 - (GACHA.slots - 1 - i) * 32;
     let cool = 0;
     if (id === 'triple' && G.tripleCd > 0) cool = G.tripleCd / gemVal('triple').cd;
@@ -2281,7 +2317,7 @@ function drawGL() {
   const qt = performance.now();
   if (!PERF.off.sprites) {
     sporesGL(); obstaclesGL(); stationsGL(); gemsGL();
-    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); } else vsRespMark(true);
+    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); } else respMark(true);
     particlesGL(); if (!PERF.off.weather) weatherDraw(wseg, wdisc); lavaGL(); cloudsDraw(wdisc);
   }
   const qs = performance.now();
@@ -2476,7 +2512,7 @@ function drawFrame() {
     drawStations();
     drawGems();
     if (showCheck) drawCheck();
-    if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); } else vsRespMark(false);
+    if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); } else respMark(false);
     drawParticles(); weatherDraw(seg2, disc2);
     drawLava(); cloudsDraw(disc2);
   }
@@ -3225,7 +3261,7 @@ function ambTick(dt) {
 const ov = { title: $('ovTitle'), settings: $('ovSettings'), wardrobe: $('ovWardrobe'), look: $('ovLook'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha'), gems: $('ovGems') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
 function renderBest() {
-  const b = store.get('kabe_best2', 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : ''; renderCandles();
+  const b = store.get(MODES[MODE].best, 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : ''; renderCandles();   // モードごとの最高
   $('btnTestGems').hidden = !TEST_MODE;
   if (TEST_MODE) {   // テストプレイのとき：ボタンの文字と、ふつうに遊ぶへのリンク
     $('btnStart').textContent = `${TEST_FROM}mから テスト`;
@@ -3235,12 +3271,12 @@ function renderBest() {
 function startGame() { showOnly(null); newGame(); G.zoneHint = ZH; G.zoneT = 3 + ZH; state = 'play';   // 分け方を見せてから層の見出し
   $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
-  const m = Math.floor(G.best), best = store.get('kabe_best2', 0);
-  if (m > best && !G.test) store.set('kabe_best2', m);
+  const m = Math.floor(G.best), bk = MODES[MODE].best, best = store.get(bk, 0);
+  if (m > best && !G.test) store.set(bk, m);
   $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた', bolt: '雷で力尽きた', mill: '風車で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   if (!G.test && G.candleN == null) { G.candleN = Math.floor(m / META.perM); candles += G.candleN; saveMeta(); }   // ろうそく：100m ごとに1本
-  const rows = [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']];
+  const rows = [['モード', MODES[MODE].name], ['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], simpleMode() ? ['やられた', (G.downs || 0) + '回'] : ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']];
   if (!G.test) rows.push(['ろうそく', `+${G.candleN}本（${candles}本）`, G.candleN > 0]);
   for (const [a, b, isNew] of rows) {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew && a !== 'ろうそく' ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
@@ -3787,9 +3823,11 @@ const WARDROBE = [
       icon: (g, w, h, t, c) => Kabe.scarfItem(g, PAL, w / 2 + 1, h / 2 - 3, w / 30, t, c) },
   ] },
 ];
-const LOOK = Object.assign({}, store.get('kabe_look2', {}));
-const ownedOf = (cat, it) => OWNED[cat.id + '.' + it.id] || [];
-function saveMeta() { store.set('kabe_candles', candles); store.set('kabe_owned', OWNED); store.set('kabe_look2', LOOK); }
+// 2人対戦では着せ替えは全部使える。着ているものは 1P・2P それぞれ別に覚える（ソロの着せ替えは変えない）。2P のはじめはからし色
+const LOOK_KEY = VERSUS ? 'kabe_vs_look' + VERSUS.side : 'kabe_look2';
+const LOOK = Object.assign({}, store.get(LOOK_KEY, VERSUS ? (VERSUS.side ? { scarf: { item: 'stripe', color: 'karashi' } } : store.get('kabe_look2', {})) : {}));
+const ownedOf = (cat, it) => VERSUS ? it.colors.map(c => c.id) : OWNED[cat.id + '.' + it.id] || [];
+function saveMeta() { if (!VERSUS) { store.set('kabe_candles', candles); store.set('kabe_owned', OWNED); } store.set(LOOK_KEY, LOOK); }
 function wearAll() {
   for (const cat of WARDROBE) {
     let L = LOOK[cat.id], it = L && cat.items.find(i => i.id === L.item && ownedOf(cat, i).includes(L.color));
@@ -4060,6 +4098,7 @@ function loop(now) {
   const tD = performance.now();
   drawUi(now / 1000); showFx.frame();
   if (PERF.on) { PERF.parts = { upd: tB - tA, fx: t0 - tB, draw: tD - t0, ui: performance.now() - tD }; perfTick(performance.now() - t0, now); }
+  warnTick();
   if (!(VERSUS && VERSUS.driven)) requestAnimationFrame(loop);   // 2人対戦では親ページが2つの画面を同じフレームで動かす（frame）
 }
 if (store.get('kabe_best2', null) == null && store.get('kabe_best', 0)) store.set('kabe_best2', Math.floor(Math.max(store.get('kabe_best', 0) / 2, store.get('kabe_best4', 0) / 8, store.get('kabe_bestm', 0) * 2)));   // 1m の長さを変えたので、前の記録を1/2にして引き継ぐ
@@ -4093,39 +4132,39 @@ if (PERF.on) {
   };
 }
 /* =====================================================================
-   2人対戦（versus.html の中で ?vs=0|1）。VERSUS が null ならソロで、ここは何もしない
-   地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページ（versus.html）から
+   モード：シンプルジャンプ（simple）／アドバンス（advance）。ソロでも2人対戦でも同じ
+   シンプルジャンプ：結晶・ガチャ所・水晶・HP なし（1回当たるとやられる）。溶岩以外なら RESP.wait 秒後に、RESP.back m 以上下で立っていた所から復活。溶岩に呑まれたらおしまい
+   アドバンス：結晶でガチャ、水晶で強くなる。HP 3
    ===================================================================== */
-const VERSUS = (() => { const q = new URLSearchParams(location.search); return q.has('vs') && window.parent !== window ? { side: +q.get('vs') || 0, seed: (+q.get('seed') >>> 0) || 1, ghost: null } : null; })();
-const seeded = a => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-let trnd = Math.random;   // 地形を決める乱数（対戦のときだけ種つき）
-
-const VERSUS_ALPHA = 0.4, VERSUS_CAP = 2, VERSUS_RESPAWN = 5, VERSUS_BACK = 2;   // …・「デスマッチ」の復活まで（秒）・何 m 下から   // 相手のうすさ・溶岩を近づけても相手の何 m 下まで
-// ルール「デスマッチ」：結晶・ガチャ所・HP なし。溶岩以外でやられたら VERSUS_RESPAWN 秒後に、VERSUS_BACK m 以上下で立っていた所から。溶岩に呑まれたら負け
-function vsDeath() { return !!(VERSUS && VERSUS.rule === 'death'); }
+const RESP = { wait: 5, back: 2, inv: 1.5 };
+const MODES = {
+  simple: { name: 'シンプルジャンプ', desc: 'アイテム・HP なし。当たったら少し下から復活。溶岩に呑まれたらおしまい', best: 'kabe_best_simple' },
+  advance: { name: 'アドバンス', desc: '結晶を集めてガチャ、水晶で強くなる。HP 3', best: 'kabe_best2' },
+};
+function simpleMode() { return MODE === 'simple'; }
 // 立てた・張り付けた所を覚えておく（復活の場所）
-function vsSafe() {
+function respSafe() {
   if (!canAct(P) || G.inv > 0) return;
   const s = G.safe || (G.safe = []), l = s[s.length - 1];
   if (!l || Math.hypot(l.x - P.x, l.y - P.y) > CELL) { s.push({ x: P.x, y: P.y, side: P.side, ground: P.ground, face: P.face }); if (s.length > 80) s.shift(); }
 }
-function vsDown() {
-  const s = G.safe || [], minY = P.y + VERSUS_BACK * PX_PER_M;
+function respDown() {
+  const s = G.safe || [], minY = P.y + RESP.back * PX_PER_M;
   let pt = null; for (let i = s.length - 1; i >= 0; i--) if (s[i].y >= minY) { pt = s[i]; break; }
   G.resp = pt || s[0] || { x: 2 * CELL + HB, y: -HB, side: 0, ground: true, face: -1 };
   G.downs = (G.downs || 0) + 1;
 }
 // 復活待ち：やられた所を少し見せてから、カメラを復活の場所へ流す（着いたら止まる）
-function vsRespCam(dt) {
+function respCam(dt) {
   if (G.dieT < 0.9) return;
   const ty = G.resp.y - H * 0.55; cam.y += (ty - cam.y) * Math.min(1, dt * 3); cam.shake = 0;
 }
-// 復活の場所に、うすく光るおばけ（数字が減るほど濃く）。gl：GPU で描くとき
-function vsRespMark(gl) {
+// 復活の場所に、うすく光るおばけと上で跳ねる ▼（数字が減るほど濃く）。gl：GPU で描くとき
+function respMark(gl) {
   const r = G && G.resp; if (!r || state !== 'dying' || G.dieT < 0.9) return;
-  const k = Math.min(1, (G.dieT - 0.9) / (VERSUS_RESPAWN - 0.9)), a = 0.25 + 0.35 * k + 0.12 * Math.sin(G.time * 8);
+  const k = Math.min(1, (G.dieT - 0.9) / (RESP.wait - 0.9)), a = 0.25 + 0.35 * k + 0.12 * Math.sin(G.time * 8);
   const pose = r.side ? 'cling' : 'stand', face = r.side ? -r.side : r.face || 1;
-  const ay = r.y - 34 - Math.abs(Math.sin(G.time * 4)) * 6, ac = Math.min(1, a + 0.3);   // 上で跳ねる ▼
+  const ay = r.y - 34 - Math.abs(Math.sin(G.time * 4)) * 6, ac = Math.min(1, a + 0.3);
   if (gl) {
     wseg(r.x - 7, ay - 6, r.x, ay + 1, 2.6, PAL.glow, ac); wseg(r.x + 7, ay - 6, r.x, ay + 1, 2.6, PAL.glow, ac);
     wdisc(r.x, r.y, 22 + 4 * Math.sin(G.time * 4), PAL.glow, 0.12 + 0.1 * k);
@@ -4136,12 +4175,41 @@ function vsRespMark(gl) {
     ctx.globalAlpha = a; Kabe.ghost(ctx, PAL, 'sheet', pose, r.x, r.y, 0, face, 1); ctx.globalAlpha = 1;
   }
 }
-function vsRespawn() {
+function respawn() {
   const r = G.resp; G.resp = null;
   Object.assign(P, { x: r.x, y: r.y, vx: 0, vy: 0, side: r.side, ground: r.ground, air: MOVE.airJumps, squash: 0, slideTo: 0, face: r.face || 1 });
-  state = 'play'; G.hp = 1; G.inv = G.invMax = 1.5; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
+  state = 'play'; G.hp = 1; G.inv = G.invMax = RESP.inv; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
   cam.y = P.y - H * 0.55; sfx.start();
 }
+// 画面の下の札：復活待ち（「復活まで ○ ▼ 溶岩まで ○m」）と、2人対戦のガチャ所の中の「溶岩まで」（本編の HUD はそこでは出ないので）
+const warnEl = document.createElement('div'); warnEl.className = 'respWarn'; warnEl.hidden = true; $('frame').append(warnEl);
+function warnTick() {
+  const down = state === 'dying' && G && G.resp, on = !!(down || (VERSUS && state === 'gacha' && G.lavaDelay <= 0));
+  if (warnEl.hidden !== !on) warnEl.hidden = !on;
+  if (!on) return;
+  const m = (G.lavaY - (down ? G.resp.y : P.y)) / PX_PER_M, lv = `▼ ${riseName()}まで ${Math.max(0, m).toFixed(1)}m`;
+  const t = down ? `復活まで ${Math.max(1, Math.ceil(RESP.wait - G.dieT))}　${lv}` : lv;
+  if (warnEl.textContent !== t) warnEl.textContent = t;
+  warnEl.classList.toggle('near', m < 3);
+}
+// タイトルのモード選び（ソロ・2人対戦の 1P）。2人対戦の 2P は見るだけ
+function setMode(m, quiet) {
+  if (!MODES[m]) m = 'advance';
+  MODE = m; store.set(VERSUS ? 'kabe_vs_mode' : 'kabe_mode', m);
+  for (const b of document.querySelectorAll('.mBtn')) { const on = b.dataset.mode === m; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); }
+  $('modeDesc').textContent = MODES[m].desc;
+  renderBest();
+  if (!quiet) { sfx.tick(); if (VERSUS && parent.__vsMode) parent.__vsMode(m); }
+}
+for (const b of document.querySelectorAll('.mBtn')) b.onclick = () => setMode(b.dataset.mode);
+setMode(MODE, true);
+
+/* =====================================================================
+   2人対戦（versus.html の中で ?vs=0|1）。VERSUS が null ならソロで、ここは何もしない
+   地形は種つきの乱数で2人とも同じ。入力・音・溶岩・時計（障害物の動き）・相手の位置は親ページ（versus.html）から
+   タイトルは左右に分かれる：1P にモード・スタート・着せ替え、2P は着せ替えだけ。ガチャ・設定などソロの物は出さない。着せ替えは全部使える
+   ===================================================================== */
+const VERSUS_ALPHA = 0.4, VERSUS_CAP = 2;   // 相手のうすさ・溶岩を近づけても相手の何 m 下まで
 // 相手は相手のマフラーの色で描く
 function vsScarf(o, fn) { const c = Kabe.SCARF.color; if (o.scarf) Kabe.SCARF.color = o.scarf; try { fn(); } finally { Kabe.SCARF.color = c; } }
 // 対戦の相手（見えているときだけ）。ポーズは止まった絵を使い回す
@@ -4149,68 +4217,71 @@ function vsRival() {
   const o = VERSUS && VERSUS.ghost; if (!o || (o.st !== 'play' && o.st !== 'gacha')) return null;
   return Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 40 ? o : null;
 }
-// 対戦：キーは親ページへ（どちらの画面に入力が向いていても、1P・2P のキーで分ける）
+// キーは親ページへ（どちらの画面に入力が向いていても、1P・2P のキーで分ける）
 if (VERSUS) for (const ty of ['keydown', 'keyup']) addEventListener(ty, e => { e.stopImmediatePropagation(); e.preventDefault(); if (parent.__vsKey) parent.__vsKey(e.key, ty === 'keydown', e.repeat); }, true);
 function versusInit() {
-  document.body.classList.add('vs'); showOnly(null);
-  document.body.classList.add('vs'); showOnly(null);
-  // メニュー（ガチャ所・一時停止）：左右で選んで A で押す
+  const side = VERSUS.side, body = document.body;
+  body.classList.add('vs', side ? 'p2' : 'p1');
+  $('vsBadge').textContent = side ? '2P' : '1P';
+  if (side) for (const b of document.querySelectorAll('.mBtn')) b.disabled = true;   // モードは 1P が決める
+  $('btnStart').textContent = 'スタート';
+  $('btnStart').onclick = () => { sfx.tick(); if (parent.__vsStart) parent.__vsStart(MODE); };
+  $('btnVsBack').onclick = () => { if (parent.__vsBack) parent.__vsBack(); };
+  showOnly('title');
+  // メニュー：本当のフォーカスは動かさず、選んでいる所に枠（.vsSel）だけ（Safari は入力が向いたページにしかコントローラーを渡さないことがあるため）
+  const navBtns = () => { const box = Object.values(ov).find(o => !o.hidden); return box ? [...box.querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent) : []; };
+  const select = b => { for (const x of document.querySelectorAll('.vsSel')) x.classList.remove('vsSel'); if (b) b.classList.add('vsSel'); };
   const vsNav = k => {
     if (show.active) { if (k === 'ok') showTap(); return; }
-    const box = Object.values(ov).find(o => !o.hidden); if (!box) return;
-    const bs = [...box.querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent); if (!bs.length) return;
-    // 本当のフォーカスは動かさず、枠だけ動かす（Safari は入力が向いたページにしかコントローラーを渡さないことがあるため）
+    const bs = navBtns(); if (!bs.length) return;
     let i = bs.findIndex(b => b.classList.contains('vsSel'));
-    if (k === 'ok') { (bs[i] || bs[0]).click(); return; }
-    for (const b of bs) b.classList.remove('vsSel');
-    bs[i < 0 ? 0 : (i + k + bs.length) % bs.length].classList.add('vsSel');
+    if (i < 0) { i = Math.max(0, bs.findIndex(b => b.classList.contains('big'))); if (k !== 'ok') { select(bs[i]); return; } }   // はじめは大きいボタン
+    if (k === 'ok') { bs[i].click(); return; }
+    select(bs[(i + k + bs.length) % bs.length]);
   };
   // 本編の focus()（ガチャ所を開いたときなど）も、枠を動かすだけにする
-  HTMLElement.prototype.focus = function () { if (this.tagName !== 'BUTTON') return; for (const b of document.querySelectorAll('.vsSel')) b.classList.remove('vsSel'); this.classList.add('vsSel'); };
-  // 1P・2P の札と、ガチャ所の中の「溶岩まで」（本編の HUD はガチャ所の中では出ないので）
-  const tag = document.createElement('div'); tag.className = 'vsTag'; tag.textContent = VERSUS.side ? '2P' : '1P'; tag.style.setProperty('--vc', VERSUS.side ? '#f2b544' : '#8fd0ff');   // versus.html の --p1・--p2 と同じ
-  const warn = document.createElement('div'); warn.className = 'vsWarn'; warn.hidden = true;
-  $('frame').append(tag, warn);
-  VERSUS.warn = () => {
-    const down = state === 'dying' && G.resp, on = down || (state === 'gacha' && G.lavaDelay <= 0), m = (G.lavaY - (down ? G.resp.y : P.y)) / PX_PER_M;
-    if (warn.hidden !== !on) warn.hidden = !on;
-    if (!on) return;
-    const t = down ? `復活まで ${Math.ceil(VERSUS_RESPAWN - G.dieT)}　▼ ${riseName()}まで ${Math.max(0, m).toFixed(1)}m` : `▼ ${riseName()}まで ${Math.max(0, m).toFixed(1)}m`;
-    if (warn.textContent !== t) warn.textContent = t;
-    warn.classList.toggle('near', m < 3);
-  };
+  HTMLElement.prototype.focus = function () { if (this.tagName === 'BUTTON') select(this); };
+  // 1P・2P の札（画面の右下）
+  const tag = document.createElement('div'); tag.className = 'vsTag'; tag.textContent = side ? '2P' : '1P'; tag.style.setProperty('--vc', side ? '#f2b544' : '#8fd0ff');   // versus.html の --p1・--p2 と同じ
+  $('frame').append(tag);
   // 画面をタッチしたあとも、入力は親ページに戻す
   addEventListener('pointerup', () => { try { parent.focus(); } catch (e) {} });
   window.__vs = {
-    start(seed, rule) { VERSUS.seed = seed >>> 0 || 1; VERSUS.rule = rule || 'normal'; VERSUS.ghost = null; startGame(); if (vsDeath()) { G.hp = 1; G.safe = []; G.downs = 0; } },
-    // k：L 左・R 右・A 蹴る（上）・D 下の水晶
-    // k：A 画面の右・B 画面の左・SR 右下・SL 左下（タッチの 左・右・下の帯 と同じ）。メニューは SL・SR で選んで A で決定（B は何もしない）
+    start(seed, mode) { VERSUS.seed = seed >>> 0 || 1; MODE = MODES[mode] ? mode : 'advance'; VERSUS.ghost = null; select(null); startGame(); },
+    // タイトルへ戻る（さいしょの画面）
+    title() { newGame(); state = 'title'; TITLE.t = 0; select(null); showOnly('title'); setMode(MODE, true); },
+    // k：A 画面の右・B 画面の左・SR 右下・SL 左下（タッチの 左・右・下の帯 と同じ）。メニューは SL・SR で選んで A で決定、B は着せ替えから戻る
     input(k, down) {
       if (state === 'play') { if (!down) { release(); return; } if (k === 'SR' || k === 'SL') special(k === 'SR' ? 1 : -1); else press(k === 'A' ? 1 : -1); return; }
-      if (down && state !== 'dying' && state !== 'end' && k !== 'B') vsNav(k === 'SL' ? -1 : k === 'SR' ? 1 : 'ok');
+      if (!down || state === 'dying' || state === 'end') return;
+      if (k === 'B') { if (!ov.wardrobe.hidden) { select(null); $('btnWardBack').click(); } return; }
+      vsNav(k === 'SL' ? -1 : k === 'SR' ? 1 : 'ok');
     },
     get() {
       if (!P || !G) return null;
       const pose = P.side ? 'cling' : P.ground ? 'stand' : P.vy < 0 ? 'jump' : 'fall';
       const gr = gemVal('greed'), bk = gemVal('brake'), near = (G.lavaY - P.y) / PX_PER_M < 3;
-      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause, scarf: Kabe.SCARF.color, got: G.got, time: G.time,
-        // 溶岩：速さ・欲ばりの上乗せ・ブレーキ（自分の3m以内のときだけ）・ガチャ中に呑まれたか
+      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause, scarf: Kabe.SCARF.color, got: G.got, time: G.time, mode: MODE,
+        // 溶岩：速さ・欲ばりの上乗せ・ブレーキ（自分の3m以内のときだけ）・呑まれたか（復活待ちの間は復活の場所で見る）
         speed: LAVA.speed, lavaY: G.lavaY, delay: G.lavaDelay, greed: gr ? gr.lava - 1 : 0, brake: bk && near ? bk.k : 1,
-        sunk: (G.resp ? G.resp.y : P.y) + HB * 0.4 > G.lavaY, rise: riseName(), fps,
-        down: !!G.resp, downs: G.downs || 0 };   // 「デスマッチ」：復活待ちか・やられた回数（復活待ちの間は、復活の場所に溶岩が来たら負け）
+        sunk: (G.resp ? G.resp.y : P.y) + HB * 0.4 > G.lavaY, rise: riseName(), fps, down: !!G.resp, downs: G.downs || 0 };
     },
-    // o：相手、lava：2人で1つの溶岩 { y, delay }
-    put(o, lava) { VERSUS.ghost = o; if (lava && G && state !== 'title') { G.lavaY = lava.y; G.lavaDelay = lava.delay; } VERSUS.warn(); },
-    fx(on) { FX.ok = !!on && !!glfx; fxLabel(); },
+    // o：相手、w：2人で1つの { y 溶岩, delay, clock 試合の時計 }。障害物は G.time で動くので、時計を合わせると2人とも同じ動きになる
+    put(o, w) {
+      VERSUS.ghost = o;
+      if (w && G && state !== 'title') { G.lavaY = w.y; G.lavaDelay = w.delay; if (w.clock != null && (state === 'play' || state === 'gacha' || state === 'dying')) G.time = w.clock; }
+    },
+    fx(on) { FX.ok = !!on && !!glfx; fxLabel(); },   // 画質（2人対戦では親ページが決める。ソロの設定は変えない）
     // 親ページの1つのループから、入力を渡した直後に2つの画面を動かす（画面ごとにフレームがずれて片方の入力が遅れるのを防ぐ）
     frame() { VERSUS.driven = true; const now = performance.now(); if (now - last > 250) last = now - 16; loop(now); },   // 一時停止のあとは間をとばす
-    // マフラーの色：1P は自分の着せ替え、2P は見分けやすい色（親ページの札の色と同じ）
-    scarf(id) { Kabe.SCARF.color = id; },
-    look() { return Kabe.SCARF.color; },   // 画質（2人対戦では親ページが決める。ソロの設定は変えない）
+    // 参加したコントローラーの名前（null なら「ボタンで参加」）
+    pad(name) { const el = $('vsPad'); el.textContent = name ? name : 'コントローラーのボタンで参加'; el.classList.toggle('on', !!name); },
+    mode(m) { setMode(m, true); },   // 2P のタイトルに 1P が選んだモードを出す
+    modeNow() { return MODE; },
     // 勝負がついた：その場で止める（結果は親ページが出す）
     halt() { if (state === 'gacha' || state === 'pause') showOnly(null); state = 'end'; holding = false; },
   };
-  if (parent.__vsReady) parent.__vsReady(VERSUS.side);
+  if (parent.__vsReady) parent.__vsReady(side);
 }
 
 resize(); renderBest(); newGame();
