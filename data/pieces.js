@@ -4785,108 +4785,92 @@ piece('d_fanshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_alcovebox', { diff: 2 }, String.raw`
+piece('d_liftpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-####..............##
-####............####
-####............####
-##..XXXXXXXXXX..####
-##..............####
-####............####
-####..............##
-####..............##
-####............####
+##...........Y....##
+##...........Y...q##
+##...........Y...q##
+##p..........Y....##
+##p..........Y....##
+##...........Y...q##
+##...........Y....##
+##................##
 ##................##
 ##................##
 `);
-piece('d_diamondpops', { diff: 2 }, String.raw`
+piece('d_popstack', { diff: 2 }, String.raw`
 ##................##
 ##................##
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
-##>...............##
-##\............../##
-###\............/###
-####\........../####
-#####\......../#####
-######p.......######
-######p......q######
-#####/.......q\#####
-####/..........\####
-###/............\###
-##/..............\##
+##................##
+##p...........###.##
+##p...............##
+##................##
+##>........###...q##
+##...............q##
+##................##
+##....###.........##
+##................##
 ##................##
 ##................##
 `);
-piece('d_dropspend', { diff: 2 }, String.raw`
+piece('d_fanpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##..##............##
-##..\/............##
-##................##
-##......O.........##
+##........O.......##
 ##................##
 ##................##
 ##...............<##
-##............##..##
-##............\/..##
+##................##
+##.....######.....##
 ##................##
 ##................##
 ##................##
 `);
-piece('d_hookpend', { diff: 2 }, String.raw`
+piece('d_pendwell', { diff: 2 }, String.raw`
+##................##
+##................##
+##.........O......##
 ##................##
 ##................##
 ##................##
-#######...........##
-####\.............##
 ##................##
-##.....O..........##
-##................##
-##................##
-##..........########
-##.............../##
+##......############
+##>.....############
+##......############
+##......############
+##......############
 ##................##
 ##................##
+`);
+piece('d_liftkeyhole', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+####............####
+###......Y.......###
+###......Y.......###
+###......Y.......###
+####.....Y......####
+#######..Y...#######
+#######p.Y..q#######
 ##................##
 ##................##
 ##................##
 `);
-piece('d_lanternlift', { diff: 2 }, String.raw`
-##................##
-##................##
-###...............##
-####............####
-#####p.........#####
-####............####
-###.......Y......###
-###.......Y......###
-###.......Y......###
-####......Y.....####
-#####.....Y....#####
-####............####
-###..............###
-##................##
-##................##
-`);
-piece('d_ribsfan', { diff: 2 }, String.raw`
+piece('d_popmushroom', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-###...............##
-###.............^###
-##..............<###
+##....########....##
+##>....\####/.....##
+##.......##.......##
+##......p##q......##
+##.......##.......##
+##.......##.......##
 ##................##
-###...............##
-###^..............##
-###>..............##
-##...............###
-##...............###
 ##................##
 ##................##
 `);
@@ -4908,36 +4892,31 @@ piece('d_fanchute', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_splitbox', { diff: 2 }, String.raw`
+piece('d_boxcorner', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##..XXXXXXXXXXXX..##
+##..XXXXXXXX......##
 ##................##
-##................##
-##.......##.......##
-##.......##.......##
-##.......##.......##
-##.......##.......##
-##.......##.......##
+##............/#####
+##.........../######
+##...........#######
+##p..........\######
+##p...........\#####
 ##................##
 ##................##
 ##................##
 `);
-piece('d_terracepops', { diff: 2 }, String.raw`
+piece('d_shutterstep', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.............#####
-##p...............##
+##................##
+##======####......##
+##................##
 ##...............q##
-##..........########
+##...............q##
 ##................##
-##................##
-##.......###########
-##................##
-##................##
-##....##############
 ##................##
 ##................##
 `);
@@ -9151,7 +9130,7 @@ const POOLS = [
   { from: 200, name: '古い機械の縦穴', pieces: ['c_lift', 'c_liftspikes', 'c_twinlift', 'c_pendfunnel', 'z2_dense', 'b_boxlane', 'b_shutterpop',
     'c_liftzig', 'c_pendshelves', 'c_liftstagger', 'c_pendsteps', 'c_liftspikewall', 'c_pendwedge', 'c_liftshelf', 'b_fanzig', 'c_liftcave', 'c_liftpair', 'c_liftladder', 'c_liftpops', 'c_liftfan', 'c_liftwall', 'c_pendcave', 'c_pendladder', 'c_pendshutter', 'c_pendbox', 'c_pendrocks', 'c_spikeshaft', 'c_spikestairs', 'c_boxpair', 'c_shutterpops', 'c_fanpops', 'c_liftspikes2', 'c_pendpillars', 'c_pend', 'c_pendpair', 'c_pendtrio', 'c_liftcross', 'c_lifttall', 'c_liftguard', 'c_liftfins', 'c_liftbay', 'c_liftchimneys', 'c_pendvault', 'c_liftgap', 'c_pendarch', 'c_pendgate', 'c_pendteeth', 'c_pendledge', 'c_pendfloor', 'c_pendrock'] },
   { from: 300, name: '地上へのさけ目', pieces: ['d_crossfan', 'd_liftshutter', 'd_boxspikes', 'd_sidepops', 'd_chimney', 'c_pendpops',
-    'd_fanlift', 'd_boxfan', 'd_popzig', 'd_pendledges', 'd_liftnarrow', 'd_fanpops', 'd_liftpend', 'd_spikewedges', 'c_liftspikewall', 'b_boxsteps', 'c_pendpopsR', 'd_zigpops', 'd_zigfan', 'd_zigpend', 'd_funnelpops', 'd_funnelbox', 'd_funnelfan', 'd_shelfpend', 'd_shelflift', 'd_shelfshutter', 'd_bumpbox', 'd_bumppops', 'd_bumplift', 'd_cavepend', 'd_cavebox', 'd_cavelift', 'd_twinpend', 'd_shutterlift', 'd_boxpops', 'd_fanshutter', 'd_boxshutter', 'd_gauntlet', 'd_pendzig', 'd_shutterpend', 'd_ziglift', 'd_alcovebox', 'd_diamondpops', 'd_dropspend', 'd_hookpend', 'd_lanternlift', 'd_ribsfan', 'd_fanchute', 'd_splitbox', 'd_terracepops'] },
+    'd_fanlift', 'd_boxfan', 'd_popzig', 'd_pendledges', 'd_liftnarrow', 'd_fanpops', 'd_liftpend', 'd_spikewedges', 'c_liftspikewall', 'b_boxsteps', 'c_pendpopsR', 'd_zigpops', 'd_zigfan', 'd_zigpend', 'd_funnelpops', 'd_funnelbox', 'd_funnelfan', 'd_shelfpend', 'd_shelflift', 'd_shelfshutter', 'd_bumpbox', 'd_bumppops', 'd_bumplift', 'd_cavepend', 'd_cavebox', 'd_cavelift', 'd_twinpend', 'd_shutterlift', 'd_boxpops', 'd_fanshutter', 'd_boxshutter', 'd_gauntlet', 'd_pendzig', 'd_shutterpend', 'd_ziglift', 'd_liftpops', 'd_popstack', 'd_fanpend', 'd_pendwell', 'd_liftkeyhole', 'd_popmushroom', 'd_fanchute', 'd_boxcorner', 'd_shutterstep'] },
   // 400m〜 地上：仕掛けを少しずつ足す
   { from: 400, name: '草の崖', pieces: ['e_bridge', 'e_crumble', 'e_cliff', 'e_spinshaft', 'e_bridgepair', 'e_crumblesteps', 'e_spinbridge', 'e_crumblezig', 'e_bridgefunnel', 'e_spinslope', 'e_crumblefloor', 'e_bridgeshelf', 'e_spinspikes', 'e_crumblepillar', 'e_spincave', 'e_spinzig', 'e_spinladder', 'e_spinrocks', 'e_bridgecave', 'e_bridgezig', 'e_bridgespikes', 'e_crumblecave', 'e_crumblebridge', 'e_crumblespikes', 'e_crumblestairs', 'e_spinbridges', 'e_spincrumble', 'e_spinfunnel', 'e_bridgeshaft', 'e_cliffs', 'e_spin', 'e_spinpair', 'e_bridgealcoves', 'e_bridgehooks', 'e_bridgeribs', 'e_bridgesplit', 'e_bridgestepcave', 'e_bridgeterrace', 'e_crumblecomb', 'e_crumblediamond', 'e_crumblelantern', 'e_crumblepebbles', 'e_crumblecup', 'e_crumbleterrace', 'e_spinalcoves', 'e_spinboulder', 'e_spincomb', 'e_spindiamond', 'e_spinlantern', 'e_spinsqueeze'] },
   { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan', 'f_stakeshaft', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'f_cannonopen', 'f_cannonladder', 'f_cannoncave', 'f_cannonbridge', 'f_stakeladder', 'f_stakefunnel', 'f_stakecrumble2', 'f_stakespikes', 'f_rockcannon', 'f_windcannon', 'f_stakeshelves', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'f_stakeopen', 'f_cannonalcoves', 'f_cannondiamond', 'f_cannondrops', 'f_cannonlantern', 'f_cannonpebbles', 'f_cannonsplit', 'f_cannonsqueeze', 'f_stakeboulder', 'f_stakecomb', 'f_stakehooks', 'f_stakeribs', 'f_stakeporch', 'f_staketerrace', 'f_stakestepcave'] },
