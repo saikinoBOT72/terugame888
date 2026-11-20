@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30z">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01a">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30z"></script>
-<script src="data/pieces.js?v=2026.11.30z"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.01a"></script>
+<script src="data/pieces.js?v=2026.12.01a"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30z';
+const VERSION = '2026.12.01a';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -484,7 +484,11 @@ const FUDA = Kabe.FUDA || { 'なし': { color: '#a99fb0', mark: '・', how: '' }
 const fudaOf = id => (Kabe.fudaOf ? Kabe.fudaOf(id) : 'なし');   // 操作の札（同じ札の水晶は同時に1つまで）。古い描画ライブラリが残っていても止まらない
 const FUDA_HOW = { hover: '空中で押し続ける', charge: '壁・床で押し続けて離す', dash: '空中で画面の下の左右を押す', dive: '空中で画面の下を押す', turn: '画面の左右を押す' };
 const KICK_CAP = { up: 1.6, side: 1.4 };   // 水晶を掛け合わせても、蹴りの強さは 上×1.6・横×1.4 まで
-const holdT = () => gemVal('grip') ? gemVal('grip').t : CLING.hold;   // グラグラするまで
+const RAIN_GRIP = 0.25;   // 雨のパーツでは、壁に掴まっていられる時間（グラグラするまで＋グラグラ）が 1/4
+const rainAtY = y => { if (!world || !world.rains.length) return false; const r = Math.floor(-y / CELL); return world.rains.some(([a, b]) => r >= a && r <= b); };
+const gripK = () => P && rainAtY(P.y) ? RAIN_GRIP : 1;
+const holdT = () => (gemVal('grip') ? gemVal('grip').t : CLING.hold) * gripK();   // グラグラするまで
+const wobT = () => CLING.wobble * gripK();
 const GEM_ORDER = Kabe.GEM_ORDER.filter(id => GEMS[id]);   // 並び順はカタログと同じ
 const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒）
 
@@ -502,7 +506,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
 };
 
-function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
+function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], rains: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
   stakeRow: {}, stakeAmt: null, crumbleAt: {}, broken: new Set(), springs: [], springHit: {} }; }
 // 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
 function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
@@ -853,6 +857,7 @@ let particles = [], floaters = [], flyers = [], trail = [];
 function placePiece(id) {
   const pc = PIECES[id], r0 = appendRows(world, pc.rows), r1 = r0 + pc.rows.length - 1;
   world.placed.push({ id, r0, r1 });
+  if (pc.rain) world.rains.push([r0, r1]);   // 雨のパーツの行
   if (pc.station) world.stations.push({ x: (pc.station.c + 0.5) * CELL, y: -(r0 + pc.station.r) * CELL, used: false });   // G のマスに家（下の床の上）
   else if (id !== 'z1_start') scatterGems(r0, r1);
 }
@@ -1118,7 +1123,7 @@ function clingTimer(dt) {
   const before = G.clingT; G.clingT += dt;
   const hold = holdT();
   if (before < hold && G.clingT >= hold) sfx.wobble();
-  if (G.clingT < hold + CLING.wobble) return;
+  if (G.clingT < hold + wobT()) return;
   const sl = gemVal('slide');
   if (sl) { P.slideTo = sl.v; return; }   // かべすべり：張り付いたまま、ゆっくり下へ
   const side = P.side; dust(P.x + side * HB, P.y, -side, 6);
@@ -1554,7 +1559,7 @@ function updatePose(dt) {
 function bodyXf() {
   const p = P, t = G.time, face = A.faceDraw || (p.side ? -p.side : (p.face || 1));
   let wob = 0;
-  if (p.side && G.clingT > holdT() && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - holdT()) / CLING.wobble); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  if (p.side && G.clingT > holdT() && !(p.slideTo > 0)) { const k = Math.min(1, (G.clingT - holdT()) / wobT()); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
   const breathe = p.ground ? Math.sin(t * 2.4) * 0.025 : 0;   // 立っているときは息をする
   const rot = (p.side ? Math.atan2(p.wn.y, p.wn.x) - (p.side < 0 ? 0 : Math.PI) : 0) + A.rot;
   const air = !canAct(p), st = air ? Math.min(0.1, Math.abs(p.vy) / 4000) : 0;
@@ -1695,8 +1700,10 @@ function surfaceDraw(sp, seg, vis) {
    花びら（petals）・光の粒（motes）はゆっくり漂う。どれも画面に止まった粒を、高さとともに流して描く（数は決まっている） */
 const WX = { wind: 0, rain: 0, petals: 0, sand: 0, motes: 0 };
 function syncWeather(dt) {
-  const w = PAL.weather || {}, k = Math.min(1, dt * 1.5);
+  const w = Object.assign({}, PAL.weather || {}), k = Math.min(1, dt * 1.5);
+  w.rain = world && world.rains.some(([a, b]) => -(b + 1) * CELL < cam.y + H && -a * CELL > cam.y) ? 1 : 0;   // 雨は雨のパーツが見えているときだけ
   for (const key in WX) WX[key] += ((w[key] || 0) - WX[key]) * k;
+  G.rainIn = (G.rainIn || 0) + ((P && rainAtY(P.y) ? 1 : 0) - (G.rainIn || 0)) * Math.min(1, dt * 3);   // 中にいる：画面の水滴
 }
 // その場所・その時の風（右向きが正）。ゆっくり強まり弱まり、ときどき突風
 const windAt = (x, y, t) => WX.wind * (0.6 + 0.4 * Math.sin(t * 0.7 + y * 0.003)) * (0.8 + 0.2 * Math.sin(t * 2.6 + x * 0.025 - y * 0.01)) + WX.wind * Math.max(0, Math.sin(t * 0.31) - 0.7) * 2.2;
@@ -1731,7 +1738,7 @@ function weatherDraw(seg, disc) {
     for (let i = 0; i < Math.round(n * WX.rain); i++) {
       const h1 = Kabe.hash(i, depth * 10, 21), h2 = Kabe.hash(i, depth * 10, 22);
       const y = ((h2 * (H + 60) + t * vy - cam.y * (depth - 1)) % (H + 60) + H + 60) % (H + 60) - 30, x = ((h1 * (W + 80) + t * vx + (y * vx / vy)) % (W + 80) + W + 80) % (W + 80) - 40;
-      seg(x, top + y, x - vx / vy * len, top + y - len, wdt, '#ffffff', al);
+      if (rainAtY(top + y)) seg(x, top + y, x - vx / vy * len, top + y - len, wdt, '#ffffff', al);   // 雨のパーツの高さだけ
     }
   }
   if (WX.sand > 0.02) for (let i = 0; i < Math.round(26 * WX.sand); i++) {
@@ -1759,6 +1766,7 @@ function spawnSplash(dt) {
     const r = r0 + Math.floor(Math.random() * (r1 - r0 + 1)), c = Math.floor(Math.random() * COLS);
     if (tile(world, c, r) !== '#' || !solidSide(tile(world, c, r), 'T') || solidSide(tile(world, c, r + 1), 'B')) continue;
     const x = c * CELL + Math.random() * CELL, y = -(r + 1) * CELL - 1;
+    if (!rainAtY(y - 2)) continue;
     for (let k = 0; k < 3; k++) particles.push({ kind: 'dot', x, y, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 50, g: 420, life: 0.28, max: 0.28, r: 0.6 + Math.random() * 0.4, col: '#ffffff', al: 0.7 });
   }
 }
@@ -2788,7 +2796,7 @@ function renderFx(src) {
     t: G.time, amb: FX.ambient * (PAL.amb || 1) * (1 - (G.dark || 0) * 0.74), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: (PAL.lightK == null ? 1 : PAL.lightK) * (1 - (G.dark || 0) * 0.8), emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94], occ: occMap(),
     lp: state !== 'dying' && state !== 'end' ? [P.x, P.y - cam.y] : null,
-    rain: PERF.off.rain ? 0 : WX.rain * (calm ? 0.5 : 1), rt: G.time % 64, haze: cloudK(Math.max(0, -(cam.y + H * 0.5) / PX_PER_M)) * 0.32,
+    rain: PERF.off.rain ? 0 : (G.rainIn || 0) * (calm ? 0.5 : 1), rt: G.time % 64, haze: cloudK(Math.max(0, -(cam.y + H * 0.5) / PX_PER_M)) * 0.32,
   });
 }
 

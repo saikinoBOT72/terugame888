@@ -24,7 +24,7 @@ function piece(id, opt, art) {
   let station = null;
   rows.forEach((r, i) => { const c = r.indexOf('G'); if (c >= 0) station = { c, r: rows.length - 1 - i }; });
   rows = rows.map(r => r.replace('G', '.'));
-  PIECES[id] = { id, diff: opt.diff || 1, rows: rows.slice().reverse(), station };   // 内部では下の行から（station.r も下から）
+  PIECES[id] = { id, diff: opt.diff || 1, rows: rows.slice().reverse(), station, rain: !!opt.rain };   // rain：雨のパーツ（壁に掴まっていられる時間が1/4）   // 内部では下の行から（station.r も下から）
 }
 // ガチャ所：mirror で左右を入れ替えたもの（id_r）も作る
 const mirror = art => art.split('\n').map(r => r.trimEnd().split('').reverse().join('').replace(/[\/\\]/g, ch => ch === '/' ? '\\' : '/')).join('\n');

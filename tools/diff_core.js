@@ -58,7 +58,7 @@ function inPage(W) {
       if (!run) haz[ch] = (haz[ch] || 0) + 1; }
     let h = 0; for (const c in haz) h += W[c] * haz[c];
     const bits = n ? tot / n : 99;
-    return { id, D: +(bits + h + ceil * 0.4).toFixed(1), bits: +bits.toFixed(1), haz, spikes, ceil, diff: pc.diff };
+    return { id, D: +(bits + h + ceil * 0.4 + (pc.rain ? 0.6 : 0)).toFixed(1), rain: pc.rain, bits: +bits.toFixed(1), haz, spikes, ceil, diff: pc.diff };
   }
   window.__diff = analyze;
 }

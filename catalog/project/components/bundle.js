@@ -116,7 +116,7 @@ window.Kabe = (function () {
       { name: '風の岩場', amb: 1.22, bloom: 0.35, lightK: 0.45, weather: { wind: 1, sand: 1 }, motif: { decor: 'sprout', hangRate: 0.25 },
         col: { bgTop: '#a3cfe0', bgBottom: '#e3efe8', far: '#b4cfc0', strataA: '#c8e0da', strataB: '#d2e7df', terrain: '#cdb596', terrainLight: '#ecdcc0', terrainShade: '#a99274',
           terrainDeep: '#ae9779', terrainLine: '#bba283', terrainGrain: '#ddcbb0', accent: '#9cc46e', accentShade: '#7aa352' } },
-      { name: '古い水路', amb: 1.2, bloom: 0.35, lightK: 0.5, weather: { wind: 0.3, rain: 1 }, motif: { hangRate: 0.55 },
+      { name: '古い水路', amb: 1.2, bloom: 0.35, lightK: 0.5, weather: { wind: 0.3 }, motif: { hangRate: 0.55 },
         col: { bgTop: '#86c4e4', bgBottom: '#d3ecef', far: '#9fcfc4', strataA: '#b8dde0', strataB: '#c3e4e4', terrain: '#c9b9a0', terrainLight: '#e8dcc6', terrainShade: '#a8987f',
           terrainDeep: '#a99a84', terrainLine: '#b8a88f', terrainGrain: '#dbcdb6', accent: '#6fc79a', accentShade: '#4fa67a' } },
       { name: '夕焼けの峰', amb: 1.18, bloom: 0.4, lightK: 0.5, weather: { wind: 0.2, motes: 1 }, motif: { decor: 'sprout', hangRate: 0.3 },
