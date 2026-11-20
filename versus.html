@@ -119,7 +119,10 @@ const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 const ready = [false, false], frames = [], NAME = ['1P', '2P'];
 const MODE_NAME = { simple: 'シンプルジャンプモード', advance: 'アドバンスモード' };
-let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false, mode = 'advance';
+// モード名とオプション（例：シンプルジャンプモード・復活5秒・予測線・続ける）
+const modeLabel = () => [MODE_NAME[mode], mode === 'simple' && `復活${opt.resp || 5}秒`, mode === 'simple' && opt.predict && '予測線', opt.cont && '続ける'].filter(Boolean).join('・');
+let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false, mode = 'advance', opt = {};
+const gone = [null, null];   // オプション「1人やられても続ける」：やられた人の記録（高さなど）。2人そろったら勝ち負け
 // 2人で1つ：溶岩（ゲームの座標。上がマイナス）・試合の時計（秒。障害物はこれで動くので2人とも同じ動きになる）
 const world = { y: 200, delay: 3, clock: 0 };
 
@@ -138,10 +141,10 @@ window.__vsAudio = () => { unlockAudio(); return actx; };
 window.__vsReady = side => {
   ready[side] = true; const a = api(side); if (!a) return;
   a.fx(fx); padsChanged();
-  if (ready[0] && ready[1]) { mode = api(0).modeNow(); api(1).mode(mode); }
+  if (ready[0] && ready[1]) { mode = api(0).modeNow(); opt = api(0).optNow(); api(1).mode(mode, opt); }
 };
-window.__vsStart = m => { mode = m; unlockAudio(); start(); };          // 1P のタイトルの「スタート」
-window.__vsMode = m => { mode = m; const b = api(1); if (b) b.mode(m); };   // 1P がモードを選んだ → 2P のタイトルにも出す
+window.__vsStart = (m, o) => { mode = m; opt = Object.assign({}, o); unlockAudio(); start(); };          // 1P のタイトルの「スタート」
+window.__vsMode = (m, o) => { mode = m; opt = Object.assign({}, o); const b = api(1); if (b) b.mode(m, opt); };   // 1P がモード・オプションを選んだ → 2P のタイトルにも出す
 window.__vsBack = () => { location.href = './'; };                       // 1P のタイトルの「もどる」
 window.__vsEnd = () => {};   // 勝ち負けは毎フレームの loop で見る
 window.__vsLava = y => { world.y = Math.min(world.y, y); world.delay = 0; };   // ガチャ所の「溶岩を近づける」（相手の 2m 下までは本編側で止めてある）
@@ -201,9 +204,9 @@ function start() {
   if (phase !== 'start' && phase !== 'end' && phase !== 'pause') return;
   if (!ready[0] || !ready[1] || !api(0) || !api(1)) { toast('よみこみ中…もう少し待ってね'); return; }
   unlockAudio();
-  phase = 'count'; show('ovCount'); countDrawn = false; for (const i of [0, 1]) $('d' + i).hidden = true;
+  phase = 'count'; show('ovCount'); countDrawn = false; gone[0] = gone[1] = null; for (const i of [0, 1]) $('d' + i).hidden = true;
   seed = (Math.random() * 4294967295) >>> 0 || 1;
-  api(0).start(seed, mode); api(1).start(seed, mode);   // 先に作って見せておき、数え終わるまで動かさない
+  api(0).start(seed, mode, opt); api(1).start(seed, mode, opt);   // 先に作って見せておき、数え終わるまで動かさない
   const g = api(0).get(); world.y = g.lavaY; world.delay = g.delay; world.clock = 0;
   const steps = ['3', '2', '1', 'スタート！'];
   const tick = i => {
@@ -216,7 +219,7 @@ function start() {
 }
 function pause() {
   if (phase !== 'play') return;
-  phase = 'pause'; $('pauseMode').textContent = MODE_NAME[mode]; show('ovPause');
+  phase = 'pause'; $('pauseMode').textContent = modeLabel(); show('ovPause');
   for (const i of [0, 1]) for (const k of PAD_KEYS) { const a = api(i); if (a) a.input(k, false); }
 }
 function resume() { if (phase !== 'pause') return; phase = 'play'; show(null); lastT = performance.now(); }
@@ -226,10 +229,12 @@ $('btnResume').onclick = resume; $('btnQuit').onclick = toTitle; $('btnMenu').on
 
 const CAUSE = { lava: '呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた' };
 // 勝負がついた：out[i] が true の人が落ちた（2人同時なら高い方の勝ち）
+// 「続ける」のときは2人ともやられてから、高く登った方の勝ち（g は2人がやられたときの記録）
 function decide(out, g) {
   phase = 'over';
   for (const i of [0, 1]) { if (!out[i]) api(i).halt(); }
-  const win = out[0] && out[1] ? (g[0].m === g[1].m ? -1 : g[0].m > g[1].m ? 0 : 1) : out[0] ? 1 : 0;
+  const both = out[0] && out[1];
+  const win = opt.cont ? (g[0].m === g[1].m ? -1 : g[0].m > g[1].m ? 0 : 1) : both ? (g[0].m === g[1].m ? -1 : g[0].m > g[1].m ? 0 : 1) : out[0] ? 1 : 0;
   for (const i of [0, 1]) {
     const d = $('d' + i), b = d.querySelector('b'); d.hidden = false;
     b.textContent = win < 0 ? 'ひきわけ' : i === win ? 'かち！' : 'まけ'; b.style.color = i === win ? `var(--p${i + 1})` : 'var(--cream)';
@@ -237,7 +242,7 @@ function decide(out, g) {
   result = { win, out, g };
   setTimeout(() => {
     phase = 'end';
-    $('endMode').textContent = MODE_NAME[mode];
+    $('endMode').textContent = modeLabel();
     $('winTitle').innerHTML = win < 0 ? 'ひきわけ！' : `<span class="c${win + 1}">${NAME[win]}</span> のかち！`;
     for (const i of [0, 1]) {
       $('rc' + i).classList.toggle('won', i === win);
@@ -336,8 +341,15 @@ function loop() {
     else if (phase === 'count' && !countDrawn) { a0.frame(); a1.frame(); countDrawn = true; }
     if (phase === 'play') {
       watchFps(g, dt);
-      const out = g.map(x => x.sunk || ((x.st === 'dying' || x.st === 'end') && !x.down));   // シンプルジャンプの復活待ち（down）は負けにしない
-      if (out[0] || out[1]) decide(out, g);
+      const out = g.map((x, i) => !!gone[i] || x.sunk || ((x.st === 'dying' || x.st === 'end') && !x.down));   // シンプルジャンプの復活待ち（down）は負けにしない
+      if (opt.cont) {   // 1人やられても続ける：やられた人はその場で止めて「おしまい」、もう1人はそのまま。2人そろったら結果
+        for (const i of [0, 1]) if (out[i] && !gone[i]) {
+          gone[i] = Object.assign({}, g[i]); api(i).halt();
+          const d = $('d' + i), b = d.querySelector('b'); d.hidden = false; b.textContent = `おしまい ${g[i].m}m`; b.style.color = 'var(--cream)';
+          if (!gone[1 - i]) toast(`${NAME[i]} はおしまい。${NAME[1 - i]} はつづけて ${g[i].m}m をこえよう`);
+        }
+        if (gone[0] && gone[1]) decide([true, true], gone);
+      } else if (out[0] || out[1]) decide(out, g);
     }
   }
   if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), result.g[i].scarf, i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'dizzy', now / 1000);
