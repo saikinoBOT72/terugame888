@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.12">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.13">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -432,12 +432,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.12"></script>
-<script src="data/pieces.js?v=2026.12.12"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.13"></script>
+<script src="data/pieces.js?v=2026.12.13"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.12';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.13';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1460,7 +1460,7 @@ function updateEffects(dt) {
   flyers = flyers.filter(f => f.t < 0.5);
   if (G) G.coinBump = Math.max(0, G.coinBump - dt * 4);
   floaters = floaters.filter(f => f.life > 0);
-  if (state === 'dying') { G.dieT += dt; if (G.resp) { if (G.dieT > VERSUS_RESPAWN) vsRespawn(); } else if (G.dieT > 1.1) end(); }
+  if (state === 'dying') { G.dieT += dt; if (G.resp) { vsRespCam(dt); if (G.dieT > VERSUS_RESPAWN) vsRespawn(); } else if (G.dieT > 1.1) end(); }
 }
 function end() { state = 'end'; if (VERSUS) { parent.__vsEnd && parent.__vsEnd(VERSUS.side, Math.floor(G.best)); return; } showEnd(); }
 function dust(x, y, dir, n) {
@@ -2281,7 +2281,7 @@ function drawGL() {
   const qt = performance.now();
   if (!PERF.off.sprites) {
     sporesGL(); obstaclesGL(); stationsGL(); gemsGL();
-    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); }
+    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); } else vsRespMark(true);
     particlesGL(); if (!PERF.off.weather) weatherDraw(wseg, wdisc); lavaGL(); cloudsDraw(wdisc);
   }
   const qs = performance.now();
@@ -2476,7 +2476,7 @@ function drawFrame() {
     drawStations();
     drawGems();
     if (showCheck) drawCheck();
-    if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); }
+    if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); } else vsRespMark(false);
     drawParticles(); weatherDraw(seg2, disc2);
     drawLava(); cloudsDraw(disc2);
   }
@@ -4115,11 +4115,32 @@ function vsDown() {
   G.resp = pt || s[0] || { x: 2 * CELL + HB, y: -HB, side: 0, ground: true, face: -1 };
   G.downs = (G.downs || 0) + 1;
 }
+// 復活待ち：やられた所を少し見せてから、カメラを復活の場所へ流す（着いたら止まる）
+function vsRespCam(dt) {
+  if (G.dieT < 0.9) return;
+  const ty = G.resp.y - H * 0.55; cam.y += (ty - cam.y) * Math.min(1, dt * 3); cam.shake = 0;
+}
+// 復活の場所に、うすく光るおばけ（数字が減るほど濃く）。gl：GPU で描くとき
+function vsRespMark(gl) {
+  const r = G && G.resp; if (!r || state !== 'dying' || G.dieT < 0.9) return;
+  const k = Math.min(1, (G.dieT - 0.9) / (VERSUS_RESPAWN - 0.9)), a = 0.25 + 0.35 * k + 0.12 * Math.sin(G.time * 8);
+  const pose = r.side ? 'cling' : 'stand', face = r.side ? -r.side : r.face || 1;
+  const ay = r.y - 34 - Math.abs(Math.sin(G.time * 4)) * 6, ac = Math.min(1, a + 0.3);   // 上で跳ねる ▼
+  if (gl) {
+    wseg(r.x - 7, ay - 6, r.x, ay + 1, 2.6, PAL.glow, ac); wseg(r.x + 7, ay - 6, r.x, ay + 1, 2.6, PAL.glow, ac);
+    wdisc(r.x, r.y, 22 + 4 * Math.sin(G.time * 4), PAL.glow, 0.12 + 0.1 * k);
+    wspr(`resp|${pose}|${face}`, r.x, r.y, [-36, -36, 36, 36], () => Kabe.ghost(ctx, PAL, 'sheet', pose, r.x, r.y, 0, face, 1), a);
+  } else {
+    ctx.strokeStyle = rgba(PAL.glow, ac); ctx.lineWidth = 2.6; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(r.x - 7, ay - 6); ctx.lineTo(r.x, ay + 1); ctx.lineTo(r.x + 7, ay - 6); ctx.stroke();
+    ctx.fillStyle = rgba(PAL.glow, 0.12 + 0.1 * k); ctx.beginPath(); ctx.arc(r.x, r.y, 22 + 4 * Math.sin(G.time * 4), 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = a; Kabe.ghost(ctx, PAL, 'sheet', pose, r.x, r.y, 0, face, 1); ctx.globalAlpha = 1;
+  }
+}
 function vsRespawn() {
   const r = G.resp; G.resp = null;
   Object.assign(P, { x: r.x, y: r.y, vx: 0, vy: 0, side: r.side, ground: r.ground, air: MOVE.airJumps, squash: 0, slideTo: 0, face: r.face || 1 });
   state = 'play'; G.hp = 1; G.inv = G.invMax = 1.5; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
-  cam.y = Math.min(cam.y, P.y - H * 0.55); sfx.start();
+  cam.y = P.y - H * 0.55; sfx.start();
 }
 // 相手は相手のマフラーの色で描く
 function vsScarf(o, fn) { const c = Kabe.SCARF.color; if (o.scarf) Kabe.SCARF.color = o.scarf; try { fn(); } finally { Kabe.SCARF.color = c; } }
