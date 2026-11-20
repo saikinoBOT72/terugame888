@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="ja" data-theme="underground">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>キャラの動き</title>
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30k">
+<script src="catalog/project/components/bundle.js?v=2026.11.30k"></script>
+<style>
+  /* キャラ（おばけ）の動き・表情・マフラーを試すページ。体と顔は bundle.js のまま、マフラーだけ Kabe.SCARF をいじる */
+  :root { --bg: #15171c; --panel: #1d2027; --line: #2d313b; --ink: #e6e4de; --dim: #8d94a1; --on: #f2b544; color-scheme: dark; }
+  [hidden] { display: none !important; }
+  html { box-sizing: border-box; } *, *::before, *::after { box-sizing: inherit; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.5 system-ui, -apple-system, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
+  .wrap { display: grid; grid-template-columns: minmax(0, 600px) minmax(280px, 380px); gap: 16px; justify-content: center; padding: 12px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left)); }
+  @media (max-width: 900px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
+  .stage { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  canvas { display: block; width: 100%; border: 1px solid var(--line); border-radius: 6px; touch-action: none; }
+  #cv { aspect-ratio: 3 / 2; }
+  #strip { aspect-ratio: 600 / 170; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .panel { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  h2 { font-size: 12px; margin: 0 0 6px; font-weight: 600; color: var(--dim); letter-spacing: .06em; }
+  section { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  button, select { font: inherit; color: var(--ink); background: #262a33; border: 1px solid var(--line); border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  button:hover { border-color: #4a5060; }
+  button.on { border-color: var(--on); color: var(--on); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 5px; }
+  .grid button { padding: 4px 4px; font-size: 12px; }
+  .sl { display: grid; grid-template-columns: 7.5em minmax(0, 1fr) 3.2em; gap: 8px; align-items: center; margin: 2px 0; }
+  .sl input { width: 100%; }
+  .sl output { text-align: right; font-variant-numeric: tabular-nums; color: var(--dim); }
+  .sl output.chg { color: var(--on); }
+  label.ck { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+  .hint { color: var(--dim); font-size: 12px; }
+  textarea { width: 100%; height: 64px; font: 12px/1.4 ui-monospace, monospace; color: var(--ink); background: #12141a; border: 1px solid var(--line); border-radius: 6px; padding: 6px; resize: vertical; }
+  #lookPad { width: 92px; height: 92px; aspect-ratio: 1; flex: none; }
+  a { color: var(--dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <div class="row" style="justify-content: space-between"><h1>キャラの動き</h1><span class="hint"><a href="./">本編</a> ・ <a href="simulator.html">シミュレーター</a></span></div>
+    <canvas id="cv"></canvas>
+    <div class="row">
+      <button id="play">⏸ 止める</button>
+      <button id="step" title="止めているとき 1/60 秒すすめる">コマ送り</button>
+      <select id="speed"><option value="1">速さ 1</option><option value="0.5">0.5</option><option value="0.25">0.25</option><option value="0.1">0.1</option></select>
+      <select id="theme"><option value="underground">地下</option><option value="surface">地上</option><option value="sky">上空</option><option value="space">宇宙</option></select>
+      <label class="ck">大きさ <input id="zoom" type="range" min="1.5" max="9" step="0.1" value="3.2" style="width: 90px"></label>
+    </div>
+    <canvas id="strip"></canvas>
+    <div class="hint">下の段：上が元のマフラー、下がいじっている途中のマフラー（同じポーズで並べる）</div>
+  </div>
+
+  <div class="panel">
+    <section>
+      <h2>動き（本編と同じ切り替え方）</h2>
+      <div class="grid" id="seqs"></div>
+    </section>
+    <section>
+      <h2>ポーズ（止めて見る）</h2>
+      <div class="row" style="margin-bottom: 6px"><button id="faceBtn">向き：右</button><span class="hint">ポーズの間はふわっと寄せる（本編と同じ速さ）</span></div>
+      <div class="grid" id="poses"></div>
+    </section>
+    <section>
+      <h2>表情</h2>
+      <div class="grid" id="exprs"></div>
+      <div class="row" style="margin-top: 8px; align-items: flex-start; gap: 12px">
+        <canvas id="lookPad" title="目線：ドラッグで動かす・ダブルクリックで自動"></canvas>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <button id="blinkBtn">まばたき</button>
+          <label class="ck"><input type="checkbox" id="fxSweat"> 汗</label>
+          <label class="ck"><input type="checkbox" id="fxZzz"> 寝息 z</label>
+          <label class="ck"><input type="checkbox" id="fxDizzy"> 星（くらくら）</label>
+          <span class="hint" id="lookTxt">目線：自動</span>
+        </div>
+      </div>
+    </section>
+    <section>
+      <h2>マフラー（体と顔は変えない）</h2>
+      <div id="sliders"></div>
+      <div class="row" style="margin: 6px 0">
+        <label class="ck"><input type="checkbox" id="front"> しっぽを体の前に出す</label>
+        <label class="ck"><input type="checkbox" id="rope" checked> ひもの動き</label>
+      </div>
+      <div class="sl"><span>横の風</span><input type="range" id="wind" min="-1" max="1" step="0.05" value="0"><output id="windO">0</output></div>
+      <div class="sl"><span>溶岩の熱</span><input type="range" id="heat" min="0" max="1" step="0.05" value="0"><output id="heatO">0</output></div>
+      <div class="row" style="margin: 8px 0 6px">
+        <button id="reset">元に戻す</button>
+        <button id="copy">値をコピー</button>
+        <span class="hint" id="copied"></span>
+      </div>
+      <textarea id="out" readonly placeholder="変えた値がここに出る（このまま貼って送ってOK）"></textarea>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ===== 準備 ===== */
+const $ = id => document.getElementById(id);
+const SC = Kabe.SCARF, DEF = Kabe.SCARF_DEF, POSES = Kabe.POSES;
+const HB = 10, DT = 1 / 120, GRAV = 420;
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+let PAL = Kabe.pal('underground');
+
+/* ===== 状態 ===== */
+// s：体の位置と状態（本編の P と G の必要な所だけ）、A：見た目の差分（本編の A）、live：いま描いているポーズ
+const s = {}, A = {}; let live = null, time = 0;
+const ui = { mode: 'seq', seq: 'kick', pose: 'stand', face: 1, expr: '', look: null, blinkNow: 0, playing: true, speed: 1, zoom: 3.2, step: 0 };
+const scene = { walls: null, floor: null };   // walls：[左の壁の x, 右の壁の x]、floor：床の y
+const cam = { x: 0, y: 0 };
+function resetBody(x, y) {
+  Object.assign(s, { x, y, vx: 0, vy: 0, ground: false, side: 0, face: 1, kickT: 0, airT: 0, landT: 0, heavy: 0, grabT: 0, clingT: 0, hovering: false,
+    hurtT: 0, dizzyT: 0, standT: 0, airLeft: 1, squash: 0, slide: false, autoCling: false, fistT: 0, hopY: 0, afterHurt: false });
+  Object.assign(A, { faceS: 1, faceDraw: 1, blink: 0, blinkNext: 2, flip: 0, flipDur: 0.42, flipKind: '', flipDir: 1, rot: 0, kickPose: 'kick',
+    hurtSpin: 0, hurtDir: 1, rest: null, sc: null, scLen: 1, airHad: true, idleSeed: 0 });
+  live = null;
+}
+
+/* ===== 動き（台本）：本編の操作の代わりに、決まった順で蹴る・跳ぶ ===== */
+const act = {
+  cling(side) { s.side = side; s.vx = s.vy = 0; s.grabT = 0.15; s.clingT = 0; s.ground = false; s.airLeft = 1; s.face = -side; },
+  kick(dir) { s.side = 0; s.vx = dir * 180; s.vy = -300; s.kickT = 0.18; s.face = dir; A.kickPose = Math.random() < 0.5 ? 'kick' : 'kick2'; },
+  jump(dir) { s.ground = false; s.vx = dir * 90; s.vy = -300; s.face = dir; s.standT = 0; },
+  air(kind) { s.vy = -300; s.airT = 0.25; s.airLeft = 0; A.flipKind = kind; A.flipDur = kind === 'flip' ? 0.42 : 0.4; A.flip = kind ? A.flipDur : 0; A.flipDir = s.face; },
+  hurt() { s.hurtT = 0.45; A.hurtSpin = 0.5; A.hurtDir = -s.face; s.vy = -200; s.vx = -s.face * 70; s.afterHurt = true; },
+};
+let flipCycle = 0;
+const SEQS = {
+  kick: { name: '壁キック', setup() { scene.walls = [-75, 75]; scene.floor = null; resetBody(-75 + HB, 0); s.autoCling = true; act.cling(-1); },
+    steps: [{ wait: 1.05 }, { do: () => act.kick(1) }, { until: () => s.side }, { wait: 1.05 }, { do: () => act.kick(-1) }, { until: () => s.side }] },
+  double: { name: '2段ジャンプ', setup() { scene.walls = null; scene.floor = 0; resetBody(-40, -HB); s.ground = true; },
+    steps: [{ wait: 0.7 }, { do: () => act.jump(s.face) }, { wait: 0.5 }, { do: () => act.air(['flip', 'twirl', ''][flipCycle++ % 3]) }, { until: () => s.ground }, { wait: 0.8 }, { do: () => { s.face = -s.face; } }] },
+  drop: { name: '落ちて着地', setup() { scene.walls = null; scene.floor = 0; resetBody(0, -HB); s.ground = true; },
+    steps: [{ do: () => { s.ground = false; s.y = -400; s.vy = 120; s.vx = 0; A.sc = null; } }, { until: () => s.ground }, { wait: 2.6 }] },
+  idle: { name: '待ち（のび→うとうと）', setup() { scene.walls = null; scene.floor = 0; resetBody(0, -HB); s.ground = true; },
+    steps: [{ wait: 10.5 }, { do: () => { s.standT = 0; } }] },
+  hurt: { name: 'ダメージ', setup() { scene.walls = null; scene.floor = 0; resetBody(0, -HB); s.ground = true; },
+    steps: [{ wait: 0.6 }, { do: () => act.jump(1) }, { wait: 0.3 }, { do: () => act.hurt() }, { until: () => s.ground }, { wait: 2.2 }, { do: () => { s.x = 0; } }] },
+  hover: { name: 'ホバリング', setup() { scene.walls = null; scene.floor = 0; resetBody(-50, -HB); s.ground = true; },
+    steps: [{ wait: 0.5 }, { do: () => act.jump(s.face) }, { wait: 0.4 }, { do: () => { s.hovering = true; s.vx = s.face * 45; } }, { wait: 1.6 }, { do: () => { s.hovering = false; } }, { until: () => s.ground }, { wait: 0.5 }, { do: () => { s.face = -s.face; } }] },
+  wobble: { name: '壁でグラグラ→落ちる', setup() { scene.walls = [-60, null]; scene.floor = 0; resetBody(-60 + HB, -110); act.cling(-1); },
+    steps: [{ wait: 4 }, { do: () => { s.side = 0; s.vx = 50; s.vy = 0; } }, { until: () => s.ground }, { wait: 0.8 }, { do: () => { s.x = -60 + HB; s.y = -110; act.cling(-1); A.sc = null; } }] },
+  slide: { name: '壁を滑る', setup() { scene.walls = [-60, null]; scene.floor = null; resetBody(-60 + HB, 0); act.cling(-1); },
+    steps: [{ wait: 0.8 }, { do: () => { s.slide = true; } }, { wait: 1.6 }, { do: () => { s.slide = false; s.clingT = 0; s.grabT = 0.15; } }] },
+};
+let seqI = 0, seqT = 0;
+function startSeq(id) {
+  ui.mode = 'seq'; ui.seq = id; seqI = 0; seqT = 0; SEQS[id].setup(); cam.x = s.x; cam.y = s.y; markButtons();
+}
+function runSeq(dt) {
+  const st = SEQS[ui.seq].steps;
+  for (let guard = 0; guard < 8; guard++) {
+    const c = st[seqI];
+    if (c.do) { c.do(); next(); continue; }
+    if (c.wait != null) { seqT += dt; if (seqT >= c.wait) { next(); continue; } break; }
+    if (c.until) { seqT += dt; if (c.until() || seqT > 6) { next(); continue; } break; }
+  }
+  function next() { seqI = (seqI + 1) % st.length; seqT = 0; }
+}
+
+/* ===== からだの動き（重力・壁・床） ===== */
+function physics(dt) {
+  for (const k of ['kickT', 'airT', 'landT', 'heavy', 'grabT', 'hurtT', 'dizzyT', 'fistT']) s[k] = Math.max(0, s[k] - dt);
+  s.squash *= Math.exp(-dt * 14);
+  if (s.side) { s.clingT += dt; if (s.slide) s.y += 40 * dt; return; }
+  if (s.ground) { s.standT += dt; return; }
+  s.vy += GRAV * dt;
+  if (s.hovering) s.vy += (18 - s.vy) * Math.min(1, dt * 8);
+  s.x += s.vx * dt; s.y += s.vy * dt;
+  const W = scene.walls;
+  if (W && W[0] != null && s.x < W[0] + HB) { s.x = W[0] + HB; if (s.autoCling) act.cling(-1); else s.vx = 0; }
+  if (W && W[1] != null && s.x > W[1] - HB) { s.x = W[1] - HB; if (s.autoCling) act.cling(1); else s.vx = 0; }
+  if (scene.floor != null && s.y > scene.floor - HB && s.vy > 0) {
+    s.y = scene.floor - HB; const v = s.vy; s.vy = 0; s.vx = 0; s.ground = true; s.airLeft = 1; s.standT = 0; s.hovering = false;
+    s.squash = Math.min(0.6, v / 900); s.landT = v > 450 ? 0.4 : 0.18; s.heavy = v > 450 ? 0.4 : 0;
+    if (v > 450 || s.afterHurt) s.dizzyT = 1.8; s.afterHurt = false;
+  }
+}
+
+/* ===== ポーズを選ぶ（本編の poseId と同じ順） ===== */
+const IDLE_DEMO = ['look', 'stretch', 'wave', 'lookUp', 'hop'];
+function idlePose() {
+  const st = s.standT; if (st < 2) return 'stand';
+  if (st > 9.5) return 'sleep';
+  const slot = Math.floor((st - 2) / 1.5), k = ((st - 2) % 1.5) / 1.5;
+  const id = IDLE_DEMO[slot % IDLE_DEMO.length];
+  if (id === 'hop') { s.hopY = -Math.abs(Math.sin(k * Math.PI * 3)) * 4 * (1 - k); return k < 0.85 ? 'cheer' : 'stand'; }
+  if (id === 'look' || k > 0.88) return 'stand';
+  return id;
+}
+function poseId() {
+  s.hopY = 0;
+  if (ui.mode === 'pose') return ui.pose;
+  if (s.hurtT > 0) return 'hurt';
+  if (s.side) return s.slide ? 'slide' : s.grabT > 0 ? 'grab' : s.clingT > 2 ? 'wobble' : s.clingT > 0.9 ? 'clingUp' : 'cling';
+  if (s.ground) {
+    if (s.landT > 0) return s.heavy > 0 ? 'landHeavy' : 'land';
+    if (s.dizzyT > 0) return 'dizzy';
+    return idlePose();
+  }
+  if (s.kickT > 0) return A.kickPose;
+  if (s.airT > 0) return A.flipKind || 'air';
+  if (s.hovering) return 'hover';
+  if (s.vy > 520) return 'panic';
+  if (s.vy > 230) return 'fall';
+  if (Math.abs(s.vy) < 70) return 'apex';
+  return 'jump';
+}
+
+/* ===== ポーズは急に変えない（本編の updatePose を写したもの） ===== */
+function updatePose(dt) {
+  A.hurtSpin = Math.max(0, A.hurtSpin - dt);
+  A.blink = Math.max(0, A.blink - dt); A.blinkNext -= dt;
+  if (A.blinkNext <= 0) { A.blink = 0.1; A.blinkNext = Math.random() < 0.22 ? 0.22 : 1.6 + Math.random() * 3; }
+  if (ui.blinkNow > 0) { ui.blinkNow -= dt; A.blink = Math.max(A.blink, 0.01); }
+  let rot = 0, spinFace = 1;
+  if (A.flip > 0) {
+    A.flip = Math.max(0, A.flip - dt); const k = 1 - A.flip / A.flipDur, e = 1 - (1 - k) ** 2.2;
+    if (A.flipKind === 'flip') rot = A.flipDir * e * Math.PI * 2; else spinFace = Math.cos(e * Math.PI * 4);
+  }
+  if (A.hurtSpin > 0) rot += A.hurtDir * (1 - (A.hurtSpin / 0.5) ** 1.5) * Math.PI * 2;
+  A.rot = rot;
+  const face = ui.mode === 'pose' ? ui.face : s.side ? -s.side : s.face;
+  A.faceS = s.side && ui.mode !== 'pose' ? face : A.faceS + clampN(face - A.faceS, -dt * 13, dt * 13);
+  A.faceDraw = (Math.abs(A.faceS) < 0.12 ? Math.sign(A.faceS || face) * 0.12 : A.faceS) * spinFace;
+  if (Math.abs(A.faceDraw) < 0.1) A.faceDraw = 0.1 * Math.sign(A.faceDraw || 1);
+
+  const id = poseId(), Q = POSES[id];
+  if (!live) live = Object.assign({}, Q, { scarf: Q.scarf.map(p => p.slice()), hands: Q.hands.map(p => p.slice()), look: Q.look.slice(), hem: Q.hem || 0 });
+  const keep = { scarf: live.scarf, hands: live.hands, look: live.look, hem: live.hem, tilt: live.tilt, sq: live.sq };
+  live = POSES.live = Object.assign({}, Q, keep, { id });
+  const k = Math.min(1, dt * 10), kh = Math.min(1, dt * 18), t = time, air = !s.ground && !s.side && ui.mode === 'seq';
+  if (!A.rest) A.rest = Q.scarf.map(p => p.slice());
+  A.rest.forEach((p, i) => { const kk = k * (1 - i * 0.14); p[0] += (Q.scarf[i][0] - p[0]) * kk; p[1] += (Q.scarf[i][1] - p[1]) * kk; });
+  if ($('rope').checked) scarfStep(dt); else live.scarf = A.rest.map(p => p.slice());
+  live.hands.forEach((p, i) => { p[0] += (Q.hands[i][0] - p[0]) * kh; p[1] += (Q.hands[i][1] - p[1]) * kh; });
+  live.hem += ((Q.hem || 0) + (air ? clampN(s.vy / 260, -1.4, 1.8) : 0) - live.hem) * k * 0.7;
+  live.tilt += (Q.tilt - live.tilt) * kh; live.sq += (Q.sq - live.sq) * kh;
+  if (id === 'hover') {
+    const f = Math.sin(t * 16);
+    live.hands = live.hands.map((h, i) => [h[0], h[1] + f * 3.2 - (i ? 0.6 : 0)]);
+    live.tilt = Q.tilt + Math.sin(t * 4) * 0.08; live.sq = Q.sq + f * 0.03; live.hem = (Q.hem || 0) + Math.sin(t * 9) * 0.8;
+  } else if (id === 'panic') {
+    live.hands = live.hands.map((h, i) => [h[0] + Math.cos(t * 21 + i * 2) * 1.6, h[1] + Math.sin(t * 22 + i * Math.PI) * 3.4]);
+    live.tilt = Q.tilt + Math.sin(t * 11) * 0.06;
+  } else if (id === 'wave') {
+    live.hands = live.hands.map((h, i) => i ? [h[0] + Math.sin(t * 12) * 2.6, h[1] + Math.cos(t * 12) * 0.8] : h);
+    live.tilt = Q.tilt + Math.sin(t * 6) * 0.04;
+  } else if (id === 'sleep') live.tilt = Q.tilt + Math.sin(t * 1.3) * 0.06;
+  else if (id === 'dizzy') live.tilt = Q.tilt + Math.sin(t * 4.5) * 0.12;
+  else if (id === 'stretch') { const f = Math.sin(t * 3) * 0.5 + 0.5; live.sq = Q.sq - f * 0.04; live.hands = live.hands.map(h => [h[0], h[1] - f * 1.2]); }
+  else if (id === 'fist' || id === 'cheer') { const f = Math.abs(Math.sin(t * 9)); live.hands = live.hands.map((h, i) => (i || id === 'cheer') ? [h[0], h[1] - f * 2] : h); }
+  let look = Q.look;
+  if (ui.mode === 'seq') {
+    if (id === 'stand' && s.standT > 2) look = [Math.sin(s.standT * 1.3) > 0 ? 1 : -0.9, Math.sin(s.standT * 0.7) * 0.4];
+    if (id === 'jump' || id === 'apex') look = [1, clampN(s.vy / 300, -0.8, 0.8)];
+    if (id === 'fall' || id === 'panic') look = [0.6, 1];
+  }
+  if (ui.look) look = ui.look;
+  live.look[0] += (look[0] - live.look[0]) * kh; live.look[1] += (look[1] - live.look[1]) * kh;
+  if (ui.expr) live.expr = ui.expr;
+  if ($('fxSweat').checked) live.sweat = true;
+  if ($('fxZzz').checked) live.zzz = true;
+  if ($('fxDizzy').checked) live.dizzy = true;
+  live.blink = A.blink > 0;
+}
+
+/* ===== マフラーのひも（本編の scarfStep を写したもの。壁と床にめりこまない・風・熱・しおれ） ===== */
+function bodyXf() {
+  const t = time, face = A.faceDraw;
+  let wob = 0;
+  if (s.side && s.clingT > 2 && !s.slide && ui.mode === 'seq') { const k = Math.min(1, (s.clingT - 2) / 2); wob = Math.sin(t * (30 + k * 25)) * (0.6 + k * 1.6); }
+  const breathe = (s.ground || ui.mode === 'pose') ? Math.sin(t * 2.4) * 0.025 : 0;
+  const air = !s.ground && !s.side && ui.mode === 'seq', st = air ? Math.min(0.1, Math.abs(s.vy) / 4000) : 0;
+  return { ax: s.x + wob, ay: s.y - breathe * 10 + s.hopY, rot: A.rot, sx: 1 + s.squash * 0.35 - st - breathe, sy: 1 - s.squash * 0.3 + st + breathe, face, air };
+}
+function poseMat(X, Q) {
+  const fs = Math.sign(X.face) || 1, ct = Math.cos(Q.tilt), st = Math.sin(Q.tilt), cr = Math.cos(X.rot), sr = Math.sin(X.rot), a = 1 - Q.sq * 0.6, b = 1 + Q.sq;
+  const m00 = fs * X.sx * ct * a, m01 = -fs * X.sx * st * b, m10 = X.sy * st * a, m11 = X.sy * ct * b;
+  return [cr * m00 - sr * m10, cr * m01 - sr * m11, sr * m00 + cr * m10, sr * m01 + cr * m11];
+}
+function scarfStep(dt) {
+  const X = bodyXf(), M = poseMat(X, live), R0 = A.rest, n = R0.length, o = R0[0], t = time, SK = SC.len;
+  const spent = X.air && s.airLeft <= 0;
+  A.scLen += ((spent ? 0.72 : 1) - A.scLen) * Math.min(1, dt * (spent ? 5 : 16));
+  const K = SK * A.scLen;
+  const rest = R0.map(p => { const lx = o[0] + (p[0] - o[0]) * K, ly = o[1] + (p[1] - o[1]) * K; return [X.ax + M[0] * lx + M[1] * ly, X.ay + M[2] * lx + M[3] * ly]; });
+  if (!A.sc || Math.hypot(A.sc[0][0] - rest[0][0], A.sc[0][1] - rest[0][1]) > 80) A.sc = rest.map(p => [p[0], p[1], p[0], p[1]]);
+  const S = A.sc;
+  if (A.airHad === false && !spent) for (let i = 1; i < n; i++) { const q = S[i], dx = q[0] - S[0][0], dy = q[1] - S[0][1], d = Math.hypot(dx, dy) || 1; q[2] -= dx / d * i * 0.55; q[3] -= dy / d * i * 0.55 + i * 0.25; }
+  A.airHad = !spent;
+  const wx = +$('wind').value * 1100, wy = -(+$('heat').value) * 520;
+  const sp = ui.mode === 'seq' ? Math.hypot(s.vx, s.vy) : 0, flut = (X.air ? Math.min(1, sp / 450) : 0.1) * (spent ? 0.3 : 1), grav = spent ? 620 : 230;
+  let rem = Math.min(dt, 0.05);
+  while (rem > 1e-6) {
+    const h = Math.min(rem, DT); rem -= h;
+    S[0][0] = S[0][2] = rest[0][0]; S[0][1] = S[0][3] = rest[0][1];
+    for (let i = 1; i < n; i++) {
+      const q = S[i], a = S[i - 1], f = i / (n - 1), vx = (q[0] - q[2]) * 0.965, vy = (q[1] - q[3]) * 0.965;
+      q[2] = q[0]; q[3] = q[1];
+      const tx = q[0] - a[0], ty = q[1] - a[1], tl = Math.hypot(tx, ty) || 1, fl = Math.sin(t * 16 - i * 1.25) * flut * 750 * f;
+      const gx = wx * f - ty / tl * fl, gy = grav + wy * (0.5 + 0.5 * f) + Math.sin(t * 7 + i * 2) * Math.abs(wy) * 0.35 + tx / tl * fl;
+      q[0] += vx + gx * h * h; q[1] += vy + gy * h * h;
+      const rk = 1 - Math.exp(-h * (spent ? 4.5 : 15) * (1 - f * 0.55));
+      q[0] += (rest[i][0] - q[0]) * rk; q[1] += (rest[i][1] - q[1]) * rk;
+    }
+    for (let it = 0; it < 3; it++) for (let i = 1; i < n; i++) {
+      const a = S[i - 1], q = S[i], L = Math.hypot(rest[i][0] - rest[i - 1][0], rest[i][1] - rest[i - 1][1]);
+      const dx = q[0] - a[0], dy = q[1] - a[1], d = Math.hypot(dx, dy) || 1e-6, k = (d - L) / d;
+      q[0] -= dx * k; q[1] -= dy * k;
+      if (s.side) { const nx = -s.side, dd = (q[0] - s.x + nx * HB) * nx; if (dd < 1.2) q[0] += nx * (1.2 - dd); }
+      if (s.ground && q[1] > s.y + HB + 2.5) q[1] = s.y + HB + 2.5;
+    }
+  }
+  const inv = 1 / (M[0] * M[3] - M[1] * M[2]);
+  live.scarf = S.map(q => { const dx = q[0] - X.ax, dy = q[1] - X.ay, lx = (M[3] * dx - M[1] * dy) * inv, ly = (M[0] * dy - M[2] * dx) * inv; return [o[0] + (lx - o[0]) / SK, o[1] + (ly - o[1]) / SK]; });
+}
+
+/* ===== 描く ===== */
+const cv = $('cv'), g = cv.getContext('2d'), strip = $('strip'), gs = strip.getContext('2d');
+function fit(c) { const r = c.getBoundingClientRect(), d = Math.min(3, window.devicePixelRatio || 1); const w = Math.round(r.width * d), h = Math.round(r.height * d); if (c.width !== w || c.height !== h) { c.width = w; c.height = h; } return { w: r.width, h: r.height, d }; }
+function drawStage() {
+  const { w, h, d } = fit(cv), z = ui.zoom, P = PAL;
+  // カメラ：壁キックは横を止めて縦だけ追う
+  const tx = scene.walls && scene.walls[1] != null ? 0 : ui.mode === 'pose' ? 0 : s.x, ty = s.y + (scene.floor != null && ui.mode === 'seq' ? -20 : 0);
+  cam.x += (tx - cam.x) * 0.12; cam.y += (ty - cam.y) * 0.12;
+  if (ui.mode === 'pose') { cam.x = 0; cam.y = 0; }
+  g.setTransform(d, 0, 0, d, 0, 0);
+  Kabe.background(g, P, 0, 0, w, h, time, -cam.y * z * 0.3);
+  g.save(); g.translate(w / 2, h / 2); g.scale(z, z); g.translate(-cam.x, -cam.y);
+  const vw = w / z, vh = h / z, top = cam.y - vh, bot = cam.y + vh;
+  const wallL = x => { g.fillStyle = P.terrain; g.fillRect(x - 300, top, 300, bot - top); g.fillStyle = P.terrainLight; g.fillRect(x - 3, top, 3, bot - top); };
+  const wallR = x => { g.fillStyle = P.terrain; g.fillRect(x, top, 300, bot - top); g.fillStyle = P.terrainLight; g.fillRect(x, top, 3, bot - top); };
+  let W = scene.walls, F = scene.floor;
+  if (ui.mode === 'pose') { const Q = POSES[ui.pose]; W = Q.wall ? (ui.face > 0 ? [-HB, null] : [null, HB]) : null; F = GROUNDED[ui.pose] ? HB : null; }
+  if (W) { if (W[0] != null) wallL(W[0]); if (W[1] != null) wallR(W[1]); }
+  if (F != null) { g.fillStyle = P.terrain; g.fillRect(cam.x - vw, F, vw * 2, 300); g.fillStyle = P.terrainLight; g.fillRect(cam.x - vw, F, vw * 2, 3); }
+  const X = bodyXf();
+  g.save(); g.translate(X.ax, X.ay); if (X.rot) g.rotate(X.rot); g.scale(X.sx, X.sy);
+  Kabe.ghost(g, P, 'sheet', 'live', 0, 0, time, X.face, 1);
+  g.restore(); g.restore();
+  g.fillStyle = 'rgba(255,255,255,.75)'; g.font = '12px system-ui, sans-serif';
+  g.fillText((POSES[live.id] || {}).name + '（' + live.id + '）  表情：' + live.expr, 8, h - 8);
+}
+const GROUNDED = { stand: 1, land: 1, landHeavy: 1, sleep: 1, cheer: 1, dizzy: 1, stretch: 1, wave: 1, lookUp: 1, fist: 1 };
+const STRIP = ['stand', 'cling', 'jump', 'kick', 'air', 'fall', 'hover', 'hurt'];
+function drawStrip() {
+  const { w, h, d } = fit(strip), P = PAL, cw = w / STRIP.length, rh = h / 2, sc = Math.min(cw / 44, rh / 36);
+  gs.setTransform(d, 0, 0, d, 0, 0); Kabe.background(gs, P, 0, 0, w, h, time, 0);
+  gs.strokeStyle = 'rgba(255,255,255,.12)'; gs.beginPath(); gs.moveTo(0, rh); gs.lineTo(w, rh); gs.stroke();
+  const mine = Object.assign({}, SC);
+  [DEF, mine].forEach((v, r) => {
+    Object.assign(SC, v);
+    STRIP.forEach((id, i) => Kabe.ghost(gs, P, 'sheet', id, cw * (i + 0.62), rh * (r + 0.45), time, 1, sc));
+  });
+  Object.assign(SC, mine);
+  gs.fillStyle = 'rgba(255,255,255,.6)'; gs.font = '11px system-ui, sans-serif'; gs.fillText('元', 4, 13); gs.fillText('いま', 4, rh + 13);
+}
+
+/* ===== まわす ===== */
+let last = performance.now(), acc = 0;
+function frame(now) {
+  let dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!ui.playing) dt = ui.step ? (ui.step--, 1 / 60) : 0;
+  dt *= ui.playing ? ui.speed : 1;
+  acc += dt;
+  while (acc >= DT) { acc -= DT; time += DT; if (ui.mode === 'seq') { runSeq(DT); physics(DT); } else { s.x = 0; s.y = 0; s.vx = s.vy = 0; s.side = 0; s.ground = false; } updatePose(DT); }
+  if (!live) updatePose(DT);
+  drawStage(); drawStrip(); drawLook();
+  requestAnimationFrame(frame);
+}
+
+/* ===== ボタン ===== */
+function btn(parent, label, fn) { const b = document.createElement('button'); b.textContent = label; b.onclick = fn; parent.appendChild(b); return b; }
+const seqBtns = {}, poseBtns = {}, exprBtns = {};
+for (const id in SEQS) seqBtns[id] = btn($('seqs'), SEQS[id].name, () => startSeq(id));
+for (const id of Kabe.POSE_ORDER.concat(Kabe.POSE_MORE)) poseBtns[id] = btn($('poses'), POSES[id].name, () => { if (ui.mode !== 'pose') { A.sc = null; s.x = s.y = 0; } ui.mode = 'pose'; ui.pose = id; markButtons(); });
+const EXPRS = [['', '自動'], ['normal', 'ふつう'], ['happy', 'にっこり'], ['brave', 'やる気'], ['calm', 'おだやか'], ['squint', 'ぎゅっ'], ['surprised', 'びっくり'], ['worried', 'こまり'], ['hurt', 'いたい'], ['dizzy', 'くらくら'], ['sleep', 'ねむい']];
+for (const [id, name] of EXPRS) exprBtns[id] = btn($('exprs'), name, () => { ui.expr = id; markButtons(); });
+function markButtons() {
+  for (const id in seqBtns) seqBtns[id].classList.toggle('on', ui.mode === 'seq' && ui.seq === id);
+  for (const id in poseBtns) poseBtns[id].classList.toggle('on', ui.mode === 'pose' && ui.pose === id);
+  for (const id in exprBtns) exprBtns[id].classList.toggle('on', ui.expr === id);
+  $('faceBtn').textContent = '向き：' + (ui.face > 0 ? '右' : '左');
+}
+$('faceBtn').onclick = () => { ui.face = -ui.face; markButtons(); };
+$('play').onclick = () => { ui.playing = !ui.playing; $('play').textContent = ui.playing ? '⏸ 止める' : '▶ 動かす'; };
+$('step').onclick = () => { if (ui.playing) $('play').onclick(); ui.step++; };
+$('speed').onchange = e => { ui.speed = +e.target.value; };
+$('zoom').oninput = e => { ui.zoom = +e.target.value; };
+$('theme').onchange = e => { PAL = Kabe.pal(e.target.value); };
+$('blinkBtn').onclick = () => { ui.blinkNow = 0.12; };
+$('wind').oninput = e => { $('windO').textContent = e.target.value; };
+$('heat').oninput = e => { $('heatO').textContent = e.target.value; };
+
+// 目線のパッド
+const lp = $('lookPad'), lg = lp.getContext('2d');
+function drawLook() {
+  const { w, h, d } = fit(lp); lg.setTransform(d, 0, 0, d, 0, 0); lg.clearRect(0, 0, w, h);
+  lg.fillStyle = '#12141a'; lg.fillRect(0, 0, w, h); lg.strokeStyle = '#2d313b'; lg.beginPath(); lg.moveTo(w / 2, 0); lg.lineTo(w / 2, h); lg.moveTo(0, h / 2); lg.lineTo(w, h / 2); lg.stroke();
+  const L = live ? live.look : [0, 0];
+  lg.fillStyle = ui.look ? '#f2b544' : '#8d94a1'; lg.beginPath(); lg.arc(w / 2 + L[0] * w * 0.4, h / 2 + L[1] * h * 0.4, 5, 0, Math.PI * 2); lg.fill();
+}
+function setLook(e) { const r = lp.getBoundingClientRect(); ui.look = [clampN(((e.clientX - r.left) / r.width - 0.5) / 0.4, -1, 1), clampN(((e.clientY - r.top) / r.height - 0.5) / 0.4, -1, 1)]; $('lookTxt').textContent = '目線：' + ui.look.map(v => v.toFixed(1)).join(', '); }
+lp.onpointerdown = e => { lp.setPointerCapture(e.pointerId); setLook(e); lp.onpointermove = setLook; };
+lp.onpointerup = () => { lp.onpointermove = null; };
+lp.ondblclick = () => { ui.look = null; $('lookTxt').textContent = '目線：自動'; };
+
+// マフラーのつまみ
+const SL = [['wrapY', '帯の高さ', -4, 7, 0.1], ['wrapW', '帯の幅', 10, 24, 0.1], ['wrapH', '帯の太さ', 1.5, 6, 0.1], ['sag', '帯のたるみ', -1, 4, 0.1],
+  ['knotX', '結び目・横', -11, 11, 0.1], ['knotY', '結び目・縦', -3, 5, 0.1], ['knotR', '結び目の大きさ', 0, 4.5, 0.1],
+  ['tailX', '根元・横', -11, 11, 0.1], ['tailY', '根元・縦', -6, 7, 0.1], ['len', 'しっぽの長さ', 0.3, 1.2, 0.01], ['tailW', 'しっぽの太さ', 1.2, 6, 0.1],
+  ['taper', '先細り', 0, 0.7, 0.01], ['back', '裏の布', 0, 1, 0.01], ['notch', '先の切れ込み', 0, 4, 0.1], ['stripes', 'しまの数', 0, 2, 1]];
+const inputs = {};
+for (const [k, name, a, b, st] of SL) {
+  const row = document.createElement('div'); row.className = 'sl';
+  row.innerHTML = `<span>${name}</span><input type="range" min="${a}" max="${b}" step="${st}"><output></output>`;
+  const inp = row.querySelector('input'), out = row.querySelector('output');
+  inp.oninput = () => { SC[k] = +inp.value; sync(); };
+  inp.ondblclick = () => { SC[k] = DEF[k]; sync(); };
+  inputs[k] = { inp, out }; $('sliders').appendChild(row);
+}
+$('front').onchange = e => { SC.front = e.target.checked ? 1 : 0; sync(); };
+function sync() {
+  for (const k in inputs) { inputs[k].inp.value = SC[k]; inputs[k].out.textContent = (+SC[k]).toFixed(k === 'stripes' ? 0 : k === 'len' || k === 'taper' || k === 'back' ? 2 : 1); inputs[k].out.classList.toggle('chg', SC[k] !== DEF[k]); }
+  $('front').checked = !!SC.front;
+  const diff = {}; for (const k in DEF) if (SC[k] !== DEF[k]) diff[k] = SC[k];
+  $('out').value = Object.keys(diff).length ? 'マフラー ' + JSON.stringify(diff) : '';
+  store.set('kabe-chara-scarf', diff);
+}
+$('reset').onclick = () => { Object.assign(SC, DEF); sync(); };
+$('copy').onclick = () => {
+  const txt = $('out').value || 'マフラー（元のまま）';
+  (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(() => { $('copied').textContent = 'コピーした'; }, () => { $('out').select(); $('copied').textContent = '選んだので手でコピーして'; });
+  setTimeout(() => { $('copied').textContent = ''; }, 2000);
+};
+Object.assign(SC, store.get('kabe-chara-scarf') || {});
+sync();
+
+startSeq('kick');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編と `pools.html` が共通で読む |
 | `pools.html` | プールとパーツの一覧（動く見本） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
+| `chara.html` | キャラの動き・表情・マフラーを再生して試すページ（本編のポーズ切り替えとマフラーのひもを写したもの。マフラーの形は `Kabe.SCARF`。本編の `updatePose`・`scarfStep` を変えたらこちらも合わせる） |
 | `catalog/project/` | 統一カタログの元ファイル。`components/bundle.js` が全素材の描画ライブラリ `Kabe` |
 | `tools/` | 確認用スクリプト（下の「確かめ方」）と公開用のコピー作り、アイコン作り（`make_icon.js`） |
 | `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（オフラインは sw.js が前に取ったものを返す） |
@@ -20,7 +21,7 @@
 軽さの決まり：毎フレーム描き直して送ってよいのはオバケだけ。動く物は1回描いて GPU で回す（`wspr` の rot）か、動きを段階に分けて絵を使い回す。小さく動く粒は GPU の点（`wdisc`）。背景3枚は半分の解像度。点光源と影は1/4の「光の地図」。HUD は表示が変わったときだけ描く。`?perf` の下の段に、1フレームの内訳（動き・組み立て・送る・仕上げ・HUD）が出る。
 
 ## GitHub Pages（だれでも遊べる）
-- https://saikinobot72.github.io/terugame888/ （本編）、`/pools.html`、`/simulator.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
+- https://saikinobot72.github.io/terugame888/ （本編）、`/pools.html`、`/simulator.html`、`/chara.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
 - **作業のたびに必ずコミットして push する**（ユーザーの指示）。`index.html` を変えたら先頭の `VERSION` を上げる（タイトルの「アプデ」ボタンが新旧を見分ける）。読み込む3つ（tokens.css・bundle.js・pieces.js）の `?v=` も同じ番号なので、`sed -i "s/旧番号/新番号/g" index.html` でまとめて上げる（GitHub Pages は10分ほど古いファイルを返すので、新旧が混ざらないように）。
 
 ## 公開ページ（private）

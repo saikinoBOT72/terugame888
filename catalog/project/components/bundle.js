@@ -820,40 +820,47 @@ window.Kabe = (function () {
   var POSE_ORDER = ['stand', 'cling', 'jump', 'air', 'hurt'];
   var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer',
     'kick2', 'grab', 'clingUp', 'apex', 'flip', 'twirl', 'panic', 'landHeavy', 'dizzy', 'stretch', 'wave', 'lookUp', 'fist'];
+  // マフラーの決まり（chara.html でいじって決める）。はじめの値がいまの見た目
+  var SCARF_DEF = { wrapY: 1.6, wrapW: 19, wrapH: 3.2, sag: 1.8, knotX: -7.8, knotY: 0.6, knotR: 2.3,
+    tailX: -4, tailY: -1, len: 0.62, tailW: 3.4, taper: 0.2, back: 0.75, notch: 1.6, stripes: 2, front: 0 };
+  var SCARF = {}; for (var sk in SCARF_DEF) SCARF[sk] = SCARF_DEF[sk];
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
+  // ポーズの点の根元は [-4, -1]。SCARF.tailX/Y で根元ごとずらす
   function scarfTail(g, P, pts, t, w0) {
-    w0 = w0 || 3.4;
-    var o = pts[0], k = 0.62;
-    var front = pts.map(function (p, i) { return [o[0] + (p[0] - o[0]) * k + Math.sin(t * 6 + i * 1.3) * 0.15 * i, o[1] + (p[1] - o[1]) * k + Math.cos(t * 6 + i * 1.1) * 0.2 * i]; });
-    var back = front.map(function (p, i) { var f = i / (front.length - 1); return [o[0] + (p[0] - o[0]) * 0.75 + f * 1.2, o[1] + (p[1] - o[1]) * 0.75 + f * 2.6]; });
-    ribbon(g, P, back, w0 * 0.85, P.scarfShade, mix(P.scarfShade, '#000000', 0.18), false);
+    var S = SCARF; w0 = w0 || S.tailW;
+    var sx = S.tailX - pts[0][0], sy = S.tailY - pts[0][1];
+    var o = [pts[0][0] + sx, pts[0][1] + sy], k = S.len;
+    var front = pts.map(function (p, i) { return [o[0] + (p[0] + sx - o[0]) * k + Math.sin(t * 6 + i * 1.3) * 0.15 * i, o[1] + (p[1] + sy - o[1]) * k + Math.cos(t * 6 + i * 1.1) * 0.2 * i]; });
+    var back = front.map(function (p, i) { var f = i / (front.length - 1); return [o[0] + (p[0] - o[0]) * S.back + f * 1.2, o[1] + (p[1] - o[1]) * S.back + f * 2.6]; });
+    if (S.back > 0) ribbon(g, P, back, w0 * 0.85, P.scarfShade, mix(P.scarfShade, '#000000', 0.18), false);
     ribbon(g, P, front, w0, P.scarf, P.scarfShade, true);
   }
   function ribbon(g, P, pts, w0, base, shade, stripes) {
     var s = spline(pts, 5), L = [], R = [], n = s.length;
     for (var i = 0; i < n; i++) {
       var a = s[Math.max(0, i - 1)], b = s[Math.min(n - 1, i + 1)], nx = -(b[1] - a[1]), ny = b[0] - a[0], d = Math.hypot(nx, ny) || 1; nx /= d; ny /= d;
-      var w = w0 * (1 - 0.2 * i / n); L.push([s[i][0] + nx * w, s[i][1] + ny * w]); R.push([s[i][0] - nx * w, s[i][1] - ny * w]);
+      var w = w0 * (1 - SCARF.taper * i / n); L.push([s[i][0] + nx * w, s[i][1] + ny * w]); R.push([s[i][0] - nx * w, s[i][1] - ny * w]);
     }
     var e = s[n - 1], f = s[n - 2], dx = e[0] - f[0], dy = e[1] - f[1], dl = Math.hypot(dx, dy) || 1;
     var shape = function () {
       g.beginPath(); g.moveTo(L[0][0], L[0][1]); L.forEach(function (p) { g.lineTo(p[0], p[1]); });
-      g.lineTo(e[0] - dx / dl * 1.6, e[1] - dy / dl * 1.6);   // はしの切れ込み（内側へ）
+      g.lineTo(e[0] - dx / dl * SCARF.notch, e[1] - dy / dl * SCARF.notch);   // はしの切れ込み（内側へ）
       for (var j = n - 1; j >= 0; j--) g.lineTo(R[j][0], R[j][1]); g.closePath();
     };
     solid(g, shape, base, shade, P.playerLine, stripes ? 1.1 : 0.6, 1.0);
     if (!stripes) return;
     g.strokeStyle = P.scarfStripe; g.lineWidth = 0.8;
-    [0.62, 0.78].forEach(function (q) { var k2 = Math.round(q * (n - 1)); g.beginPath(); g.moveTo(L[k2][0], L[k2][1]); g.lineTo(R[k2][0], R[k2][1]); g.stroke(); });
+    [0.62, 0.78].slice(0, SCARF.stripes).forEach(function (q) { var k2 = Math.round(q * (n - 1)); g.beginPath(); g.moveTo(L[k2][0], L[k2][1]); g.lineTo(R[k2][0], R[k2][1]); g.stroke(); });
   }
   // 首に巻いた帯：体の丸みに沿って真ん中が少し下がる（まっすぐな帯にしない）
   function scarfWrap(g, P, cx, cy, w, h) {
-    var x0 = cx - w / 2 + 0.5, x1 = cx + w / 2 - 0.5, sag = 1.8;
+    var S = SCARF; cy = cy == null ? S.wrapY : cy; w = w || S.wrapW; h = h || S.wrapH;
+    var x0 = cx - w / 2 + 0.5, x1 = cx + w / 2 - 0.5, sag = S.sag;
     var band = function () { g.beginPath(); g.moveTo(x0, cy - h / 2); g.quadraticCurveTo(cx, cy - h / 2 + sag * 2, x1, cy - h / 2 - 0.6);
       g.quadraticCurveTo(x1 + 1.2, cy, x1, cy + h / 2 - 0.4); g.quadraticCurveTo(cx, cy + h / 2 + sag * 2, x0, cy + h / 2); g.quadraticCurveTo(x0 - 1.2, cy, x0, cy - h / 2); g.closePath(); };
     solid(g, band, P.scarf, P.scarfShade, P.playerLine, 0.9, 1.0);
     g.strokeStyle = P.scarfStripe; g.lineWidth = 0.7; g.beginPath(); g.moveTo(x0 + 2.5, cy + 0.6); g.quadraticCurveTo(cx, cy + sag * 2 + 0.2, x1 - 2.5, cy + 0.2); g.stroke();
-    solid(g, function () { ell(g, x0 + 1.2, cy + 0.6, 2.3, 2.1); }, P.scarf, P.scarfShade, P.playerLine, 0.7, 1.0);
+    if (S.knotR > 0) solid(g, function () { ell(g, S.knotX, cy + S.knotY, S.knotR, S.knotR * 2.1 / 2.3); }, P.scarf, P.scarfShade, P.playerLine, 0.7, 1.0);
   }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
   function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
@@ -935,7 +942,8 @@ window.Kabe = (function () {
           solid(g, function () { g.beginPath(); for (var k = 0; k < 10; k++) { var r5 = k % 2 ? ds * 0.45 : ds, a5 = -Math.PI / 2 + k * Math.PI / 5; g.lineTo(dx + Math.cos(a5) * r5, dy + Math.sin(a5) * r5); } g.closePath(); }, '#ffffff', P.playerShade, P.playerLine, 0.3, 0.7);
         }
       }
-      scarfWrap(g, P, 0, o.scarfY, o.scarfW, 3.2);
+      scarfWrap(g, P, 0);
+      if (SCARF.front) scarfTail(g, P, Q.scarf, t);   // しっぽを体の前に出す
       if (o.sleeves) sleeve(g, P, shoulder(Q.hands[1][0]), 0.5, Q.hands[1][0], Q.hands[1][1], 2.1);
       else ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], o.hand);
     };
@@ -943,13 +951,13 @@ window.Kabe = (function () {
   var GHOSTS = {
     sheet: { letter: 'B1', name: 'ふんわり', note: 'プレイヤーに決定。すそが少し広がり、大きな丸い山が3つ。手は小さな丸。',
       draw: sheetGhost({ top: -12.5, half: 10, shoulder: 11.5, flare: 1.6, hemY: 10, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1,
-        eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]], scarfY: 1.6, scarfW: 19 }) }
+        eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]] }) }
   };
   function ghost(g, P, variant, poseId, x, y, t, face, scale) {
     var Q = POSES[poseId], G = GHOSTS[variant]; face = face || 1; scale = scale || 1;
     g.save(); g.translate(x, y); g.scale(face * scale, scale);
     g.rotate(Q.tilt + (poseId === 'air' ? Math.sin(t * 3) * 0.15 : 0)); g.scale(1 - Q.sq * 0.6, 1 + Q.sq);
-    scarfTail(g, P, Q.scarf, t);
+    if (!SCARF.front) scarfTail(g, P, Q.scarf, t);
     G.draw(g, P, Q, t);
     g.restore();
   }
@@ -1271,7 +1279,7 @@ window.Kabe = (function () {
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
     spinAngle: spinAngle, spinner: spinner, pendAngle: pendAngle, pendulum: pendulum, cannon: cannon, cannonBall: cannonBall, stakeState: stakeState, stake: stake,
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
-    rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
+    rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
