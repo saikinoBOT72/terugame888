@@ -6951,7 +6951,7 @@ piece('k_rainclouds', { diff: 2, rain: 1 }, String.raw`
 `);
 
 // ===== 新しいパーツ（1100m）
-piece('l_chimmill', { diff: 2 }, String.raw`
+piece('l_chimmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -6961,7 +6961,7 @@ piece('l_chimmill', { diff: 2 }, String.raw`
 ######..M.....######
 ######........######
 ######........######
-######...W....######
+######...M....######
 ######........######
 ######........######
 ######........######
@@ -6972,7 +6972,7 @@ piece('l_chimmill', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_chimstorm', { diff: 2 }, String.raw`
+piece('l_chimstorm', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -6980,7 +6980,7 @@ piece('l_chimstorm', { diff: 2 }, String.raw`
 ####\........../####
 #####\......../#####
 ######........######
-######...W....######
+######...M....######
 ######........######
 ######........######
 ######........######
@@ -6993,13 +6993,13 @@ piece('l_chimstorm', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_dogmill', { diff: 2 }, String.raw`
+piece('l_dogmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##########........##
 ##########........##
-##########...W....##
+##########...M....##
 ##########........##
 ##########........##
 ##................##
@@ -7012,7 +7012,7 @@ piece('l_dogmill', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_dogstorm', { diff: 2 }, String.raw`
+piece('l_dogstorm', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7025,19 +7025,19 @@ piece('l_dogstorm', { diff: 2 }, String.raw`
 ##................##
 ##........##########
 ##........##########
-##....W...##########
+##....M...##########
 ##........##########
 ##........##########
 ##................##
 ##................##
 `);
-piece('l_pinchmill', { diff: 2 }, String.raw`
+piece('l_pinchmines2', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
 ###\............/###
 ####\........../####
-#####\...W..../#####
+#####\...M..../#####
 ######\....../######
 #######......#######
 #######..M...#######
@@ -7049,7 +7049,7 @@ piece('l_pinchmill', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_pinchstorm', { diff: 2 }, String.raw`
+piece('l_pinchstorm', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -7061,7 +7061,7 @@ piece('l_pinchstorm', { diff: 2 }, String.raw`
 #######......#######
 ######/......\######
 #####/........\#####
-####/....W....{\####
+####/....M....{\####
 ###/............\###
 ##/..............\##
 ##................##
@@ -7220,7 +7220,7 @@ piece('l_millbend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millcave', { diff: 2 }, String.raw`
+piece('l_cavemines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -7228,17 +7228,17 @@ piece('l_millcave', { diff: 2 }, String.raw`
 ##...............###
 ##..............####
 ###.............####
-####.....W.......###
+####.....M.......###
 ###...M...........##
 ##................##
-##.......M.......###
+##...............###
 ##..............####
 ###.............####
 ###...............##
 ##................##
 ##................##
 `);
-piece('l_millrocks', { diff: 2 }, String.raw`
+piece('l_rockmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7248,15 +7248,15 @@ piece('l_millrocks', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##..........##....##
-##....M.....##....##
+##.......M..##....##
 ##................##
 ##................##
-##.......W........##
+##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('l_millshelf', { diff: 2 }, String.raw`
+piece('l_shelfmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7264,10 +7264,10 @@ piece('l_millshelf', { diff: 2 }, String.raw`
 ##.......M........##
 ##................##
 ##................##
-######...W........##
+######...M........##
 ##................##
 ##................##
-##......M.........##
+##................##
 ##..........########
 ##................##
 ##................##
@@ -7467,7 +7467,7 @@ const POOLS = [
   { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudgust', 'i_minewalls', 'i_cloudmill', 'i_cloudlayers', 'i_chimmines', 'i_dogmines'] },
   { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcross', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend'] },
   { from: 1000, name: '雷の通り道', pieces: ['k_bolt', 'k_boltpair', 'k_boltclouds', 'k_boltladder', 'k_boltsides', 'k_boltmines', 'k_boltbend', 'k_boltgust', 'k_boltcave', 'k_boltrocks', 'k_boltfunnel', 'k_boltshelves', 'k_triplebolt', 'k_boltgust2', 'k_boltmill', 'k_boltmines2', 'k_boltclouds2', 'k_boltblock', 'k_rainbolt', 'k_rainclouds', 'k_chimbolt', 'k_chimboltmines', 'k_dogbolt', 'k_dogmines', 'k_pinchbolt', 'k_pinchmines'] },
-  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_millcave', 'l_millrocks', 'l_millshelf', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millgust2', 'l_millmines2', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmill', 'l_chimstorm', 'l_dogmill', 'l_dogstorm', 'l_pinchmill', 'l_pinchstorm'] },
+  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_cavemines', 'l_rockmines', 'l_shelfmines', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millgust2', 'l_millmines2', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmines', 'l_chimstorm', 'l_dogmines', 'l_dogstorm', 'l_pinchmines2', 'l_pinchstorm'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 

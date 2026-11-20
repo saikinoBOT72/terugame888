@@ -156,7 +156,7 @@ function draw(g, P, d, t) {
     else if (o.k === 'crumble') K.crumble(g, P, o.x, o.y, o.n, 0, t);
     else if (o.k === 'cloud') K.cloudPlat(g, P, o.x, o.y, o.w, t);
     else if (o.k === 'mine') K.mine(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / o.per) * o.amp);
-    else if (o.k === 'mill') K.windmill(g, P, o.x, o.y, 28, K.spinAngle(t, o.speed));
+    else if (o.k === 'mill') K.windmill(g, P, o.x, o.y, 22, K.spinAngle(t, o.speed * 0.6 / 0.9), 3);
     else if (o.k === 'bolt') { const ph = ((t + o.off) % 2.8 + 2.8) % 2.8; if (ph > 2.35) K.lightningBolt(g, o.x, o.y0 + 8, o.y1 - 8, 1, Math.floor(t * 18)); K.lightningRod(g, P, o.x, o.y0, 1, ph > 1.65); K.lightningRod(g, P, o.x, o.y1, -1, ph > 1.65); }
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
     else if (o.k === 'rail') {   // 道すじを一定の速さで往復（本編は角で少し止まる）

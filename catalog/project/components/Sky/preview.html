@@ -17,5 +17,5 @@ fig('ただよう機雷', function (g, P, t) { Kabe.mine(g, P, 35, 45 + Math.sin
 fig('曲がるトゲブロック', function (g, P, t) { var pts = [[22, 14], [22, 66], [52, 66]]; Kabe.railPath(g, P, pts); var u = (t * 30) % 164; if (u > 82) u = 164 - u; var x = 22, y = 14 + Math.min(52, u); if (u > 52) { y = 66; x = 22 + u - 52; } Kabe.spikeBlock(g, P, x - 9, y - 18, 18, 36); });
 fig('突風', function (g, P, t) { var on = (t % 3.4) > 1.8; if (on) Kabe.fan(g, P, 4, 45, 'R', 64, t * 2); Kabe.gustVent(g, P, 4, 45, 1, !on && (t % 3.4) > 1.1 && t % 0.24 < 0.12); });
 fig('雷の柱', function (g, P, t) { var ph = t % 2.8; if (ph > 2.35) Kabe.lightningBolt(g, 35, 18, 72, 1, Math.floor(t * 18)); Kabe.lightningRod(g, P, 35, 10, 1, ph > 1.65); Kabe.lightningRod(g, P, 35, 80, -1, ph > 1.65); });
-fig('風車', function (g, P, t) { Kabe.windmill(g, P, 35, 45, 26, t * 0.9); });
+fig('風車', function (g, P, t) { Kabe.windmill(g, P, 35, 45, 22, t * 0.6, 3); });
 </script>

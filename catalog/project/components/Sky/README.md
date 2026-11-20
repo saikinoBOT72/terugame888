@@ -5,4 +5,4 @@
 - 曲がるトゲブロック（`Kabe.spikeBlock`・`Kabe.railPath`）：四面トゲの箱が、L字・コの字の道すじを往復する。縦長と横長。
 - 突風の口（`Kabe.gustVent`）：壁の通気口。吹く前にふちが白く点滅し、吹いている間は風の筋（扇風機と同じ `Kabe.fanStreaks`）。
 - 雷の柱（`Kabe.lightningRod`・`Kabe.lightningBolt`）：上下の灰色の避雷針の間に白い光が走る。予告で針の先が光る。
-- 風車（`Kabe.windmill`）：短い羽4枚。回る棒の仲間。
+- 風車（`Kabe.windmill`）：短い羽3枚。回る棒の仲間。

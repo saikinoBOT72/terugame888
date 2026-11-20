@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01g">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01h">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.01g"></script>
-<script src="data/pieces.js?v=2026.12.01g"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.01h"></script>
+<script src="data/pieces.js?v=2026.12.01h"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.01g';
+const VERSION = '2026.12.01h';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -446,7 +446,7 @@ const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeri
 // 上空の仕掛け：ただよう機雷（ゆれ幅・周期・当たり）、曲がるトゲブロック（速さ・角と端で止まる秒・縦長と横長の大きさ）、
 // 突風（周期・吹く秒・予告の秒・押す強さ・帯の半分の高さ）、雷の柱（周期・予告・雷の秒・当たりの半分の幅）、風車（羽の長さ・回る速さ）
 const SKY = { mineAmp: 22, minePeriod: 2.8, mineHit: 10, bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5, bendTall: [18, 36], bendWide: [36, 18],
-  gustPeriod: 3.4, gustOn: 1.6, gustWarn: 0.7, gustAcc: 1500, gustMax: 330, gustBand: 26, boltPeriod: 2.8, boltWarn: 0.7, boltStrike: 0.45, boltHit: 6, millLen: 28, millSpeed: 0.9 };
+  gustPeriod: 3.4, gustOn: 1.6, gustWarn: 0.7, gustAcc: 1500, gustMax: 330, gustBand: 26, boltPeriod: 2.8, boltWarn: 0.7, boltStrike: 0.45, boltHit: 6, millLen: 22, millSpeed: 0.6, millBlades: 3 };   // 風車：羽3枚（間をくぐれる）
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -1368,7 +1368,9 @@ function obstacleHit() {
       return hurt(Math.sign(P.x - o.x) || 1, 'bolt');
     } else if (o.type === 'mill' && Math.abs(o.y - P.y) < 50) {
       const a0 = Kabe.spinAngle(G.time, o.speed);
-      for (const a of [a0, a0 + Math.PI / 2]) { const dx = Math.cos(a), dy = Math.sin(a), u = clamp((P.x - o.x) * dx + (P.y - o.y) * dy, -o.len, o.len); if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HIT + 3) return hurt(Math.sign(P.x - o.x) || 1, 'mill'); }
+      for (let k = 0; k < SKY.millBlades; k++) {   // 羽は真ん中から外へ（羽と羽の間はくぐれる）
+        const a = a0 + k * Math.PI * 2 / SKY.millBlades, dx = Math.cos(a), dy = Math.sin(a), u = clamp((P.x - o.x) * dx + (P.y - o.y) * dy, 4, o.len);
+        if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HIT + 1.5) return hurt(Math.sign(P.x - o.x) || 1, 'mill'); }
     }
   }
 }
@@ -1746,7 +1748,7 @@ function skyDraw(sp, seg, vis) {
     }
     if (!vis(o.yMid)) continue;
     if (o.type === 'mine') { const my = minePos(o, t); sp('mine', o.x, my, [-15, -15, 15, 15], () => Kabe.mine(ctx, PAL, o.x, my)); }
-    else if (o.type === 'mill') sp(`mill|${o.len}`, o.x, o.y, [-o.len - 6, -o.len - 6, o.len + 6, o.len + 6], () => Kabe.windmill(ctx, PAL, o.x, o.y, o.len, 0), 1, true, Kabe.spinAngle(t, o.speed));
+    else if (o.type === 'mill') sp(`mill|${o.len}`, o.x, o.y, [-o.len - 6, -o.len - 6, o.len + 6, o.len + 6], () => Kabe.windmill(ctx, PAL, o.x, o.y, o.len, 0, SKY.millBlades), 1, true, Kabe.spinAngle(t, o.speed));
     else if (o.type === 'bolt') {
       const st = boltState(o, t), lit = st === 'warn' && t % 0.2 < 0.1;
       if (st === 'warn') seg(o.x, o.y0 + 10, o.x, o.y1 - 10, 2.2, '#ffffff', lit ? 0.35 : 0.12);   // 予告：うすい光の柱が点滅

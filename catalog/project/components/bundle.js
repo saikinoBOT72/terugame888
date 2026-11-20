@@ -606,10 +606,11 @@ window.Kabe = (function () {
     pts.forEach(function (p, i) { if (i) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke();
     pts.forEach(function (p, i) { solid(g, function () { ell(g, p[0], p[1], i === 0 || i === pts.length - 1 ? 2.6 : 2, i === 0 || i === pts.length - 1 ? 2.6 : 2); }, P.metalShade, mix(P.metalShade, '#000000', 0.3), null, 0.5); });
   }
-  // 風車：短い羽が4枚。a は回った角度
-  function windmill(g, P, x, y, len, a) {
-    for (var i = 0; i < 4; i++) {
-      var aa = a + i * Math.PI / 2, c = Math.cos(aa), sn = Math.sin(aa), T = function (u, v) { return [x + u * c - v * sn, y + u * sn + v * c]; };
+  // 風車：短い羽が3枚（羽の間をくぐれる）。a は回った角度
+  function windmill(g, P, x, y, len, a, n) {   // n：羽の枚数（本編は3）
+    n = n || 3;
+    for (var i = 0; i < n; i++) {
+      var aa = a + i * Math.PI * 2 / n, c = Math.cos(aa), sn = Math.sin(aa), T = function (u, v) { return [x + u * c - v * sn, y + u * sn + v * c]; };
       var pts = [[4, -2], [len - 5, -4.2], [len, 0], [len - 5, 4.2], [4, 2]].map(function (p) { return T(p[0], p[1]); });
       blade(g, P, function () { g.beginPath(); pts.forEach(function (p, j) { if (j) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.closePath(); });
     }
