@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01f">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01g">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.01f"></script>
-<script src="data/pieces.js?v=2026.12.01f"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.01g"></script>
+<script src="data/pieces.js?v=2026.12.01g"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.01f';
+const VERSION = '2026.12.01g';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -1717,7 +1717,8 @@ function drawPredict() {
   if (!pts) return;
   pts.forEach(([x, y, end], i) => {
     const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4));
-    ctx.fillStyle = rgba(PAL.glow, end ? 0.9 : a); ctx.beginPath(); ctx.arc(x, y, end ? 3 : 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = rgba(PAL.ink, (end ? 0.9 : a) * 0.6); ctx.beginPath(); ctx.arc(x, y, end ? 4.2 : 2.9, 0, Math.PI * 2); ctx.fill();   // 暗い縁（明るい空でも見える）
+    ctx.fillStyle = rgba(PAL.glow, end ? 0.95 : Math.min(1, a + 0.15)); ctx.beginPath(); ctx.arc(x, y, end ? 3 : 1.9, 0, Math.PI * 2); ctx.fill();
   });
 }
 
@@ -2289,7 +2290,8 @@ function predictGL() {
   if (canAct(P)) pts = predictPath(false);
   else if (v.air && (P.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) { pts = predictPath(true); faint = true; }
   if (!pts) return;
-  pts.forEach(([x, y, end], i) => { const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4)); wdisc(x, y, end ? 3 : 1.6, PAL.glow, end ? 0.9 : a); });
+  pts.forEach(([x, y, end], i) => { const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4));
+    wdisc(x, y, end ? 4.2 : 2.9, PAL.ink, (end ? 0.9 : a) * 0.6); wdisc(x, y, end ? 3 : 1.9, PAL.glow, end ? 0.95 : Math.min(1, a + 0.15)); });   // 暗い縁＋光の点（明るい空でも見える）
 }
 function playerGL() {
   const p = P, t = G.time;
@@ -3122,7 +3124,7 @@ function ambTick(dt) {
   set('hum', N.hum.g.gain, und && st === 2 ? 0.03 * (0.7 + 0.3 * Math.sin(t * 0.6)) : 0, 1);
   set('wind', N.wind.g.gain, und ? (st === 3 ? 0.1 : 0.03) : 0.05 + WX.wind * 0.17);
   set('windF', N.wind.f.frequency, Math.round(360 + 420 * (0.5 + 0.5 * Math.sin(t * 0.37)) + WX.wind * 320), 0.8);
-  set('rain', N.rain.g.gain, WX.rain * 0.24);
+  set('rain', N.rain.g.gain, WX.rain * 0.04 + (G && G.rainIn || 0) * 0.08);   // 雨の音：見えているだけなら小さく、中にいるときも控えめに
   set('lava', N.lava.g.gain, lava * lava * 0.32, 0.4);
   if (!live) return;
   // ときどき鳴る音（次に鳴らす時刻を種類ごとに持つ）
