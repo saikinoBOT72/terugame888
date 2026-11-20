@@ -824,6 +824,26 @@ window.Kabe = (function () {
   var SCARF_DEF = { wrapY: 0.8, wrapW: 21, wrapH: 3.6, sag: 2.2, wrapStripes: 5, stripeW: 0.9, knotX: -9.6, knotY: 0.9, knotR: 2.5,
     tailX: -8.5, tailY: 1.4, len: 0.62, tailW: 3.4, taper: 0.2, back: 0.75, notch: 1.6, stripes: 2, front: 0 };
   var SCARF = {}; for (var sk in SCARF_DEF) SCARF[sk] = SCARF_DEF[sk];
+  // マフラーの色（着せ替え）。red は tokens.css の scarf のまま。ハートの赤は変えない
+  var SCARF_COLORS = [
+    { id: 'red', name: 'あか' },
+    { id: 'ao', name: 'あお', scarf: '#3f63c8', shade: '#2c4590', stripe: '#dfe8ff' },
+    { id: 'midori', name: 'みどり', scarf: '#3a9d5d', shade: '#28703f', stripe: '#e2f7e6' },
+    { id: 'karashi', name: 'からし', scarf: '#e3a52c', shade: '#ad7716', stripe: '#fff3d6' },
+    { id: 'sakura', name: 'さくら', scarf: '#ef88ae', shade: '#c25f88', stripe: '#fff0f5' },
+    { id: 'murasaki', name: 'むらさき', scarf: '#8a5cc9', shade: '#623d97', stripe: '#efe6ff' },
+    { id: 'sumi', name: 'すみ', scarf: '#3b3b4a', shade: '#25252f', stripe: '#f0ece4' },
+    { id: 'yuki', name: 'ゆき', scarf: '#f6f2ea', shade: '#cfc7ba', stripe: '#e5463f' }
+  ];
+  SCARF_DEF.color = 'red'; SCARF.color = 'red';
+  var scarfPalCache = {};
+  function scarfPal(P) {   // マフラーの色だけ差し替えた P（red ならそのまま）
+    var c = null; for (var i = 0; i < SCARF_COLORS.length; i++) if (SCARF_COLORS[i].id === SCARF.color) c = SCARF_COLORS[i];
+    if (!c || !c.scarf) return P;
+    var key = (P.id || '') + '|' + c.id, Q = scarfPalCache[key];
+    if (!Q || Q.base !== P) { Q = Object.create(P); Q.scarf = c.scarf; Q.scarfShade = c.shade; Q.scarfStripe = c.stripe; Q.base = P; scarfPalCache[key] = Q; }
+    return Q;
+  }
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
   // ポーズの点の根元は [-4, -1]。SCARF.tailX/Y で根元ごとずらす
   function scarfTail(g, P, pts, t, w0) {
@@ -902,7 +922,7 @@ window.Kabe = (function () {
   }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
   function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
-    var blink = blinkNow != null ? blinkNow && /^(normal|brave|calm|worried|surprised)$/.test(expr) : expr === 'normal' && (t % 3.4) < 0.12;
+    var blink = blinkNow != null ? blinkNow && /^(normal|brave|calm|surprised)$/.test(expr) : expr === 'normal' && (t % 3.4) < 0.12;
     g.strokeStyle = P.playerLine; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 1.25;
     eyes.forEach(function (e, i) {
       var x = e[0] + look[0] * 0.6, y = e[1] + look[1] * 0.6;
@@ -915,7 +935,7 @@ window.Kabe = (function () {
       else if (expr === 'squint') { g.moveTo(x - 1.4, y); g.lineTo(x + 1.4, y); }
       else if (expr === 'calm') { g.moveTo(x - 1.4, y - 0.2); g.quadraticCurveTo(x, y - 1.2, x + 1.4, y - 0.2); }
       else if (expr === 'dizzy') { g.lineWidth = 0.9; for (var sa = 0; sa <= 1.001; sa += 0.1) { var ang = sa * Math.PI * 2.6 + t * 8 * (i ? -1 : 1), rad = 0.2 + sa * 1.55; if (sa === 0) g.moveTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); else g.lineTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); } }
-      else if (expr === 'worried') { g.moveTo(x, y - 0.9); g.lineTo(x, y + 1.5); var d = i ? 1 : -1; g.moveTo(x - 1.5 * d, y - 2.6); g.lineTo(x + 0.9 * d, y - 3.4); }
+      else if (expr === 'worried') { var d = i ? 1 : -1; g.moveTo(x - 1.5 * d, y - 0.6); g.quadraticCurveTo(x + 0.1 * d, y - 1.1, x + 1.5 * d, y + 0.9); }   // 困り顔：眉なし。目をつぶり、外側が少し下がる（悲しそう）
       else if (expr === 'brave') { g.moveTo(x - 0.4, y - 1.8); g.lineTo(x + 0.4, y + 1.6); }
       else { g.moveTo(x, y - 1.7); g.lineTo(x, y + 1.7); }
       g.stroke();
@@ -944,7 +964,21 @@ window.Kabe = (function () {
     solid(g, function () { g.beginPath(); g.moveTo(x0 + nx, y0 + ny); g.lineTo(x1 + nx, y1 + ny); g.arc(x1, y1, w, a, a + Math.PI); g.lineTo(x0 - nx, y0 - ny); g.arc(x0, y0, w, a + Math.PI, a + Math.PI * 2); g.closePath(); }, P.playerBody, P.playerShade, P.playerLine, 0.5, 1.0);
   }
   function sheetGhost(o) {
+    // 体の線の点（頭の丸み＋横）。手が体から離れすぎないように、ここまでに寄せる
+    var edge = [], sh0 = o.top + o.shoulder;
+    for (var ei = 0; ei <= 40; ei++) { var et = ei / 40, eu = 1 - et;
+      var ex = 3 * eu * eu * et * o.half * 0.8 + 3 * eu * et * et * o.half + et * et * et * o.half, ey = eu * eu * eu * o.top + 3 * eu * eu * et * o.top + 3 * eu * et * et * (sh0 - 5) + et * et * et * sh0;
+      edge.push([ex, ey], [-ex, ey]); }
+    for (var yy = sh0; yy <= o.hemY; yy += 0.5) { var sx0 = o.half + (yy - sh0) / (o.hemY - sh0) * o.flare; edge.push([sx0, yy], [-sx0, yy]); }
+    var reach = function (x, y) {   // 体の外にある手は、体の線から o.handGap までに寄せる
+      var best = null, bd = 1e9;
+      for (var i = 0; i < edge.length; i++) { var d = Math.hypot(edge[i][0] - x, edge[i][1] - y); if (d < bd) { bd = d; best = edge[i]; } }
+      var out = Math.abs(x) > Math.abs(best[0]) - 0.01 || y < o.top;
+      if (!out || bd <= o.handGap) return [x, y];
+      return [best[0] + (x - best[0]) / bd * o.handGap, best[1] + (y - best[1]) / bd * o.handGap];
+    };
     return function (g, P, Q, t) {
+      Q = Object.assign({}, Q, { hands: Q.hands.map(function (h) { return reach(h[0], h[1]); }) });
       var sw = (Q.hem || 0) * o.swing, wv = Math.sin(t * 5) * o.wobble;
       if (o.hood) {   // 頭の先：丸い先が後ろへ垂れて揺れる
         var sway = Math.sin(t * 2.6) * 1.2 + (Q.hem || 0) * 1.4;
@@ -988,11 +1022,12 @@ window.Kabe = (function () {
   }
   var GHOSTS = {
     sheet: { letter: 'B1', name: 'ふんわり', note: 'プレイヤーに決定。すそが少し広がり、大きな丸い山が3つ。手は小さな丸。',
-      draw: sheetGhost({ top: -12.5, half: 10, shoulder: 11.5, flare: 1.6, hemY: 10, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1,
+      draw: sheetGhost({ top: -12.5, half: 10, shoulder: 11.5, flare: 1.6, hemY: 10, waves: 3, amp: 2.4, swing: 1.6, wobble: 0.9, hand: 2.1, handGap: 2.3,
         eyes: [[2.2, -4.2], [6.6, -4.4]], cheeks: [[0.2, -1], [8.8, -1.3]] }) }
   };
   function ghost(g, P, variant, poseId, x, y, t, face, scale) {
     var Q = POSES[poseId], G = GHOSTS[variant]; face = face || 1; scale = scale || 1;
+    P = scarfPal(P);
     g.save(); g.translate(x, y); g.scale(face * scale, scale);
     g.rotate(Q.tilt + (poseId === 'air' ? Math.sin(t * 3) * 0.15 : 0)); g.scale(1 - Q.sq * 0.6, 1 + Q.sq);
     if (!SCARF.front) scarfTail(g, P, Q.scarf, t);
@@ -1317,7 +1352,7 @@ window.Kabe = (function () {
     slide: slide, cycleState: cycleState, popState: popState, popSpike: popSpike, ironBox: ironBox, track: track,
     spinAngle: spinAngle, spinner: spinner, pendAngle: pendAngle, pendulum: pendulum, cannon: cannon, cannonBall: cannonBall, stakeState: stakeState, stake: stake,
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
-    rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
+    rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet

@@ -1,6 +1,6 @@
-# 壁蹴りタワー — 作業メモ（Claude 用）
+# おばけじゃんぴんぐ（旧：壁蹴りタワー） — 作業メモ（Claude 用）
 
-壁を蹴って縦穴を登るゲーム。ユーザーとは日本語で、短く、くだけた言葉で話す。
+壁を蹴って縦穴を登るゲーム「おばけじゃんぴんぐ」。ユーザーとは日本語で、短く、くだけた言葉で話す。
 決まったことは `IDEAS.md`（動き・ローグライク・見た目）、`STAGES.md`（パーツとチェック）、`catalog/project/README.md`（絵の決まり）。ここに同じことを書き写さない。
 
 ## ファイル
@@ -8,6 +8,7 @@
 |---|---|
 | `index.html` | 本編。`bundle.js`（`Kabe`）・`tokens.css`・`data/pieces.js` を読み込む |
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編と `pools.html` が共通で読む |
+| （タイトル） | `#ovTitle`：プレイ・着せ替え（`WARDROBE` に表を足すと増える。着ているものは store `kabe_look`）・設定（`#ovSettings`）。右上「開発」に chara・pools・simulator・?perf |
 | `pools.html` | プールとパーツの一覧（動く見本） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `chara.html` | キャラの動き・表情・マフラーを再生して試すページ（本編のポーズ切り替えとマフラーのひもを写したもの。マフラーの形は `Kabe.SCARF`。本編の `updatePose`・`scarfStep` を変えたらこちらも合わせる） |
