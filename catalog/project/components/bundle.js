@@ -640,7 +640,7 @@ window.Kabe = (function () {
   // ぽよんブロック（1マス）：乗る・張り付くと、ぷるぷるしてから横へはじく。k：-1.5〜1（正＝ぷるぷる、負＝へこむ）。痛くないのでトゲなし、縁取りあり
   function jellyBlock(g, P, x, y, k) {
     k = k || 0; var cx = x + 9, cy = y + 9, sx = 1 + (k < 0 ? -k * 0.12 : k * 0.06), sy = 1 + (k < 0 ? k * 0.14 : -k * 0.05), wob = k > 0 ? k * 1.2 : 0;
-    var base = '#a98cf0', shade = '#7d63c9', light = '#d8cbff';
+    var base = '#cdbdf6', shade = '#a995e2', light = '#f1ebff';   // 淡い紫
     g.save(); g.translate(cx + wob, cy); g.scale(sx, sy);
     solid(g, function () { rr(g, -9, -9, 18, 18, 6); }, base, shade, P.ink, 1.4, 1.1);
     g.fillStyle = alpha(light, 0.8); ell(g, -3.5, -4.5, 3.6, 2); g.fill();

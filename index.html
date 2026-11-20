@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.02a">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.02b">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -134,6 +134,7 @@
   .setRow > span { text-align: left; }
   .setRow small { display: block; font-weight: 500; color: var(--dim); font-size: calc(var(--u) * 10.5px); }
   .setRow .sub { min-width: calc(var(--u) * 92px); }
+  .setRow .vol { width: calc(var(--u) * 120px); accent-color: var(--teal); }
   /* 着せ替え */
   .wStage { width: calc(var(--u) * 220px); height: calc(var(--u) * 120px); border-radius: calc(var(--u) * 14px); background: radial-gradient(ellipse 60% 70% at 50% 60%, rgba(255,255,255,.08), transparent 70%), rgba(0,0,0,.25); }
   .wName { font-weight: 800; font-size: calc(var(--u) * 15px); }
@@ -307,6 +308,8 @@
         <h2>設定</h2>
         <div class="setList">
           <div class="setRow"><span>音</span><button class="sub" id="btnMute" type="button">オン</button></div>
+          <div class="setRow"><span>環境音<small>風・雨・溶岩など</small></span><input class="vol" id="volAmb" type="range" min="0" max="100" step="5" aria-label="環境音の音量"></div>
+          <div class="setRow"><span>効果音<small>蹴る・結晶・ダメージなど</small></span><input class="vol" id="volSfx" type="range" min="0" max="100" step="5" aria-label="効果音の音量"></div>
           <div class="setRow"><span>演出<small>ひかえめ：揺れ・光・残像を止める</small></span><button class="sub" id="btnCalm" type="button">ふつう</button></div>
           <div class="setRow"><span>画質<small>かるい：重い端末向け</small></span><button class="sub" id="btnFx" type="button">きれい</button></div>
           <div class="setRow"><span>遊び方</span><button class="sub" id="btnHow" type="button">見る</button></div>
@@ -403,12 +406,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.02a"></script>
-<script src="data/pieces.js?v=2026.12.02a"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.02b"></script>
+<script src="data/pieces.js?v=2026.12.02b"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.02a';
+const VERSION = '2026.12.02b';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -605,9 +608,9 @@ function addObstacles(w, r0, n) {
       if (ch === 'W') w.obs.push({ type: 'mill', x, y, len: SKY.millLen, speed: (c < COLS / 2 ? 1 : -1) * SKY.millSpeed, yMid: y });
       if (ch === 'E') {   // 雷の装置（1マスの硬いブロック）：下へ | が続いて E があれば縦の雷、右へ - が続いて E があれば横の雷
         if (raw(w, c, r - 1) === '|') { let e = r - 1; while (raw(w, c, e - 1) === '|') e--;
-          if (raw(w, c, e - 1) === 'E') { const a = -r * CELL, b = -e * CELL; w.obs.push({ type: 'bolt', axis: 'y', x, a, b, ends: [[x, a - CELL / 2, 'down'], [x, b + CELL / 2, 'up']], offset: Kabe.hash(c, r, 21) * SKY.boltPeriod, yMid: (a + b) / 2 }); } }
+          if (raw(w, c, e - 1) === 'E') { const a = -r * CELL, b = -e * CELL; w.obs.push({ type: 'bolt', bax: 'y', x, a, b, ends: [[x, a - CELL / 2, 'down'], [x, b + CELL / 2, 'up']], offset: Kabe.hash(c, r, 21) * SKY.boltPeriod, yMid: (a + b) / 2 }); } }
         if (raw(w, c + 1, r) === '-') { let e = c + 1; while (raw(w, e + 1, r) === '-') e++;
-          if (raw(w, e + 1, r) === 'E') { const a = (c + 1) * CELL, b = (e + 1) * CELL; w.obs.push({ type: 'bolt', axis: 'x', y, a, b, ends: [[a - CELL / 2, y, 'right'], [b + CELL / 2, y, 'left']], offset: Kabe.hash(c, r, 22) * SKY.boltPeriod, yMid: y }); } }
+          if (raw(w, e + 1, r) === 'E') { const a = (c + 1) * CELL, b = (e + 1) * CELL; w.obs.push({ type: 'bolt', bax: 'x', y, a, b, ends: [[a - CELL / 2, y, 'right'], [b + CELL / 2, y, 'left']], offset: Kabe.hash(c, r, 22) * SKY.boltPeriod, yMid: y }); } }
       }
       if (ch === '}' || ch === '{') {   // 突風の口：} は左の壁から右へ、{ は右の壁から左へ
         const d = ch === '}' ? 1 : -1, fx = d > 0 ? c * CELL : (c + 1) * CELL; let k = c;
@@ -1383,8 +1386,8 @@ function obstacleHit() {
     } else if (o.type === 'bend' && P.y > o.yMin - 60 && P.y < o.yMax + 60) {
       const [bx, by] = railPos(o, G.time), T = 4;
       if (circleRect(P.x, P.y, HIT, bx - o.w / 2 - T, by - o.h / 2 - T, bx + o.w / 2 + T, by + o.h / 2 + T)) return hurt(Math.sign(P.x - bx) || 1, 'bend');
-    } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.axis === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HIT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HIT)) {
-      return hurt(o.axis === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
+    } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.bax === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HIT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HIT)) {
+      return hurt(o.bax === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
     } else if (o.type === 'mill' && Math.abs(o.y - P.y) < 50) {
       const a0 = Kabe.spinAngle(G.time, o.speed);
       for (let k = 0; k < SKY.millBlades; k++) {   // 羽は真ん中から外へ（羽と羽の間はくぐれる）
@@ -1776,7 +1779,7 @@ function skyDraw(sp, seg, vis) {
     if (o.type === 'mine') { const my = minePos(o, t); sp('mine', o.x, my, [-15, -15, 15, 15], () => Kabe.mine(ctx, PAL, o.x, my)); }
     else if (o.type === 'mill') sp(`mill|${o.len}`, o.x, o.y, [-o.len - 6, -o.len - 6, o.len + 6, o.len + 6], () => Kabe.windmill(ctx, PAL, o.x, o.y, o.len, 0, SKY.millBlades), 1, true, Kabe.spinAngle(t, o.speed));
     else if (o.type === 'bolt') {
-      const st = boltState(o, t), lit = st === 'warn' && t % 0.2 < 0.1, V = o.axis === 'y';
+      const st = boltState(o, t), lit = st === 'warn' && t % 0.2 < 0.1, V = o.bax === 'y';   // bax：雷の向き（箱の axis と別の名前にする）
       const P0 = V ? [o.x, o.a] : [o.a, o.y], P1 = V ? [o.x, o.b] : [o.b, o.y];
       if (st === 'warn') seg(P0[0], P0[1], P1[0], P1[1], 2.2, '#ffffff', lit ? 0.35 : 0.12);   // 予告：うすい光の帯が点滅
       if (st === 'strike') {   // 雷：形を少しずつ変えながら走る（線で描く）
@@ -3046,6 +3049,9 @@ function drawCheck() {
    効果音（やわらか）
    ===================================================================== */
 let actx = null, noiseBuf = null, muted = store.get('kabe_muted', false), calm = store.get('kabe_calm', false);
+const VOL = Object.assign({ amb: 0.8, sfx: 0.8 }, store.get('kabe_vol', {}));   // 音量（0〜1）：amb 環境音（風・雨・溶岩など）、sfx 効果音
+let sfxBus = null;
+function sfxOut(a) { if (!sfxBus) { sfxBus = a.createGain(); sfxBus.connect(a.destination); } sfxBus.gain.value = VOL.sfx; return sfxBus; }
 function audio() {
   if (muted) return null;
   if (!actx) {
@@ -3064,7 +3070,7 @@ function tone(f, dur, type, vol, f2 = 0, delay = 0, attack = 0.004) {
   const t = a.currentTime + delay, o = a.createOscillator(), g = a.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
   g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  o.connect(g).connect(a.destination); o.start(t); o.stop(t + dur + 0.05);
+  o.connect(g).connect(sfxOut(a)); o.start(t); o.stop(t + dur + 0.05);
 }
 function noise(dur, vol, hp, lp = 12000) {
   const a = audio(); if (!a) return;
@@ -3072,7 +3078,7 @@ function noise(dur, vol, hp, lp = 12000) {
   const t = a.currentTime, s = a.createBufferSource(), g = a.createGain(), f1 = a.createBiquadFilter(), f2 = a.createBiquadFilter();
   s.buffer = noiseBuf; f1.type = 'highpass'; f1.frequency.value = hp; f2.type = 'lowpass'; f2.frequency.value = lp;
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  s.connect(f1).connect(f2).connect(g).connect(a.destination); s.start(t); s.stop(t + dur);
+  s.connect(f1).connect(f2).connect(g).connect(sfxOut(a)); s.start(t); s.stop(t + dur);
 }
 const sfx = {
   kick() { tone(300, 0.14, 'triangle', 0.12, 520); noise(0.04, 0.03, 3000, 6000); },
@@ -3144,7 +3150,7 @@ function ambTick(dt) {
   const N = AMB.nodes, now = actx.currentTime, t = G ? G.time : 0;
   const set = (key, p, v, tc = 0.6) => { if (Math.abs((AMB.last[key] ?? -1) - v) < 0.002) return; AMB.last[key] = v; p.setTargetAtTime(v, now, tc); };
   const live = !muted && (state === 'play' || state === 'title' || state === 'gacha');
-  set('master', N.master.gain, muted ? 0 : state === 'play' ? 0.9 : live ? 0.5 : 0.12, 0.3);
+  set('master', N.master.gain, (muted ? 0 : state === 'play' ? 0.9 : live ? 0.5 : 0.12) * VOL.amb * 1.25, 0.3);
   if (!G || !world) return;
   const und = PAL.id !== 'surface', st = Math.round(PAL.stage || 0) % 4, dark = G.dark || 0;
   const lava = state === 'play' && G.lavaDelay <= 0 ? clampN(1 - (G.lavaY - P.y) / 520, 0, 1) : 0;
@@ -3700,6 +3706,12 @@ fxLabel();
 const muteLabel = () => { $('btnMute').textContent = muted ? 'オフ' : 'オン'; };
 $('btnMute').onclick = () => { muted = !muted; store.set('kabe_muted', muted); muteLabel(); if (!muted) sfx.tick(); };
 muteLabel();
+// 音量のつまみ（環境音・効果音）。動かすと効果音を1つ鳴らして聞かせる
+for (const [id, key] of [['volAmb', 'amb'], ['volSfx', 'sfx']]) {
+  const el = $(id); el.value = Math.round(VOL[key] * 100);
+  el.oninput = () => { VOL[key] = +el.value / 100; store.set('kabe_vol', VOL); if (sfxBus) sfxBus.gain.value = VOL.sfx; };
+  el.onchange = () => { if (key === 'sfx') sfx.tick(); };
+}
 $('btnHow').onclick = () => showOnly('how');
 $('btnHowBack').onclick = () => showOnly('settings');
 // タイトルのメニュー：設定・着せ替え・開発用の一覧（どこかを押したら閉じる）
