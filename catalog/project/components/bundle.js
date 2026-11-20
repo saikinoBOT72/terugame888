@@ -826,14 +826,14 @@ window.Kabe = (function () {
   var SCARF = {}; for (var sk in SCARF_DEF) SCARF[sk] = SCARF_DEF[sk];
   // マフラーの色（着せ替え）。red は tokens.css の scarf のまま。ハートの赤は変えない
   var SCARF_COLORS = [
-    { id: 'red', name: 'あか' },
-    { id: 'ao', name: 'あお', scarf: '#3f63c8', shade: '#2c4590', stripe: '#dfe8ff' },
-    { id: 'midori', name: 'みどり', scarf: '#3a9d5d', shade: '#28703f', stripe: '#e2f7e6' },
-    { id: 'karashi', name: 'からし', scarf: '#e3a52c', shade: '#ad7716', stripe: '#fff3d6' },
-    { id: 'sakura', name: 'さくら', scarf: '#ef88ae', shade: '#c25f88', stripe: '#fff0f5' },
-    { id: 'murasaki', name: 'むらさき', scarf: '#8a5cc9', shade: '#623d97', stripe: '#efe6ff' },
-    { id: 'sumi', name: 'すみ', scarf: '#3b3b4a', shade: '#25252f', stripe: '#f0ece4' },
-    { id: 'yuki', name: 'ゆき', scarf: '#f6f2ea', shade: '#cfc7ba', stripe: '#e5463f' }
+    { id: 'red', name: 'あか', star: 1 },
+    { id: 'ao', name: 'あお', scarf: '#3f63c8', shade: '#2c4590', stripe: '#dfe8ff' , star: 1 },
+    { id: 'midori', name: 'みどり', scarf: '#3a9d5d', shade: '#28703f', stripe: '#e2f7e6' , star: 1 },
+    { id: 'karashi', name: 'からし', scarf: '#e3a52c', shade: '#ad7716', stripe: '#fff3d6' , star: 1 },
+    { id: 'sakura', name: 'さくら', scarf: '#ef88ae', shade: '#c25f88', stripe: '#fff0f5' , star: 2 },
+    { id: 'murasaki', name: 'むらさき', scarf: '#8a5cc9', shade: '#623d97', stripe: '#efe6ff' , star: 2 },
+    { id: 'sumi', name: 'すみ', scarf: '#3b3b4a', shade: '#25252f', stripe: '#f0ece4' , star: 2 },
+    { id: 'yuki', name: 'ゆき', scarf: '#f6f2ea', shade: '#cfc7ba', stripe: '#e5463f' , star: 3 }
   ];
   SCARF_DEF.color = 'red'; SCARF.color = 'red';
   var scarfPalCache = {};
@@ -1277,6 +1277,67 @@ window.Kabe = (function () {
   }
   // 出た水晶のまわりの光（レア度の色。光なので縁取らない）。k は 0→1 で広がる
   // 細くとがった光の筋が長短交互にゆっくり回り、まわりに光の輪と粒。重ねがけ（lighter）で明るくする
+  /* ---------- ろうそく（着せ替えガチャの通貨）：白いろうに、たれ・芯・あたたかい火 ---------- */
+  var CANDLE = { wax: '#fff3df', waxShade: '#e4cba6', flame: '#ffcb52', flameOut: '#ff9d3a' };
+  function candle(g, P, x, y, s, t, lit) {
+    s = s || 1; g.save(); g.translate(x, y); g.scale(s, s); g.lineJoin = 'round'; g.lineCap = 'round';
+    if (lit !== false) {   // 火：外はだいだい、芯は白。ゆらゆら
+      var fk = Math.sin(t * 9) * 0.6 + Math.sin(t * 23) * 0.3, fh = -15 - Math.sin(t * 7) * 1.2;
+      g.globalCompositeOperation = 'lighter'; var gg = g.createRadialGradient(0, -11, 0, 0, -11, 9); gg.addColorStop(0, alpha(CANDLE.flame, 0.5)); gg.addColorStop(1, alpha(CANDLE.flame, 0));
+      g.fillStyle = gg; g.fillRect(-10, -21, 20, 20); g.globalCompositeOperation = 'source-over';
+      g.fillStyle = CANDLE.flameOut; g.beginPath(); g.moveTo(-2.6, -7.5); g.quadraticCurveTo(-2.8 + fk * 0.4, -12, fk, fh); g.quadraticCurveTo(2.9 + fk * 0.4, -12, 2.6, -7.5); g.quadraticCurveTo(0, -5.6, -2.6, -7.5); g.fill();
+      g.fillStyle = CANDLE.flame; g.beginPath(); g.moveTo(-1.6, -7.6); g.quadraticCurveTo(-1.6 + fk * 0.3, -10.5, fk * 0.7, fh + 3); g.quadraticCurveTo(1.7 + fk * 0.3, -10.5, 1.6, -7.6); g.quadraticCurveTo(0, -6.6, -1.6, -7.6); g.fill();
+      g.fillStyle = 'rgba(255,255,255,.9)'; ell(g, fk * 0.25, -8.6, 0.8, 1.4); g.fill();
+    }
+    g.strokeStyle = P.ink; g.lineWidth = 0.9; g.beginPath(); g.moveTo(0, -4.6); g.lineTo(0, -7); g.stroke();   // 芯
+    var body = function () { g.beginPath(); g.moveTo(-4, -4); g.quadraticCurveTo(0, -5.4, 4, -4); g.lineTo(4, 8); g.quadraticCurveTo(0, 9.2, -4, 8); g.closePath(); };
+    solid(g, body, CANDLE.wax, CANDLE.waxShade, P.ink, 1.3, 0.9);
+    solid(g, function () { g.beginPath(); g.moveTo(-4, -4); g.quadraticCurveTo(0, -5.4, 4, -4); g.lineTo(4, -2.4); g.quadraticCurveTo(3.2, 1.6, 2.4, -1.6); g.quadraticCurveTo(0.6, -2.6, -0.8, -1.8); g.quadraticCurveTo(-1.6, 2.4, -2.6, -1.4); g.quadraticCurveTo(-3.4, -2, -4, -2.2); g.closePath(); }, '#ffffff', CANDLE.wax, null, 0.6);   // たれ
+    g.fillStyle = 'rgba(255,255,255,.7)'; g.fillRect(-2.6, 0, 1, 6);
+    g.restore();
+  }
+  /* ---------- 着せ替えガチャの石灯籠：ろうそくを入れると窓の火が光り、色がレア度を予告する（spin：0〜1 の盛り上がり、liquid：火の色） ---------- */
+  function gachaLantern(g, P, x, y, t, spin, liquid) {
+    spin = spin || 0; var liq = liquid || CANDLE.flame, sh = spin > 0.3 ? Math.sin(t * 30) * spin * 1.1 : 0;
+    var stone = P.metal, stoneS = P.metalShade, ink = P.ink;
+    g.save(); g.translate(x + sh, y); g.lineJoin = 'round'; g.lineCap = 'round';
+    g.globalCompositeOperation = 'lighter'; glowAt(g, P, 0, -8, 70, 0.25 + spin * 0.35, liq); g.globalCompositeOperation = 'source-over';
+    solid(g, function () { rr(g, -24, 34, 48, 8, 3); }, stone, stoneS, ink, 0.9, 1.1);   // 台
+    solid(g, function () { g.beginPath(); g.moveTo(-8, 34); g.lineTo(-6, 16); g.lineTo(6, 16); g.lineTo(8, 34); g.closePath(); }, stone, stoneS, ink, 0.9, 1.1);   // 柱
+    solid(g, function () { rr(g, -20, 10, 40, 7, 2.5); }, stone, stoneS, ink, 0.9, 1.1);   // 受け
+    // 火袋：四角い箱。窓から中の火が見える
+    solid(g, function () { rr(g, -16, -20, 32, 31, 2); }, stone, stoneS, ink, 0.9, 1.1);
+    var win = function () { rr(g, -10, -15, 20, 21, 1.5); };
+    g.save(); win(); g.clip();
+    var wg = g.createLinearGradient(0, -15, 0, 6); wg.addColorStop(0, mixHex(liq, '#ffffff', 0.55)); wg.addColorStop(1, mixHex(liq, '#000000', 0.25));
+    g.fillStyle = wg; g.fillRect(-10, -15, 20, 21);
+    for (var i = 0; i < 3; i++) {   // 中のろうそくの火
+      var fx = -5 + i * 5, fk = Math.sin(t * (9 + spin * 10) + i * 2) * (0.8 + spin), fh = -6 - spin * 4 - (i === 1 ? 2 : 0) + Math.sin(t * 13 + i) * 1.2;
+      g.fillStyle = 'rgba(255,255,255,.85)'; g.beginPath(); g.moveTo(fx - 1.6, 4); g.quadraticCurveTo(fx + fk, fh, fx + 1.6, 4); g.closePath(); g.fill();
+    }
+    g.globalCompositeOperation = 'lighter'; glowAt(g, P, 0, -2, 16 + spin * 8, 0.4 + spin * 0.4, mix(liq, '#ffffff', 0.5)); g.globalCompositeOperation = 'source-over';
+    g.restore();
+    g.strokeStyle = ink; g.lineWidth = 1.6; win(); g.stroke();
+    g.strokeStyle = alpha(stoneS, 0.9); g.lineWidth = 1.4; g.beginPath(); g.moveTo(0, -15); g.lineTo(0, 6); g.moveTo(-10, -4.5); g.lineTo(10, -4.5); g.stroke();   // 窓の格子
+    // 屋根：反った笠と宝珠
+    solid(g, function () { g.beginPath(); g.moveTo(-27, -20); g.quadraticCurveTo(-18, -24, -10, -33); g.lineTo(10, -33); g.quadraticCurveTo(18, -24, 27, -20); g.quadraticCurveTo(0, -17, -27, -20); g.closePath(); }, stone, stoneS, ink, 1, 1.1);
+    solid(g, function () { ell(g, 0, -37, 4.5, 4.8); }, stone, stoneS, ink, 0.7, 1);
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(-14, -18, 3, 27); g.fillRect(-22, 35.5, 30, 2);
+    g.restore();
+  }
+  /* ---------- マフラーの品物アイコン（着せ替え・ガチャ）：首の帯としっぽ。colorId の色で描く ---------- */
+  function scarfItem(g, P, x, y, s, t, colorId) {
+    var keep = SCARF.color, sag0 = SCARF.sag; if (colorId) SCARF.color = colorId;
+    SCARF.sag = 3.6;   // 体が無いので、輪を少し上から見た形にする
+    var Q = scarfPal(P), R = SCARF.wrapW / 2, cy = SCARF.wrapY - 2;
+    g.save(); g.translate(x, y); g.scale(s, s); g.lineCap = 'round';
+    // 輪の後ろ側（裏の色）
+    g.strokeStyle = P.playerLine; g.lineWidth = SCARF.wrapH + 2; g.beginPath(); g.ellipse(0, cy, R, SCARF.sag, 0, Math.PI, Math.PI * 2); g.stroke();
+    g.strokeStyle = Q.scarfShade; g.lineWidth = SCARF.wrapH; g.beginPath(); g.ellipse(0, cy, R, SCARF.sag, 0, Math.PI, Math.PI * 2); g.stroke();
+    scarfTail(g, Q, [[-4, -1], [-5, 5], [-5.5, 11], [-5, 17], [-4, 23]], t);   // しっぽは下へたれる
+    scarfWrap(g, Q, 0, cy); g.restore();
+    SCARF.color = keep; SCARF.sag = sag0;
+  }
   function gemBurst(g, P, star, x, y, t, k) {
     var tone = gemTone(P, star), light = mix(tone[0], '#ffffff', 0.5), n = 8 + star * 4, i, R = 30 + star * 7;
     g.save(); g.globalCompositeOperation = 'lighter';
@@ -1355,7 +1416,7 @@ window.Kabe = (function () {
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();

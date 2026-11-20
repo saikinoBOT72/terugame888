@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30r">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30s">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -109,6 +109,11 @@
   .bestChip a { color: var(--teal); }
   .btn.big { font-size: calc(var(--u) * 22px); padding: calc(var(--u) * 12px) calc(var(--u) * 64px); animation: breathe 2.4s ease-in-out infinite; }
   @keyframes breathe { 50% { box-shadow: 0 calc(var(--u) * 4px) 0 var(--pink-deep), 0 0 0 calc(var(--u) * 7px) rgba(255,244,230,.16); } }
+  .menu3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: calc(var(--u) * 8px); width: calc(var(--u) * 290px); }
+  .chips { display: flex; gap: calc(var(--u) * 6px); align-items: center; }
+  .candleChip { display: inline-flex; align-items: center; gap: calc(var(--u) * 3px); font-weight: 800; font-size: calc(var(--u) * 13px); background: rgba(0,0,0,.3); border-radius: 999px; padding: calc(var(--u) * 1px) calc(var(--u) * 12px) calc(var(--u) * 1px) calc(var(--u) * 6px); font-variant-numeric: tabular-nums; }
+  .candleChip.big { font-size: calc(var(--u) * 15px); }
+  .candleChip.add b::after { content: attr(data-add); color: var(--teal); margin-left: .35em; }
   .menu2 { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 10px); width: calc(var(--u) * 250px); }
   .mbtn { font: inherit; font-weight: 800; font-size: calc(var(--u) * 14px); color: var(--cream); cursor: pointer;
     background: rgba(20,15,28,.55); border: 2px solid rgba(255,244,230,.3); border-radius: calc(var(--u) * 14px);
@@ -135,12 +140,22 @@
   .wTabs { display: flex; gap: calc(var(--u) * 4px); width: 100%; overflow-x: auto; scrollbar-width: none; border-bottom: 2px solid rgba(255,244,230,.12); }
   .wTab { font: inherit; font-weight: 800; font-size: calc(var(--u) * 13px); color: var(--dim); background: transparent; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: calc(var(--u) * 4px) calc(var(--u) * 12px); cursor: pointer; white-space: nowrap; }
   .wTab[aria-selected="true"] { color: var(--cream); border-bottom-color: var(--teal); }
-  .wItems { width: 100%; height: calc(var(--u) * 168px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; display: grid; align-content: start; gap: calc(var(--u) * 6px); }
+  .wItems { width: 100%; height: calc(var(--u) * 250px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: calc(var(--u) * 6px); }
   .wHead { text-align: left; font-size: calc(var(--u) * 11px); font-weight: 800; color: var(--dim) !important; }
   .sw.locked { opacity: .45; cursor: default; }
   .sw.locked::after { content: '🔒'; font-size: calc(var(--u) * 10px); position: absolute; right: calc(var(--u) * 4px); top: calc(var(--u) * 2px); }
   .sw { position: relative; }
-  .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: calc(var(--u) * 8px); width: 100%; }
+  .inv { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--u) * 6px); width: 100%; }
+  .slot { font: inherit; font-size: calc(var(--u) * 9.5px); line-height: 1.2; color: var(--cream); aspect-ratio: 1; background: rgba(0,0,0,.28); border: 2px solid rgba(255,244,230,.1); border-radius: calc(var(--u) * 10px);
+    padding: calc(var(--u) * 3px); display: grid; grid-template-rows: 1fr auto; justify-items: center; align-items: center; cursor: pointer; position: relative; }
+  .slot.empty { background: rgba(0,0,0,.14); border-style: dashed; cursor: default; }
+  .slot[aria-pressed="true"] { border-color: var(--teal); background: rgba(255,255,255,.08); }
+  .slot .worn { position: absolute; left: 50%; transform: translateX(-50%); top: calc(var(--u) * -7px); white-space: nowrap; font-size: calc(var(--u) * 8.5px); font-weight: 800; color: var(--ink); background: var(--teal); border-radius: 999px; padding: 0 calc(var(--u) * 5px); }
+  .slot:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .sw.unknown i { background: repeating-linear-gradient(90deg, rgba(255,255,255,.12) 0 calc(var(--u) * 5px), rgba(255,255,255,.05) calc(var(--u) * 5px) calc(var(--u) * 6.5px)); box-shadow: none; border-style: dashed; border-color: rgba(255,244,230,.3); }
+  .sw .st { font-size: .8em; letter-spacing: -.1em; }
+  .lOdds { line-height: 1.5; }
+  .swatches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: calc(var(--u) * 8px); width: 100%; }
   .sw { font: inherit; font-size: calc(var(--u) * 10.5px); color: var(--cream); background: rgba(0,0,0,.2); border: 2px solid transparent; border-radius: calc(var(--u) * 12px); padding: calc(var(--u) * 6px) 0 calc(var(--u) * 4px); cursor: pointer; display: grid; justify-items: center; gap: calc(var(--u) * 3px); }
   .sw i { width: calc(var(--u) * 30px); height: calc(var(--u) * 14px); border-radius: calc(var(--u) * 5px); border: 2px solid rgba(20,15,28,.9);
     background: repeating-linear-gradient(90deg, var(--c) 0 calc(var(--u) * 5px), var(--st) calc(var(--u) * 5px) calc(var(--u) * 6.5px)); box-shadow: inset 0 calc(var(--u) * -3px) 0 var(--sh); }
@@ -277,10 +292,11 @@
       </div>
       <canvas class="uic tGhost" id="tGhost" data-w="200" data-h="150" aria-hidden="true"></canvas>
       <div class="titleBottom">
-        <p class="bestChip" id="bestTitle"></p>
+        <div class="chips"><p class="bestChip" id="bestTitle"></p><span class="candleChip" aria-label="持っているろうそく"><canvas class="uic" data-candle data-w="16" data-h="20" aria-hidden="true"></canvas><b class="candleN">0</b></span></div>
         <button class="btn big" id="btnStart" type="button">プレイ</button>
-        <div class="menu2">
+        <div class="menu3">
           <button class="mbtn" id="btnWardrobe" type="button"><canvas class="uic ic" id="icWard" data-w="26" data-h="20" aria-hidden="true"></canvas>着せ替え</button>
+          <button class="mbtn" id="btnLook" type="button"><canvas class="uic ic" id="icLook" data-w="26" data-h="20" aria-hidden="true"></canvas>ガチャ</button>
           <button class="mbtn" id="btnSettings" type="button"><canvas class="uic ic" id="icSet" data-w="26" data-h="20" aria-hidden="true"></canvas>設定</button>
         </div>
       </div>
@@ -303,10 +319,26 @@
       <div class="card">
         <h2>着せ替え</h2>
         <canvas class="uic wStage" id="wStage" data-w="220" data-h="120" role="img" aria-label="おばけの見本"></canvas>
-        <div class="wTabs" id="wTabs" role="tablist" aria-label="着せ替えの分類"></div>
         <p class="wName" id="wName" aria-live="polite"></p>
-        <div class="wItems scroll" id="wItems"></div>
+        <div class="wTabs" id="wTabs" role="tablist" aria-label="着せ替えの分類"></div>
+        <div class="wItems scroll" id="wItems">
+          <p class="wHead">持ちもの</p>
+          <div class="inv" id="wInv" role="group" aria-label="持ちもの"></div>
+          <p class="wHead" id="wColHead">色</p>
+          <div class="swatches" id="wColors" role="group" aria-label="色"></div>
+        </div>
         <button class="btn" id="btnWardBack" type="button">きめた</button>
+      </div>
+    </section>
+    <section id="ovLook" class="ov" hidden>
+      <div class="card gcard">
+        <div class="ghead"><h2>ろうそくガチャ</h2><span class="candleChip big" aria-label="持っているろうそく"><canvas class="uic" data-candle data-w="20" data-h="24" aria-hidden="true"></canvas><b class="candleN">0</b></span></div>
+        <canvas class="uic gstage" id="lStage" data-w="288" data-h="150" role="img" aria-label="石灯籠"></canvas>
+        <p class="gresult" id="lResult" aria-live="polite"></p>
+        <p class="small" id="lInfo"></p>
+        <button class="btn" id="btnLRoll" type="button"></button>
+        <p class="small lOdds">★ 60%・★★ 30%・★★★ 10%（持っていない物だけが出る）<br>ろうそくはプレイの終わりに 10m ごとに1本もらえる</p>
+        <button class="sub" id="btnLBack" type="button">もどる</button>
       </div>
     </section>
     <section id="ovHow" class="ov" hidden>
@@ -371,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30r"></script>
-<script src="data/pieces.js?v=2026.11.30r"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30s"></script>
+<script src="data/pieces.js?v=2026.11.30s"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30r';
+const VERSION = '2026.11.30s';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -2982,10 +3014,10 @@ function ambTick(dt) {
   if (lava > 0.4 && due('blub', 0.4, 1.4)) tone(90 + Math.random() * 60, 0.18, 'sine', 0.03 * lava, 55, 0, 0.01);   // 溶岩のぼこぼこ
 }
 /* ---------- menus & loop ---------- */
-const ov = { title: $('ovTitle'), settings: $('ovSettings'), wardrobe: $('ovWardrobe'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha'), gems: $('ovGems') };
+const ov = { title: $('ovTitle'), settings: $('ovSettings'), wardrobe: $('ovWardrobe'), look: $('ovLook'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha'), gems: $('ovGems') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
 function renderBest() {
-  const b = store.get('kabe_best2', 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : '';
+  const b = store.get('kabe_best2', 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : ''; renderCandles();
   $('btnTestGems').hidden = !TEST_MODE;
   if (TEST_MODE) {   // テストプレイのとき：ボタンの文字と、ふつうに遊ぶへのリンク
     $('btnStart').textContent = `${TEST_FROM}mから テスト`;
@@ -2999,8 +3031,11 @@ function showEnd() {
   if (m > best && !G.test) store.set('kabe_best2', m);
   $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
-  for (const [a, b, isNew] of [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']]) {
-    const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
+  if (!G.test && G.candleN == null) { G.candleN = Math.floor(m / META.perM); candles += G.candleN; saveMeta(); }   // ろうそく：10m ごとに1本
+  const rows = [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']];
+  if (!G.test) rows.push(['ろうそく', `+${G.candleN}本（${candles}本）`, G.candleN > 0]);
+  for (const [a, b, isNew] of rows) {
+    const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew && a !== 'ろうそく' ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
   }
   gemRows($('eGems'), GEM_ORDER.filter(id => G.gems[id]), true);
   G.cardInfo = { m, isNew: m > best && !G.test, zone: poolAt(G.best).name, time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
@@ -3199,7 +3234,7 @@ function startShow(n) {
   const brewEnd = Math.max(2.0, tt + 0.1), hushEnd = brewEnd + 0.55;
   res.forEach((r, i) => { r.popAt = hushEnd + i * 0.6; r.popped = false; r.x = n === 1 ? 180 : 70 + i * 110; r.y = n === 1 ? 240 : 262; });
   const style = ['pop', 'shatter', 'gather'][Math.floor(Math.random() * 3)];   // 開け方：飛び出す・殻が砕ける・光が集まる
-  Object.assign(show, { active: true, t: 0, n, res, best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd, style, rings: [],
+  Object.assign(show, { active: true, kind: 'gem', t: 0, n, res, best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd, style, rings: [],
     endAt: hushEnd + (n - 1) * 0.6 + 1.1, flash: 0, shake: 0, parts: [], plinks: 0, nextBubble: 0.8, hushed: false, done: false, upFx: [] });
   $('gShow').hidden = false; renderGacha(); sfx.spin();
   if (reduceMotion) skipShow();
@@ -3219,6 +3254,7 @@ function showTap() {
   if (!show.active) return;
   if (!show.done) { skipShow(); return; }
   show.active = false; $('gShow').hidden = true;
+  if (show.kind === 'look') { lookAfter(); return; }
   const last = show.res[show.n - 1];
   gacha.phase = 'reveal'; gacha.t = 1; gacha.id = last.id; gacha.sel = last.id;
   if (show.n === 1) setResult(last.refund ? `${GEMS[last.id].name}（Lv3なので${last.tag}）` : `${GEMS[last.id].name}${last.isNew ? '' : ` Lv${last.lv}`}`, last.id, last.refund ? '' : last.isNew ? 'NEW' : 'レベルアップ');
@@ -3411,13 +3447,13 @@ uiCanvas($('gShow'), (g, t, w, h) => {
   if (S.kakutei && !popped) for (let i = 0; i < 6; i++) { const a = t * 1.8 + i * 1.05; Kabe.twinkle(g, POT.x + Math.cos(a) * 92, POT.y - 30 + Math.sin(a) * 34, 4 + Math.sin(t * 6 + i) * 2, 0.9); }
   // 釜（静まるあいだは泡も止まる）
   const spin = T < 0.7 ? 0.25 : T < S.brewEnd ? 0.35 + 0.65 * (T - 0.7) / (S.brewEnd - 0.7) : popped ? 0.1 : 0;
-  g.save(); g.globalAlpha = popped ? 0.4 : 1; g.translate(POT.x, POT.y); g.scale(POT.s, POT.s); Kabe.gachaFlask(g, PAL, 0, 0, hush && !popped ? S.brewEnd : t, spin, liquid); g.restore();
+  g.save(); g.globalAlpha = popped ? 0.4 : 1; g.translate(POT.x, POT.y); g.scale(POT.s, POT.s); (S.kind === 'look' ? Kabe.gachaLantern : Kabe.gachaFlask)(g, PAL, 0, 0, hush && !popped ? S.brewEnd : t, spin, liquid); g.restore();
   // 立ちのぼる光の粒
   if (!popped) { const cnt = Math.round(4 + brew * 16 * (1 - hush)); for (let i = 0; i < cnt; i++) { const ph = (t * (0.35 + brew * 0.5) + i * 0.137) % 1; Kabe.mote(g, PAL, POT.x + Math.sin(i * 7.3 + ph * 3) * (8 + ph * 60), POT.my - ph * 260, t, 0.5 * (1 - ph * 0.6), i); } }
   // 静まる：まわりの光が釜へ吸いこまれる
   if (hush > 0 && !popped) for (let i = 0; i < 24; i++) { const k = ((T - S.brewEnd) * 1.6 + i / 24) % 1, a = i * 2.39, r = 300 * (1 - k); Kabe.mote(g, PAL, POT.x + Math.cos(a) * r, POT.y - 30 + Math.sin(a) * r * 0.8, t, 0.4, i); }
   // 結晶を入れる：右上から釜へ弧を描いて飛ぶ
-  for (let i = 0; i < Math.min(10, S.n * 5); i++) { const k = (T - 0.05 - i * 0.06) / 0.45; if (k <= 0 || k >= 1) continue; const e = k * k; Kabe.mote(g, PAL, COIN_FROM.x + (POT.x - COIN_FROM.x) * e, COIN_FROM.y + (POT.my - COIN_FROM.y) * e - Math.sin(k * Math.PI) * 60, t, 0.7, i); }
+  for (let i = 0; i < Math.min(10, S.n * 5); i++) { const k = (T - 0.05 - i * 0.06) / 0.45; if (k <= 0 || k >= 1) continue; const e = k * k, mx = COIN_FROM.x + (POT.x - COIN_FROM.x) * e, my = COIN_FROM.y + (POT.my - COIN_FROM.y) * e - Math.sin(k * Math.PI) * 60; if (S.kind === 'look') Kabe.candle(g, PAL, mx, my, 1.5 * (1 - e * 0.4), t); else Kabe.mote(g, PAL, mx, my, t, 0.7, i); }   // 入れるもの：水晶ガチャは結晶、着せ替えガチャはろうそく
   // 出た水晶
   const big = S.n === 1 ? 4.6 : 2.7;
   for (const r of S.res) {
@@ -3426,7 +3462,7 @@ uiCanvas($('gShow'), (g, t, w, h) => {
     const x = fly ? POT.x + (r.x - POT.x) * e : r.x, y = (fly ? POT.my + (r.y - POT.my) * e : r.y) + (f >= 1 ? Math.sin(t * 2 + r.x) * 3 : 0);
     g.save(); g.translate(x, y); g.scale(S.n === 1 ? 3 : 1.9, S.n === 1 ? 3 : 1.9); Kabe.gemBurst(g, PAL, r.star, 0, 0, t, Math.min(1, kk / 0.3)); g.restore();
     const gs = fly ? 0.5 + 0.5 * f : 0.25 + 0.75 * e;   // 飛び出すときは回りながら、その場で出るときはぽんとふくらむ
-    g.save(); g.translate(x, y); g.scale(fly && f < 1 ? Math.max(0.15, Math.abs(Math.cos(f * 9))) : 1, 1); Kabe.gem(g, PAL, r.id, r.star, 0, 0, big * gs, t); g.restore();
+    g.save(); g.translate(x, y); g.scale(fly && f < 1 ? Math.max(0.15, Math.abs(Math.cos(f * 9))) : 1, 1); if (S.kind === 'look') Kabe.scarfItem(g, PAL, 0, 0, big * gs * 0.75, t, r.color); else Kabe.gem(g, PAL, r.id, r.star, 0, 0, big * gs, t); g.restore();
     // ★ を1つずつ、名前、NEW の札
     const ty = r.y + big * 12 + 18, c = Kabe.gemTone(PAL, r.star);
     g.textAlign = 'center'; g.textBaseline = 'middle';
@@ -3437,8 +3473,8 @@ uiCanvas($('gShow'), (g, t, w, h) => {
     }
     const nk = Math.min(1, Math.max(0, (kk - 0.45) / 0.25));
     if (nk > 0) {
-      g.globalAlpha = nk; g.fillStyle = PAL.uiInk; g.font = `800 ${S.n === 1 ? 24 : 13}px ${FONT}`; g.fillText(GEMS[r.id].name, r.x, ty + (S.n === 1 ? 34 : 22) + (1 - nk) * 8);
-      if (S.n === 1) { g.font = `500 12px ${FONT}`; g.fillStyle = PAL.uiMuted; g.fillText(GEMS[r.id].desc(GEMS[r.id].lv[r.lv - 1]), r.x, ty + 62, 320); }
+      g.globalAlpha = nk; g.fillStyle = PAL.uiInk; g.font = `800 ${S.n === 1 ? 24 : 13}px ${FONT}`; g.fillText(r.name || GEMS[r.id].name, r.x, ty + (S.n === 1 ? 34 : 22) + (1 - nk) * 8);
+      if (S.n === 1) { g.font = `500 12px ${FONT}`; g.fillStyle = PAL.uiMuted; g.fillText(r.desc || GEMS[r.id].desc(GEMS[r.id].lv[r.lv - 1]), r.x, ty + 62, 320); }
       g.globalAlpha = 1;
     }
     const tk = (kk - 0.7) / 0.18;
@@ -3521,52 +3557,115 @@ $('btnDev').onclick = () => { const l = $('devList'); l.hidden = !l.hidden; $('b
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.dev')) { $('devList').hidden = true; $('btnDev').setAttribute('aria-expanded', 'false'); } });
 // ロゴ：1文字ずつ、順にぴょんと跳ねる
 (() => { let i = 0; for (const [cls, txt] of [['l1', 'おばけ'], ['l2', 'じゃんぴんぐ']]) { const el = document.querySelector('.logo .' + cls); for (const c of txt) { const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = c; sp.style.setProperty('--i', i++); el.append(sp); } } })();
-/* ---------- 着せ替え ----------
-   WARDROBE に「分類（タブ）→ 小見出し（色・形など）→ 品物」を書くだけで画面が増える。
-   品物：{ id, name, chip?（CSS の見本）, draw?（g, w, h, t で絵を描く）, lock?（まだ使えない理由。あると選べない） }
-   小見出し：{ id, name, items, get(), set(id) }。着ているものは store の kabe_look に { 分類.小見出し: 品物の id } でまとめて残す */
+/* ---------- メタ進行：ろうそく（プレイの終わりにもらえる）→ ろうそくガチャ → 着せ替え ----------
+   WARDROBE：分類（タブ）→ 品物（持ちもの一覧のマス）→ 色。品物を足すときは items に { id, name, colors, wear(色), icon(g, w, h, t, 色) } を足す。
+   持っている物は OWNED（'分類.品物': [色の id]）、着ているものは LOOK（分類: { item, color }）。最初は しましまマフラーの あか だけ */
+const META = { perM: 10, cost: 10, w: { 1: 6, 2: 3, 3: 1 } };   // 10mごとに1本、ガチャ1回10本、レア度の重み（★60%・★★30%・★★★10%）
+let candles = store.get('kabe_candles', 0);
+const OWNED = Object.assign({ 'scarf.stripe': ['red'] }, store.get('kabe_owned', {}));
+if (!OWNED['scarf.stripe'].includes('red')) OWNED['scarf.stripe'].unshift('red');
 const WARDROBE = [
-  { id: 'scarf', name: 'マフラー', groups: [
-    { id: 'color', name: '色',
-      items: Kabe.SCARF_COLORS.map(c => ({ id: c.id, name: c.name, chip: c.scarf ? [c.scarf, c.shade, c.stripe] : null })),
-      get: () => Kabe.SCARF.color, set: v => { Kabe.SCARF.color = v; } },
+  { id: 'scarf', name: 'マフラー', items: [
+    { id: 'stripe', name: 'しましまマフラー', colors: Kabe.SCARF_COLORS, wear: c => { Kabe.SCARF.color = c; },
+      icon: (g, w, h, t, c) => Kabe.scarfItem(g, PAL, w / 2 + 1, h / 2 - 3, w / 30, t, c) },
   ] },
 ];
-const LOOK = Object.assign({}, store.get('kabe_look', {}));
-function wardEach(fn) { for (const cat of WARDROBE) for (const gr of cat.groups) fn(cat, gr, cat.id + '.' + gr.id); }
-wardEach((cat, gr, key) => { const it = gr.items.find(i => i.id === LOOK[key] && !i.lock); if (it) gr.set(it.id); LOOK[key] = gr.get(); });
-const ward = { tab: WARDROBE[0].id };
-function wardChip(it) {
-  if (it.draw) { const c = document.createElement('canvas'); c.className = 'uic'; c.dataset.w = 34; c.dataset.h = 18; c.setAttribute('aria-hidden', 'true'); uiCanvas(c, (g, t, w, h) => it.draw(g, w, h, t)); return c; }
-  const i = document.createElement('i'), col = it.chip || [PAL.scarf, PAL.scarfShade, PAL.scarfStripe];
-  i.style.setProperty('--c', col[0]); i.style.setProperty('--sh', col[1]); i.style.setProperty('--st', col[2]); return i;
+const LOOK = Object.assign({}, store.get('kabe_look2', {}));
+const ownedOf = (cat, it) => OWNED[cat.id + '.' + it.id] || [];
+function saveMeta() { store.set('kabe_candles', candles); store.set('kabe_owned', OWNED); store.set('kabe_look2', LOOK); }
+function wearAll() {
+  for (const cat of WARDROBE) {
+    let L = LOOK[cat.id], it = L && cat.items.find(i => i.id === L.item && ownedOf(cat, i).includes(L.color));
+    if (!it) { it = cat.items.find(i => ownedOf(cat, i).length); L = LOOK[cat.id] = it ? { item: it.id, color: ownedOf(cat, it)[0] } : null; }
+    if (it) it.wear(L.color);
+  }
 }
+wearAll();
+const colorName = (it, c) => (it.colors.find(x => x.id === c) || {}).name || '';
+function renderCandles(add) {
+  document.querySelectorAll('.candleN').forEach(b => { b.textContent = candles; b.parentNode.classList.toggle('add', !!add); if (add) b.dataset.add = '+' + add; });
+}
+document.querySelectorAll('canvas[data-candle]').forEach(c => uiCanvas(c, (g, t, w, h) => Kabe.candle(g, PAL, w / 2, h / 2 + 2, h / 24, t)));
+// 着せ替え：上に分類のタブ、持ちもののマス（押すと着る）、その品物の色（持っていない色は ？）
+const ward = { tab: WARDROBE[0].id };
+function chipOf(c) { const i = document.createElement('i'); const col = c.scarf ? [c.scarf, c.shade, c.stripe] : [PAL.scarf, PAL.scarfShade, PAL.scarfStripe]; i.style.setProperty('--c', col[0]); i.style.setProperty('--sh', col[1]); i.style.setProperty('--st', col[2]); return i; }
 function wardRender() {
   const tabs = $('wTabs'); tabs.textContent = '';
   for (const cat of WARDROBE) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'wTab'; b.textContent = cat.name; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', ward.tab === cat.id);
     b.onclick = () => { ward.tab = cat.id; sfx.tick(); wardRender(); }; tabs.append(b);
   }
-  const box = $('wItems'), cat = WARDROBE.find(c => c.id === ward.tab); box.textContent = '';
-  const names = [];
-  for (const gr of cat.groups) {
-    const h = document.createElement('p'); h.className = 'wHead'; h.textContent = gr.name; box.append(h);
-    const grid = document.createElement('div'); grid.className = 'swatches'; grid.setAttribute('role', 'group'); grid.setAttribute('aria-label', cat.name + 'の' + gr.name);
-    for (const it of gr.items) {
-      const b = document.createElement('button'); b.type = 'button'; b.className = 'sw'; b.setAttribute('aria-pressed', gr.get() === it.id);
-      b.append(wardChip(it), it.name);
-      if (it.lock) { b.disabled = true; b.title = it.lock; b.classList.add('locked'); }
-      b.onclick = () => { gr.set(it.id); LOOK[cat.id + '.' + gr.id] = it.id; store.set('kabe_look', LOOK); sfx.tick(); wardRender(); };
-      grid.append(b);
-    }
-    box.append(grid);
-    names.push(gr.items.find(i => i.id === gr.get()).name);
+  const cat = WARDROBE.find(c => c.id === ward.tab), L = LOOK[cat.id], inv = $('wInv'); inv.textContent = '';
+  const mine = cat.items.filter(it => ownedOf(cat, it).length);
+  for (const it of mine) {
+    const on = L && L.item === it.id, b = document.createElement('button'); b.type = 'button'; b.className = 'slot'; b.setAttribute('aria-pressed', on);
+    const c = document.createElement('canvas'); c.className = 'uic'; c.dataset.w = 40; c.dataset.h = 34; c.setAttribute('aria-hidden', 'true');
+    uiCanvas(c, (g, t, w, h) => it.icon(g, w, h, t, on ? L.color : ownedOf(cat, it)[0]));
+    b.append(c, it.name); if (on) { const wt = document.createElement('span'); wt.className = 'worn'; wt.textContent = '着ている'; b.append(wt); }
+    b.onclick = () => { if (!on) { LOOK[cat.id] = { item: it.id, color: ownedOf(cat, it)[0] }; it.wear(LOOK[cat.id].color); saveMeta(); sfx.tick(); } wardRender(); };
+    inv.append(b);
   }
-  $('wName').textContent = cat.name + '：' + names.join('・');
+  for (let i = mine.length; i < Math.max(4, Math.ceil(mine.length / 4) * 4); i++) { const e = document.createElement('div'); e.className = 'slot empty'; e.setAttribute('aria-hidden', 'true'); inv.append(e); }
+  const it = L && cat.items.find(i => i.id === L.item), box = $('wColors'); box.textContent = '';
+  if (it) {
+    const have = ownedOf(cat, it);
+    $('wColHead').textContent = `色（${have.length} / ${it.colors.length}）`;
+    for (const c of it.colors) {
+      const own = have.includes(c.id), b = document.createElement('button'); b.type = 'button'; b.className = 'sw' + (own ? '' : ' unknown');
+      b.setAttribute('aria-pressed', own && L.color === c.id);
+      const st = document.createElement('span'); st.className = 'st'; st.textContent = '★'.repeat(c.star || 1); st.style.color = Kabe.gemTone(PAL, c.star || 1)[0];
+      b.append(own ? chipOf(c) : chipOf({ scarf: '#555', shade: '#444', stripe: '#666' }), own ? c.name : '？', st);
+      if (!own) { b.disabled = true; b.setAttribute('aria-label', 'まだ持っていない色（ガチャで出る）'); }
+      b.onclick = () => { L.color = c.id; it.wear(c.id); saveMeta(); sfx.tick(); wardRender(); };
+      box.append(b);
+    }
+  }
+  $('wName').textContent = it ? `${it.name}・${colorName(it, L.color)}` : '';
 }
 const WPOSE = ['stand', 'wave', 'cheer', 'jump', 'twirl', 'stand', 'fist', 'lookUp'];
 $('btnWardrobe').onclick = () => { sfx.tick(); wardRender(); showOnly('wardrobe'); };
 $('btnWardBack').onclick = () => showOnly('title');
+// ろうそくガチャ：持っていない物（品物×色）から、レア度の重みで1つ。演出は水晶ガチャと同じ流れ（show）で、器が石灯籠
+function lookPool() { const out = []; for (const cat of WARDROBE) for (const it of cat.items) for (const c of it.colors) if (!ownedOf(cat, it).includes(c.id)) out.push({ cat, it, c, star: c.star || 1 }); return out; }
+function lookRender() {
+  const pool = lookPool(), total = WARDROBE.reduce((n, cat) => n + cat.items.reduce((m, it) => m + it.colors.length, 0), 0), b = $('btnLRoll');
+  $('lInfo').textContent = pool.length ? `まだ持っていない着せ替え：${pool.length} / ${total}` : '全部そろった！（新しい着せ替えをお楽しみに）';
+  b.innerHTML = `灯す<small>ろうそく${META.cost}本</small>`; b.disabled = !pool.length || candles < META.cost || show.active;
+  renderCandles();
+}
+function startLookShow() {
+  const pool = lookPool(); if (show.active || !pool.length || candles < META.cost) return;
+  candles -= META.cost;
+  let sum = 0; for (const q of pool) sum += META.w[q.star]; let x = Math.random() * sum, pick = pool[pool.length - 1];
+  for (const q of pool) { x -= META.w[q.star]; if (x <= 0) { pick = q; break; } }
+  const key = pick.cat.id + '.' + pick.it.id; (OWNED[key] = OWNED[key] || []).push(pick.c.id); saveMeta();
+  const r = { kind: 'look', cat: pick.cat.id, item: pick.it.id, color: pick.c.id, star: pick.star, name: `${pick.it.name}・${pick.c.name}`, desc: '着せ替えで選べるようになった', isNew: true, tag: 'NEW', lv: 1 };
+  const best = r.star, r0 = Math.random(), start = best === 3 ? (r0 < 0.25 ? 3 : r0 < 0.6 ? 2 : 1) : best === 2 ? (r0 < 0.4 ? 2 : 1) : 1;
+  const ups = []; let tt = 1.45;
+  for (let st = start + 1; st <= best; st++) { ups.push({ t: tt, star: st, fired: false }); tt += 0.7; }
+  const brewEnd = Math.max(2.0, tt + 0.1), hushEnd = brewEnd + 0.55;
+  Object.assign(r, { popAt: hushEnd, popped: false, x: 180, y: 240 });
+  Object.assign(show, { active: true, kind: 'look', t: 0, n: 1, res: [r], best, tier: start, kakutei: start === 3 && best === 3, ups, brewEnd, hushEnd, style: 'pop', rings: [],
+    endAt: hushEnd + 1.1, flash: 0, shake: 0, parts: [], plinks: 0, nextBubble: 0.8, hushed: false, done: false, upFx: [] });
+  $('gShow').hidden = false; lookRender(); sfx.spin();
+  if (reduceMotion) skipShow();
+}
+function lookAfter() {
+  const r = show.res[0]; $('lResult').innerHTML = '';
+  const st = document.createElement('span'); st.className = 'st'; st.style.setProperty('--tone', Kabe.gemTone(PAL, r.star)[0]); st.textContent = '★'.repeat(r.star);
+  $('lResult').append(st, r.name); const tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = 'NEW'; $('lResult').append(tg);
+  lookRender(); $('btnLRoll').focus({ preventScroll: true });
+}
+$('btnLook').onclick = () => { sfx.tick(); $('lResult').textContent = ''; lookRender(); showOnly('look'); };
+$('btnLRoll').onclick = startLookShow;
+$('btnLBack').onclick = () => { if (!show.active) { renderBest(); showOnly('title'); } };
+uiCanvas($('lStage'), (g, t, w, h) => {
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 8; i++) { const ph = (t * 0.12 + i * 0.13) % 1; Kabe.mote(g, PAL, 40 + ((i * 53) % 210), h * (1 - ph), t, 0.35, i); }
+  g.restore();
+  g.save(); g.translate(w / 2, h - 52); g.scale(1.45, 1.45); Kabe.gachaLantern(g, PAL, 0, 0, t, 0.1, Kabe.CANDLE.flame); g.restore();
+});
+uiCanvas($('icLook'), (g, t, w, h) => { g.save(); g.translate(w / 2, h / 2 + 1.5); g.scale(0.37, 0.37); Kabe.gachaLantern(g, PAL, 0, 0, t, 0, Kabe.CANDLE.flame); g.restore(); });
 uiCanvas($('wStage'), (g, t, w, h) => {
   const id = WPOSE[Math.floor(t / 1.6) % WPOSE.length], hop = id === 'cheer' || id === 'jump' ? -Math.abs(Math.sin(t * 5)) * 6 : 0;
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h - 22, 30, 6, 0, 0, Math.PI * 2); g.fill();
@@ -3734,6 +3833,7 @@ function loop(now) {
   else if (state === 'title') { G.time += frame; titleTick(frame); updatePose(frame); }
   else if (state === 'gacha') updateGacha(frame);
   else if (state === 'dying') G.time += frame;
+  if (state !== 'gacha') updateShow(frame);   // タイトルの着せ替えガチャ
   const tB = performance.now();
   updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
   const t0 = performance.now();
