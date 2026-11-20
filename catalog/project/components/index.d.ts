@@ -59,7 +59,7 @@ declare const Kabe: {
   /** ガチャのフラスコ。spin 0〜1 で液が波打ち湯気が出る。liquid は液の色。口は y-46、台の下は y+42 */
   gachaFlask(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
   /** 着せ替えガチャの石灯籠（spin：0〜1 の盛り上がり、liquid：窓の火の色＝レア度の予告） */
-  gachaLantern(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string): void;
+  gachaLantern(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, t: number, spin?: number, liquid?: string, noGlow?: boolean): void;
   /** ろうそく（着せ替えガチャの通貨）。s：大きさ、lit=false で火なし */
   candle(g: CanvasRenderingContext2D, P: Palette, x: number, y: number, s?: number, t?: number, lit?: boolean): void;
   CANDLE: { wax: string; waxShade: string; flame: string; flameOut: string };

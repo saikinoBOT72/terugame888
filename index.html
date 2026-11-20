@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30t">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30u">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -337,7 +337,7 @@
         <p class="gresult" id="lResult" aria-live="polite"></p>
         <p class="small" id="lInfo"></p>
         <button class="btn" id="btnLRoll" type="button"></button>
-        <p class="small lOdds">★ 60%・★★ 30%・★★★ 10%（持っていない物だけが出る）<br>ろうそくはプレイの終わりに 10m ごとに1本もらえる</p>
+        <p class="small lOdds">★ 60%・★★ 30%・★★★ 10%（持っていない物だけが出る）<br>ろうそくはプレイの終わりに 100m ごとに1本もらえる</p>
         <button class="sub" id="btnLBack" type="button">もどる</button>
       </div>
     </section>
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30t"></script>
-<script src="data/pieces.js?v=2026.11.30t"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30u"></script>
+<script src="data/pieces.js?v=2026.11.30u"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30t';
+const VERSION = '2026.11.30u';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -3031,7 +3031,7 @@ function showEnd() {
   if (m > best && !G.test) store.set('kabe_best2', m);
   $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
-  if (!G.test && G.candleN == null) { G.candleN = Math.floor(m / META.perM); candles += G.candleN; saveMeta(); }   // ろうそく：10m ごとに1本
+  if (!G.test && G.candleN == null) { G.candleN = Math.floor(m / META.perM); candles += G.candleN; saveMeta(); }   // ろうそく：100m ごとに1本
   const rows = [['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']];
   if (!G.test) rows.push(['ろうそく', `+${G.candleN}本（${candles}本）`, G.candleN > 0]);
   for (const [a, b, isNew] of rows) {
@@ -3560,7 +3560,7 @@ document.addEventListener('pointerdown', e => { if (!e.target.closest('.dev')) {
 /* ---------- メタ進行：ろうそく（プレイの終わりにもらえる）→ ろうそくガチャ → 着せ替え ----------
    WARDROBE：分類（タブ）→ 品物（持ちもの一覧のマス）→ 色。品物を足すときは items に { id, name, colors, wear(色), icon(g, w, h, t, 色) } を足す。
    持っている物は OWNED（'分類.品物': [色の id]）、着ているものは LOOK（分類: { item, color }）。最初は しましまマフラーの あか だけ */
-const META = { perM: 10, cost: 10, w: { 1: 6, 2: 3, 3: 1 } };   // 10mごとに1本、ガチャ1回10本、レア度の重み（★60%・★★30%・★★★10%）
+const META = { perM: 100, cost: 10, w: { 1: 6, 2: 3, 3: 1 } };   // 100mごとに1本、ガチャ1回10本、レア度の重み（★60%・★★30%・★★★10%）
 let candles = store.get('kabe_candles', 0);
 const OWNED = Object.assign({ 'scarf.stripe': ['red'] }, store.get('kabe_owned', {}));
 if (!OWNED['scarf.stripe'].includes('red')) OWNED['scarf.stripe'].unshift('red');
@@ -3665,7 +3665,9 @@ uiCanvas($('lStage'), (g, t, w, h) => {
   g.restore();
   g.save(); g.translate(w / 2, h - 52); g.scale(1.45, 1.45); Kabe.gachaLantern(g, PAL, 0, 0, t, 0.1, Kabe.CANDLE.flame); g.restore();
 });
-uiCanvas($('icLook'), (g, t, w, h) => { g.save(); g.translate(w / 2, h / 2 + 1.5); g.scale(0.37, 0.37); Kabe.gachaLantern(g, PAL, 0, 0, t, 0, Kabe.CANDLE.flame); g.restore(); });
+uiCanvas($('icLook'), (g, t, w, h) => {   // 灯籠（光のぼかしは枠で切れるので描かず、窓の火だけ光らせる）
+  g.save(); g.translate(w / 2, h / 2 + 0.5); g.scale(0.25, 0.25); Kabe.gachaLantern(g, PAL, 0, 0, t, 0, Kabe.CANDLE.flame, true); g.restore();
+});
 uiCanvas($('wStage'), (g, t, w, h) => {
   const id = WPOSE[Math.floor(t / 1.6) % WPOSE.length], hop = id === 'cheer' || id === 'jump' ? -Math.abs(Math.sin(t * 5)) * 6 : 0;
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h - 22, 30, 6, 0, 0, Math.PI * 2); g.fill();

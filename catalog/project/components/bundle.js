@@ -1297,11 +1297,11 @@ window.Kabe = (function () {
     g.restore();
   }
   /* ---------- 着せ替えガチャの石灯籠：ろうそくを入れると窓の火が光り、色がレア度を予告する（spin：0〜1 の盛り上がり、liquid：火の色） ---------- */
-  function gachaLantern(g, P, x, y, t, spin, liquid) {
+  function gachaLantern(g, P, x, y, t, spin, liquid, noGlow) {   // noGlow：まわりの光のぼかしを描かない（小さなアイコン用）
     spin = spin || 0; var liq = liquid || CANDLE.flame, sh = spin > 0.3 ? Math.sin(t * 30) * spin * 1.1 : 0;
     var stone = P.metal, stoneS = P.metalShade, ink = P.ink;
     g.save(); g.translate(x + sh, y); g.lineJoin = 'round'; g.lineCap = 'round';
-    g.globalCompositeOperation = 'lighter'; glowAt(g, P, 0, -8, 70, 0.25 + spin * 0.35, liq); g.globalCompositeOperation = 'source-over';
+    if (!noGlow) { g.globalCompositeOperation = 'lighter'; glowAt(g, P, 0, -8, 70, 0.25 + spin * 0.35, liq); g.globalCompositeOperation = 'source-over'; }
     solid(g, function () { rr(g, -24, 34, 48, 8, 3); }, stone, stoneS, ink, 0.9, 1.1);   // 台
     solid(g, function () { g.beginPath(); g.moveTo(-8, 34); g.lineTo(-6, 16); g.lineTo(6, 16); g.lineTo(8, 34); g.closePath(); }, stone, stoneS, ink, 0.9, 1.1);   // 柱
     solid(g, function () { rr(g, -20, 10, 40, 7, 2.5); }, stone, stoneS, ink, 0.9, 1.1);   // 受け

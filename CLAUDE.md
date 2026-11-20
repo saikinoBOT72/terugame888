@@ -8,7 +8,7 @@
 |---|---|
 | `index.html` | 本編。`bundle.js`（`Kabe`）・`tokens.css`・`data/pieces.js` を読み込む |
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編と `pools.html` が共通で読む |
-| （タイトル） | `#ovTitle`：プレイ・着せ替え（`WARDROBE`：分類→品物→色。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`、演出は水晶ガチャと同じ `show`（`kind: 'look'`）とシェーダー `showFx`、器は `Kabe.gachaLantern`）・設定（`#ovSettings`）。ろうそく（`kabe_candles`）は結果画面で 10m ごとに1本（`META`）。右上「開発」に chara・pools・simulator・?perf |
+| （タイトル） | `#ovTitle`：プレイ・着せ替え（`WARDROBE`：分類→品物→色。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`、演出は水晶ガチャと同じ `show`（`kind: 'look'`）とシェーダー `showFx`、器は `Kabe.gachaLantern`）・設定（`#ovSettings`）。ろうそく（`kabe_candles`）は結果画面で 100m ごとに1本（`META`）。右上「開発」に chara・pools・simulator・?perf |
 | `pools.html` | プールとパーツの一覧（動く見本） |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `chara.html` | キャラの動き・表情・マフラーを再生して試すページ（本編のポーズ切り替えとマフラーのひもを写したもの。マフラーの形は `Kabe.SCARF`。本編の `updatePose`・`scarfStep` を変えたらこちらも合わせる） |
