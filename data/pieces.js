@@ -3748,161 +3748,134 @@ piece('b_fanshaft', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_boxhooks', { diff: 1 }, String.raw`
+piece('b_boxshelf', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-#######...........##
-####\.............##
+##................##
+##..XXXXXXXXXX....##
 ##................##
 ##................##
-##....XXXXXXXXXX..##
-##................##
-##................##
-##..........########
-##.............../##
-##................##
-##................##
-##................##
-`);
-piece('b_boxsplit', { diff: 1 }, String.raw`
-##................##
-##................##
-##................##
-##.......##.......##
-##.......##.......##
-##.......##.......##
-##.......##.......##
-##.......##.......##
-##................##
-##................##
-##..XXXXXXXXXXXX..##
+############......##
 ##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('b_fandiamond', { diff: 1 }, String.raw`
+piece('b_boxtunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
+##................##
+##................##
+##................##
+#######XXXXXX#######
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('b_fanlee', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
 ##>...............##
-##\............../##
-###\............/###
-####\........../####
-#####\......../#####
-######........######
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
-##...............<##
+##>.......####....##
+##........####....##
+##........####....##
+##>.......####....##
+##........####....##
+##................##
 ##................##
 ##................##
 `);
-piece('b_fansqueeze', { diff: 1 }, String.raw`
+piece('b_fancorridor', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-######......########
-######......########
-######......########
-######......########
-######......########
+##........##########
+##........##########
 ##................##
 ##...............<##
 ##................##
-##>...............##
+##########........##
+##########........##
+##########........##
 ##................##
 ##................##
 ##................##
 `);
-piece('b_fanterrace', { diff: 1 }, String.raw`
+piece('b_fanbalcony', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
+##>...............##
 ##.............#####
-##...............<##
-##................##
-##..........########
-##...............<##
-##................##
-##.......###########
 ##................##
 ##................##
-##....##############
-##................##
-##................##
-`);
-piece('b_popboulder', { diff: 1 }, String.raw`
-##................##
-##................##
-##................##
-##p......./\......##
-##p....../##\.....##
-##....../####\....##
-##......\####/....##
-##.......\##/....q##
-##........\/.....q##
+##>...............##
+##.............#####
 ##................##
 ##................##
 ##................##
 `);
-piece('b_popcomb', { diff: 1 }, String.raw`
+piece('b_popbulge', { diff: 1 }, String.raw`
 ##................##
 ##................##
-##................##
-######............##
 ##................##
 ##p...............##
-##...........q######
 ##................##
-##................##
+######............##
+######p...........##
+######p...........##
 ######............##
 ##................##
 ##...............q##
-##............######
+##...............q##
+##................##
+##................##
+`);
+piece('b_poptower', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##......####......##
+##.....p####q.....##
+##.....p####q.....##
+##......####......##
+##.....p####q.....##
+##......####......##
+##......####......##
+##......####......##
 ##................##
 ##................##
 ##................##
 `);
-piece('b_poplantern', { diff: 1 }, String.raw`
+piece('b_popbelt', { diff: 1 }, String.raw`
 ##................##
 ##................##
-###...............##
-####............####
-#####p.........#####
-####............####
-###..............###
-###..............###
-###..............###
-####............####
-#####.........q#####
-####............####
-###..............###
+##................##
+##p..............q##
+##p..............q##
+##......##........##
+##......##........##
+##p..............q##
+##p..............q##
+##................##
 ##................##
 ##................##
 `);
-piece('b_shutterdiamond', { diff: 1 }, String.raw`
+piece('b_shutterchimney', { diff: 1 }, String.raw`
 ##................##
 ##................##
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
 ##................##
-##\............../##
-###\............/###
-####\........../####
-#####\......../#####
-######========######
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
+##...##======##...##
+##...##......##...##
+##...##......##...##
+##...##......##...##
+##...##......##...##
+##...##......##...##
+##................##
 ##................##
 ##................##
 `);
@@ -9206,7 +9179,7 @@ const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_zigzag', 'z1_longwall', 'z1_sideleft',
     'z1_steps', 'z1_wedges', 'z1_rightside', 'z1_crumbs', 'z1_hourglass', 'z1_offset', 'z1_spikecorners', 'z1_chute', 'z1_nubs', 'z1_cave', 'z1_bumps', 'z1_ladder', 'z1_spiral', 'z1_narrow', 'z1_twinpillars', 'z1_overhang', 'z1_ledgespikes', 'z1_window', 'z1_stairs_l', 'z1_crooked', 'z1_rocks', 'z1_wideroom', 'z1_sidespikes', 'z1_chimneys', 'z1_pocket', 'z1_cave2', 'z1_stairs_r', 'z1_alcoves', 'z1_boulder', 'z1_comb', 'z1_diamond', 'z1_drops', 'z1_hooks', 'z1_lantern', 'z1_pebbles', 'z1_ribs', 'z1_slant', 'z1_split', 'z1_squeeze', 'z1_stepcave', 'z1_terrace'] },
   { from: 100, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar',
-    'b_fanzig', 'b_popshelves', 'b_twoshutters', 'b_boxwide', 'b_fanfunnel', 'b_poppillar', 'b_shutterledge', 'b_boxsteps', 'z1_hourglass', 'z1_chute', 'b_popcave', 'b_popladder', 'b_popnarrow', 'b_popsteps', 'b_fancave', 'b_fanpillars', 'b_fanladder', 'b_fanwide', 'b_shutterroom', 'b_shuttersteps', 'b_shutternarrow', 'b_shuttercave', 'b_boxcave', 'b_boxpillars', 'b_boxnarrow', 'b_boxladder', 'b_spikecave', 'b_spikezig', 'b_poppocket', 'b_fanshaft', 'b_boxhooks', 'b_boxsplit', 'b_fandiamond', 'b_fansqueeze', 'b_fanterrace', 'b_popboulder', 'b_popcomb', 'b_poplantern', 'b_shutterdiamond', 'b_shuttergate'] },
+    'b_fanzig', 'b_popshelves', 'b_twoshutters', 'b_boxwide', 'b_fanfunnel', 'b_poppillar', 'b_shutterledge', 'b_boxsteps', 'z1_hourglass', 'z1_chute', 'b_popcave', 'b_popladder', 'b_popnarrow', 'b_popsteps', 'b_fancave', 'b_fanpillars', 'b_fanladder', 'b_fanwide', 'b_shutterroom', 'b_shuttersteps', 'b_shutternarrow', 'b_shuttercave', 'b_boxcave', 'b_boxpillars', 'b_boxnarrow', 'b_boxladder', 'b_spikecave', 'b_spikezig', 'b_poppocket', 'b_fanshaft', 'b_boxshelf', 'b_boxtunnel', 'b_fanlee', 'b_fancorridor', 'b_fanbalcony', 'b_popbulge', 'b_poptower', 'b_popbelt', 'b_shutterchimney', 'b_shuttergate'] },
   { from: 200, name: '古い機械の縦穴', pieces: ['c_lift', 'c_liftspikes', 'c_twinlift', 'c_pendfunnel', 'z2_dense', 'b_boxlane', 'b_shutterpop',
     'c_liftzig', 'c_pendshelves', 'c_liftstagger', 'c_pendsteps', 'c_liftspikewall', 'c_pendwedge', 'c_liftshelf', 'b_fanzig', 'c_liftcave', 'c_liftpair', 'c_liftladder', 'c_liftpops', 'c_liftfan', 'c_liftwall', 'c_pendcave', 'c_pendladder', 'c_pendshutter', 'c_pendbox', 'c_pendrocks', 'c_spikeshaft', 'c_spikestairs', 'c_boxpair', 'c_shutterpops', 'c_fanpops', 'c_liftspikes2', 'c_pendpillars', 'c_pend', 'c_pendpair', 'c_pendtrio', 'c_liftboulder', 'c_liftdiamond', 'c_lifthooks', 'c_liftribs', 'c_liftbay', 'c_liftsplit', 'c_liftstepcave', 'c_liftterrace', 'c_pendalcoves', 'c_pendcomb', 'c_penddrops', 'c_pendlantern', 'c_pendsqueeze', 'c_pendpebbles'] },
   { from: 300, name: '地上へのさけ目', pieces: ['d_crossfan', 'd_liftshutter', 'd_boxspikes', 'd_sidepops', 'd_chimney', 'c_pendpops',
