@@ -6947,6 +6947,289 @@ piece('h_summit', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
+piece('h_peakcannon', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+#K................##
+##......./\.......##
+##....../##\......##
+##...../####\.....##
+##..../######\....##
+##....########....##
+##....########....k#
+##................##
+##................##
+##................##
+##................##
+`);
+piece('h_pinnaclespin', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.........T......##
+##................##
+##................##
+##.....#..........##
+##.....#.......#..##
+##.....#...#...#..##
+##.....#...#...#..##
+##.....#...#...#..##
+##................##
+##................##
+##................##
+`);
+piece('h_cornice', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########%%%.....##
+#########.........##
+########..........##
+##^...............##
+##^...............##
+##^..............^##
+##^.........SS...^##
+##..........##....##
+##................##
+##................##
+##................##
+`);
+piece('h_chockstake', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+#####..........#####
+#####ZZZ.......#####
+#####..........#####
+#####...%%%%...#####
+#####...####...#####
+#####..........#####
+#####..........#####
+##...............^##
+##...............^##
+##................##
+##................##
+`);
+piece('h_cavespring', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##..........########
+##..........########
+##................##
+##.............ZZZ##
+##................##
+##.........^########
+##.........^########
+##................##
+##...SS...........##
+##...##...........##
+##................##
+##................##
+`);
+piece('h_plateaupend', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##....O...........##
+##................##
+##................##
+##................##
+##........%%########
+##..........########
+##..........########
+##..........########
+##................##
+##................##
+##................##
+`);
+piece('h_spancannon', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................k#
+############......##
+#K........##......##
+##........##......##
+##........##......##
+##........##......##
+##................##
+##................##
+##................##
+`);
+piece('h_crevasse', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##^..............^##
+#######^...#########
+#######^...#########
+#######\....\#######
+########\....\######
+#########....#######
+##^..............^##
+##^.......SS.....^##
+##........##......##
+##................##
+##................##
+`);
+piece('h_icefall', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##########........##
+#######%%.........##
+#######%%.........##
+#######%%.........##
+##^...............##
+##^...............##
+##................##
+##^............SS.##
+##^............##.##
+##................##
+##................##
+`);
+piece('h_ridgespin', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+##%%%%%%%%%%%.....##
+##................##
+##................##
+##.......T........##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('h_lookout', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##.......###########
+##.......#^......^##
+##....ZZZ#^......^##
+##.......#........##
+##................##
+##%%%.............##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('h_boulderfield', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##.../#\..........##
+##...###..........##
+##...\#/..........##
+#K................##
+##........../#\...##
+##..........###...##
+##..........\#/...##
+##................k#
+##...../#\........##
+##.....###........##
+##.....\#/........##
+##................##
+##................##
+##................##
+`);
+piece('h_torcannon', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##........SS......##
+##........##......##
+##......./##\.....##
+#K....../####\....##
+##......######....##
+##......#####.....k#
+##.......###......##
+##................##
+##................##
+##................##
+`);
+piece('h_pendbridge', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.........O......##
+##................##
+##................##
+##BBBBBB..........##
+##................##
+##................##
+##...........#######
+##...........#######
+##................##
+##................##
+##................##
+`);
+piece('h_spinwindow', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##....########....##
+##....########....##
+##................##
+##................##
+##.......T........##
+##................##
+##................##
+##................##
+##....########....##
+##....########....##
+##................##
+##................##
+##................##
+`);
+piece('h_cannonledges', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................k#
+#####.............##
+##................##
+##................##
+##................k#
+#####.............##
+##................##
+##................##
+#####.............##
+##................##
+##................##
+##................##
+`);
+piece('h_springstakes', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##............ZZZZ##
+##................##
+##ZZZZ............##
+##................##
+##................##
+##................##
+##................##
+##................##
+##.......SS.......##
+##.......##.......##
+##................##
+##................##
+##................##
+`);
 
 // ===== 新しいパーツ（800m）
 piece('i_chimmines', { diff: 2 }, String.raw`
@@ -9053,7 +9336,7 @@ const POOLS = [
   { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan', 'f_stakeshaft', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'f_cannonopen', 'f_cannonladder', 'f_cannoncave', 'f_cannonbridge', 'f_stakeladder', 'f_stakefunnel', 'f_stakecrumble2', 'f_stakespikes', 'f_rockcannon', 'f_windcannon', 'f_stakeshelves', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'f_stakeopen', 'f_cannonduel', 'f_cannonshelter', 'f_cannonmesa', 'f_cannonbluff', 'f_cannonhole', 'f_cannoncorridor', 'f_cannonnotch', 'f_stakechimney', 'f_stakegate', 'f_stakeblock', 'f_stakeduo', 'f_stakeporch', 'f_stakelip', 'f_stakefloat'] },
   { from: 600, name: '古い水路', pieces: ['g_springpair', 'g_spring', 'g_springzig', 'g_springshelf', 'g_springbridge', 'g_springcrumble', 'g_springstake', 'g_springcannon', 'f_stakezig',
     'g_springtower', 'g_springledges', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'e_spinspikes', 'g_springcave', 'g_springladder', 'g_springspin2', 'g_springcannon2', 'g_springbridge2', 'g_springcrumble2', 'g_springpend2', 'g_springbox', 'g_springpops2', 'g_springfan', 'g_springhops', 'g_springchute', 'g_springrocks', 'g_springshelves2', 'g_springlift', 'g_springtwin', 'g_springshutter', 'g_springfunnel2', 'g_springspin', 'g_springgap', 'g_springwall', 'g_springflue', 'g_springtrio', 'g_springoffset', 'g_springbalcony', 'g_springlip', 'g_springcanopy', 'g_springcorner', 'g_springbench', 'g_springspikefloor', 'g_springcliff', 'g_springslope'] },
-  { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon'] },
+  { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon', 'h_peakcannon', 'h_pinnaclespin', 'h_cornice', 'h_chockstake', 'h_cavespring', 'h_plateaupend', 'h_spancannon', 'h_crevasse', 'h_icefall', 'h_ridgespin', 'h_lookout', 'h_boulderfield', 'h_torcannon', 'h_pendbridge', 'h_spinwindow', 'h_cannonledges', 'h_springstakes'] },
   // 800m〜 上空：雲の足場・ただよう機雷・曲がるトゲブロック・突風・雷の柱・風車。雨のパーツでは壁に掴まっていられる時間が1/4
   { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudgust', 'i_minewalls', 'i_cloudmill', 'i_cloudlayers', 'i_chimmines', 'i_dogmines'] },
   { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcross', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend', 'j_bounce', 'j_bouncepads', 'j_bouncegust'] },
