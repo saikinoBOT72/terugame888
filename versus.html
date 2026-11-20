@@ -182,7 +182,8 @@ function pollPads() {
     for (const k of ['L', 'R', 'A', 'D']) if (!!now[k] !== !!prev[i][k]) input(i, k, !!now[k]);
     prev[i] = now;
   }
-  const list = [...pads.values()].map(p => `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}`);
+  // 押しているボタンの番号と、並びが標準か（標準でないとボタンの番号がずれる）も出す。iPad で原因を探す用
+  const list = [...pads.values()].map(p => { const on = p.buttons.map((x, i) => x && x.pressed ? i : -1).filter(i => i >= 0); return `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}${p.mapping === 'standard' ? '' : '［標準でない］'}${on.length ? ' 押す:' + on.join(',') : ''}`; });
   const el = $('padList'); const t = list.length ? '見つかったコントローラー ' + list.join(' ・ ') : 'コントローラーが見つからない（つないだらボタンを押してね）';
   if (el.textContent !== t) el.textContent = t;
 }
