@@ -36,6 +36,7 @@
 - カタログ：変えたファイルだけを `root: catalog`、`file_path` は `design-system.json` の絶対パス、`url` 付きで1回の publish。直前に `project/design-system.json` を `read` して `lastChange` だけ書き換える。`index.d.ts` は `{"from": ..., "contentType": "text/plain"}`。`tokens.css` はカタログのページが作るので送らない（手元の `tokens.css` は本編用に自分で作り直す）。送る前に `list`（scope files）の sha256 と手元を比べて、違うファイルを全部送る。見本は `<!-- @dsCard group=… height=… -->` で始める。
 
 ## 確かめ方（自分でテスト用スクリプトを書かない）
+- 難しさ：`node tools/difficulty.js`（プールごとの中央値と目標、外れたものに▲▽。1つなら id を渡す）。計算は `tools/diff_core.js`（目標 `TARGET` もここ）。易しすぎるパーツには `node tools/harden.js <id> <目標> [ceil]` がトゲを足す案を出す（書き換えない）。新しいパーツはプールの目標の幅に入れる
 - パーツ・動き・当たり判定：`node tools/check.js`（1つなら `node tools/check.js z1_funnel`）。全部 OK・詰み0が必須。回る棒・箱・シャッターはチェックでは「無い」扱いなので、壁の張り付き位置に届かないかは自分で確かめる。
 - 本編の見た目や処理：`node tools/smoke.js 20`（ガチャ所は自動で閉じる）。
 - カタログ：`node tools/catalog_preview.js [見本名]`。
