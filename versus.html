@@ -2,91 +2,155 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#120d18">
-<title>2人対戦 — おばけじゃんぴんぐ</title>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1b1426">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
+<title>ふたりで — おばけじゃんぴんぐ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<link rel="stylesheet" href="catalog/project/tokens.css">
 <style>
-  :root { --bg: #120d18; --cream: #fff4e6; --dim: #a99db5; --glow: #ffd98a; --p1: #8fd0ff; --p2: #ffb38a;
-    --st: env(safe-area-inset-top, 0px); --sr: env(safe-area-inset-right, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--cream); font-family: "M PLUS Rounded 1c", system-ui, sans-serif; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-  /* 2つの画面：ノッチ・ホームバーの内側に置く（本編の中からは見えないので、ここでよける） */
-  #wrap { position: fixed; top: var(--st); right: var(--sr); bottom: var(--sb); left: var(--sl); display: flex; gap: 4px; }
+  /* 本編と同じ見た目（統一カタログの色・丸ゴシック・クリーム色のボタン）。赤はマフラーとハートだけなので、1P は水色・2P はからし色 */
+  :root { --panel: var(--ui-panel); --cream: var(--ui-ink); --dim: var(--ui-muted); --p1: #8fd0ff; --p2: #f2b544;
+    --st: env(safe-area-inset-top, 0px); --sr: env(safe-area-inset-right, 0px); --sb: env(safe-area-inset-bottom, 0px); --sl: env(safe-area-inset-left, 0px); color-scheme: dark; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; height: 100%; background: var(--bg-top, #1b1426); color: var(--cream); font: 500 14px/1.6 var(--font-round); overflow: hidden; overscroll-behavior: none; }
+  *, *::before, *::after { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html { touch-action: manipulation; }
+
+  /* 2つの画面：ノッチ・ホームバーの内側。どちらの画面も、形（幅÷高さ）が 0.375〜0.8 なら中で画面いっぱい（額縁つき） */
+  #wrap { position: fixed; top: var(--st); right: var(--sr); bottom: var(--sb); left: var(--sl); display: flex; gap: 4px; background: #000; }
   .side { position: relative; flex: 1; min-width: 0; overflow: hidden; }
   .side iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-  .done { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,7,14,.55); font-weight: 800; font-size: 64px; color: var(--cream); z-index: 3; pointer-events: none; }
-  .done[hidden] { display: none; }
+  .done { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(20,15,28,.6); z-index: 3; pointer-events: none; }
+  .done b { font-weight: 800; font-size: clamp(28px, 6vmin, 54px); paint-order: stroke fill; -webkit-text-stroke: 7px rgba(20,15,28,.92); }
 
-  /* 板：入りきらないときはスクロール（上下の真ん中にそろえつつ、はみ出しても上が切れない） */
-  .ov { position: fixed; inset: 0; display: flex; overflow: auto; -webkit-overflow-scrolling: touch; touch-action: pan-y; background: rgba(10,7,14,.8); z-index: 5; text-align: center;
-    padding: calc(var(--st) + 12px) calc(var(--sr) + 12px) calc(var(--sb) + 12px) calc(var(--sl) + 12px); box-sizing: border-box; }
-  .ov[hidden] { display: none; }
-  .card { margin: auto; width: min(100%, 560px); }
-  h1 { margin: 0 0 4px; font-size: clamp(24px, 4.5vmin, 40px); }
-  p { margin: 6px 0; color: var(--dim); font-size: clamp(12px, 2vmin, 15px); line-height: 1.6; }
-  .pads { display: flex; gap: 12px; justify-content: center; margin: 12px 0; }
-  .pad { flex: 1; max-width: 220px; padding: 10px 12px; border-radius: 14px; border: 2px solid rgba(255,244,230,.2); font-weight: 800; font-size: clamp(14px, 2.4vmin, 18px); }
-  .pad.on { border-color: currentColor; background: rgba(255,255,255,.05); }
-  .pad small { display: block; font-weight: 500; color: var(--dim); font-size: 12px; margin-top: 2px; }
-  #pad0 { color: var(--p1); } #pad1 { color: var(--p2); }
-  .row { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 8px; }
-  button { font: inherit; font-weight: 800; color: #120d18; background: var(--glow); border: 0; border-radius: 999px; padding: 12px 34px; font-size: clamp(16px, 2.8vmin, 20px); cursor: pointer; }
-  button.sub { background: rgba(255,244,230,.12); color: var(--cream); padding: 8px 16px; font-size: 14px; }
-  button:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
-  a.back { display: inline-block; margin-top: 10px; color: var(--dim); font-size: 13px; }
-  #padList { font-size: 12px; min-height: 1.6em; }
-  #count { margin: auto; font-size: clamp(80px, 22vmin, 180px); font-weight: 800; color: var(--glow); pointer-events: none; }
-  .res { font-size: clamp(24px, 5vmin, 38px); font-weight: 800; margin: 6px 0; }
-  .res .w0 { color: var(--p1); } .res .w1 { color: var(--p2); }
-  #toast { position: fixed; left: 50%; top: calc(var(--st) + 10px); transform: translateX(-50%); background: rgba(20,15,28,.92); color: var(--cream); padding: 6px 14px; border-radius: 999px; font-size: 13px; z-index: 9; pointer-events: none; }
-  #toast[hidden] { display: none; }
+  /* 板（画面全体）：入りきらないときはスクロール。真ん中にそろえても上が切れない */
+  .ov { position: fixed; inset: 0; z-index: 5; display: flex; overflow: auto; touch-action: pan-y; background: rgba(20,15,28,.62);
+    padding: calc(var(--st) + 14px) calc(var(--sr) + 14px) calc(var(--sb) + 14px) calc(var(--sl) + 14px); }
+  .card { margin: auto; width: min(100%, 620px); display: grid; justify-items: center; gap: 12px; text-align: center;
+    background: var(--panel); border-radius: 22px; padding: 22px 20px; box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+  .logo { display: grid; justify-items: center; line-height: 1; gap: 2px; }
+  .logo .l1 { font-weight: 800; color: var(--glow); letter-spacing: .12em; font-size: clamp(14px, 2.6vmin, 18px); }
+  .logo .l2 { font-weight: 800; font-size: clamp(34px, 7vmin, 52px); letter-spacing: .04em; paint-order: stroke fill; -webkit-text-stroke: 6px rgba(20,15,28,.92); text-shadow: 0 4px 0 rgba(0,0,0,.35); }
+  .rules { margin: 0; color: var(--dim); font-size: clamp(12px, 2.1vmin, 14px); }
+  .rules b { color: var(--cream); }
+
+  /* 1P・2P の札 */
+  .players { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .pl { --c: var(--p1); position: relative; display: grid; justify-items: center; gap: 4px; padding: 10px 8px 12px; border-radius: 18px;
+    background: rgba(0,0,0,.22); border: 3px solid rgba(255,244,230,.14); transition: border-color .2s, background .2s; }
+  .pl.p2 { --c: var(--p2); }
+  .pl.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 12%, rgba(0,0,0,.22)); }
+  .pl .tag { font-weight: 800; font-size: 18px; color: #1b1426; background: var(--c); border-radius: 999px; padding: 0 14px; line-height: 1.6; }
+  .pl canvas { width: 120px; height: 96px; }
+  .pl .who { font-weight: 800; font-size: 14px; min-height: 1.6em; }
+  .pl:not(.on) .who { color: var(--dim); animation: blink 1.4s ease-in-out infinite; }
+  @keyframes blink { 50% { opacity: .45; } }
+  .pl .keys { font-size: 11.5px; color: var(--dim); }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+  .btn { font: inherit; font-weight: 800; font-size: 18px; color: var(--ui-panel, #1b1426); background: var(--cream); border: 0; border-radius: 999px;
+    padding: 11px 34px; cursor: pointer; box-shadow: 0 4px 0 var(--dim); transition: transform .1s, box-shadow .1s; text-decoration: none; display: inline-block; }
+  .btn.big { font-size: 22px; padding: 12px 52px; animation: breathe 2.4s ease-in-out infinite; }
+  @keyframes breathe { 50% { box-shadow: 0 4px 0 var(--dim), 0 0 0 7px rgba(255,244,230,.16); } }
+  .btn:active { transform: translateY(3px) scale(.96); box-shadow: 0 1px 0 var(--dim); }
+  .sub { font: inherit; font-size: 13px; color: var(--cream); background: transparent; border: 2px solid rgba(255,244,230,.25); border-radius: 999px; padding: 5px 14px; cursor: pointer; text-decoration: none; }
+  .sel, .btn:focus-visible, .sub:focus-visible { outline: 3px solid var(--glow); outline-offset: 3px; }
+  .note { font-size: 11px; color: var(--dim); margin: 0; max-width: 560px; word-break: break-all; min-height: 1.5em; }
+
+  /* 3・2・1 */
+  #ovCount { background: transparent; pointer-events: none; }
+  #count { margin: auto; font-weight: 800; font-size: clamp(90px, 24vmin, 200px); color: var(--glow); paint-order: stroke fill; -webkit-text-stroke: 12px rgba(20,15,28,.9); text-shadow: 0 8px 0 rgba(0,0,0,.35); }
+  #count.go { font-size: clamp(56px, 14vmin, 120px); color: var(--cream); }
+  #count.pop { animation: pop .55s cubic-bezier(.2,1.4,.4,1); }
+  @keyframes pop { from { transform: scale(1.8); opacity: 0; } 40% { opacity: 1; } to { transform: scale(1); } }
+
+  /* 結果 */
+  .win { font-weight: 800; font-size: clamp(32px, 7vmin, 52px); line-height: 1.1; paint-order: stroke fill; -webkit-text-stroke: 6px rgba(20,15,28,.92); text-shadow: 0 4px 0 rgba(0,0,0,.35); }
+  .win .c1 { color: var(--p1); } .win .c2 { color: var(--p2); }
+  .res { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+  .rc { --c: var(--p1); display: grid; justify-items: center; gap: 2px; padding: 10px 8px; border-radius: 18px; background: rgba(0,0,0,.22); border: 3px solid transparent; }
+  .rc.p2 { --c: var(--p2); }
+  .rc.won { border-color: var(--c); }
+  .rc .tag { font-weight: 800; color: #1b1426; background: var(--c); border-radius: 999px; padding: 0 12px; }
+  .rc canvas { width: 110px; height: 88px; }
+  .rc .m { font-weight: 800; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .rc .why { font-size: 12px; color: var(--dim); min-height: 1.5em; }
+
+  #toast { position: fixed; left: 50%; top: calc(var(--st) + 12px); transform: translateX(-50%); z-index: 9; background: rgba(20,15,28,.92); color: var(--cream);
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 800; pointer-events: none; white-space: nowrap; }
+  @media (max-height: 560px) { .pl canvas { width: 90px; height: 72px; } .card { gap: 8px; padding: 14px; } }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div class="side" id="s0"><div class="done" id="d0" hidden>×</div></div>
-  <div class="side" id="s1"><div class="done" id="d1" hidden>×</div></div>
+  <div class="side" id="s0"><div class="done" id="d0" hidden><b></b></div></div>
+  <div class="side" id="s1"><div class="done" id="d1" hidden><b></b></div></div>
 </div>
 
-<div class="ov" id="ovStart">
+<!-- さいしょ：参加と設定 -->
+<section class="ov" id="ovStart">
   <div class="card">
-    <h1>2人対戦</h1>
-    <p>同じ縦穴を左右に分かれて登る。溶岩は2人で1つ（ガチャ所でも止まらない）。先に落ちた方の負け。</p>
-    <div class="pads">
-      <div class="pad" id="pad0">1P（左）<small id="pk0"></small></div>
-      <div class="pad" id="pad1">2P（右）<small id="pk1"></small></div>
+    <div class="logo"><span class="l1">おばけじゃんぴんぐ</span><span class="l2">ふたりで</span></div>
+    <p class="rules">同じ縦穴を左右に分かれて登る。<b>先に落ちた方の負け</b><br><b>溶岩は2人で1つ</b>（ガチャ所の中でも止まらない）</p>
+    <div class="players">
+      <div class="pl" id="pl0"><span class="tag">1P</span><canvas id="cv0" width="240" height="192"></canvas><span class="who" id="who0"></span><span class="keys">キーボード W A S D ／ 左の画面をタッチ</span></div>
+      <div class="pl p2" id="pl1"><span class="tag">2P</span><canvas id="cv1" width="240" height="192"></canvas><span class="who" id="who1"></span><span class="keys">キーボード ↑ ← ↓ → ／ 右の画面をタッチ</span></div>
     </div>
-    <p>コントローラーは<b>どれかボタンを押すと参加</b>（押した順に 1P・2P）。<br>A で蹴る・十字キーの左右で向き・下か B で「下」の水晶。ガチャ所は左右で選んで A。</p>
-    <div class="row"><button id="btnStart" type="button">はじめる</button></div>
-    <p id="startHint">参加したら A でもはじまる。キーボードは 1P が W A S D、2P が ↑ ← ↓ →。タッチは左右の画面</p>
-    <div class="row"><button class="sub" id="btnFx" type="button">画質：きれい</button><button class="sub" id="btnReset" type="button">コントローラーを選び直す</button></div>
-    <p id="padList"></p>
-    <a class="back" href="./">← ひとりで遊ぶ</a>
+    <p class="rules">A：蹴る ・ 十字キー左右：向き ・ 下か B：「下」の水晶 ・ スタートボタン：一時停止</p>
+    <div class="row"><button class="btn big" id="btnStart" type="button" data-nav>はじめる</button></div>
+    <div class="row">
+      <button class="sub" id="btnFx" type="button" data-nav>画質：きれい</button>
+      <button class="sub" id="btnReset" type="button" data-nav>コントローラーを選び直す</button>
+      <a class="sub" href="./" data-nav>ひとりで遊ぶ</a>
+    </div>
+    <p class="note" id="padList"></p>
   </div>
-</div>
-<div class="ov" id="ovCount" hidden><div id="count">3</div></div>
-<div class="ov" id="ovEnd" hidden>
+</section>
+
+<section class="ov" id="ovCount" hidden><div id="count">3</div></section>
+
+<!-- 一時停止 -->
+<section class="ov" id="ovPause" hidden>
+  <div class="card" style="width:min(100%,360px)">
+    <div class="logo"><span class="l2" style="font-size:34px">一時停止</span></div>
+    <button class="btn big" id="btnResume" type="button" data-nav>つづける</button>
+    <div class="row"><button class="sub" id="btnRestart" type="button" data-nav>やり直す</button><button class="sub" id="btnQuit" type="button" data-nav>さいしょの画面</button></div>
+  </div>
+</section>
+
+<!-- 結果 -->
+<section class="ov" id="ovEnd" hidden>
   <div class="card">
-    <div class="res" id="resTitle"></div>
-    <p id="resSub"></p>
-    <div class="row"><button id="btnAgain" type="button">もう一回</button><button class="sub" id="btnMenu" type="button">さいしょの画面</button></div>
-    <p>A でもう一回</p>
+    <div class="win" id="winTitle"></div>
+    <div class="res">
+      <div class="rc" id="rc0"><span class="tag">1P</span><canvas id="rv0" width="220" height="176"></canvas><span class="m" id="rm0"></span><span class="why" id="rw0"></span></div>
+      <div class="rc p2" id="rc1"><span class="tag">2P</span><canvas id="rv1" width="220" height="176"></canvas><span class="m" id="rm1"></span><span class="why" id="rw1"></span></div>
+    </div>
+    <div class="row"><button class="btn big" id="btnAgain" type="button" data-nav>もう一回</button></div>
+    <div class="row"><button class="sub" id="btnMenu" type="button" data-nav>さいしょの画面</button></div>
   </div>
-</div>
+</section>
 <div id="toast" hidden></div>
 
+<script src="catalog/project/components/bundle.js"></script>
 <script>
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
-const ready = [false, false], frames = [];
-let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true);
+const ready = [false, false], frames = [], scarf = ['red', 'karashi'];
+let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false;
 const lava = { y: 200, delay: 3 };   // 2人で1つの溶岩（ゲームの座標。上がマイナス）
+const NAME = ['1P', '2P'];
 
-function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => el.hidden = true, 3000); }
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => el.hidden = true, 2600); }
 
 // 音：親ページで1つ作り、2つの画面が使う（iPad はタップした所でしか音を出せないため）
 function unlockAudio() {
@@ -96,16 +160,34 @@ function unlockAudio() {
 addEventListener('pointerdown', unlockAudio, true);
 
 /* ---------- 本編（iframe）とのやりとり ---------- */
+const api = i => { try { return frames[i].contentWindow.__vs || null; } catch (e) { return null; } };
 window.__vsAudio = () => { unlockAudio(); return actx; };
-window.__vsReady = side => { ready[side] = true; const a = api(side); if (a) a.fx(fx); };
+window.__vsReady = side => {
+  ready[side] = true; const a = api(side); if (!a) return;
+  a.fx(fx);
+  // マフラー：1P は自分の着せ替え、2P はからし色（1P がからしなら あお）。どちらが誰か見分けやすく
+  if (side === 0) scarf[0] = a.look();
+  scarf[1] = scarf[0] === 'karashi' ? 'ao' : 'karashi';
+  const b = api(1); if (b) b.scarf(scarf[1]);
+};
 window.__vsEnd = () => {};   // 勝ち負けは毎フレームの loop で見る
 window.__vsLava = y => { lava.y = Math.min(lava.y, y); lava.delay = 0; };   // ガチャ所の「溶岩を近づける」（相手の 2m 下までは本編側で止めてある）
 for (const i of [0, 1]) {
   const f = document.createElement('iframe');
-  f.src = `index.html?vs=${i}&seed=1`; f.title = i ? '2P' : '1P'; f.setAttribute('scrolling', 'no'); f.setAttribute('allow', 'autoplay; gamepad');
+  f.src = `index.html?vs=${i}&seed=1`; f.title = NAME[i]; f.setAttribute('scrolling', 'no'); f.setAttribute('allow', 'autoplay; gamepad');
   $('s' + i).prepend(f); frames.push(f);
 }
-const api = i => { try { return frames[i].contentWindow.__vs || null; } catch (e) { return null; } };
+
+/* ---------- おばけの絵（本編と同じ Kabe で描く） ---------- */
+const PAL = Kabe.stagePal('underground', 0);
+function drawGhost(cv, side, pose, t) {
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height, c = Kabe.SCARF.color;
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, w * 0.2, h * 0.05, 0, 0, Math.PI * 2); g.fill();
+  Kabe.SCARF.color = scarf[side];
+  try { Kabe.ghost(g, PAL, 'sheet', pose, w / 2, h * 0.5 + (pose === 'cheer' ? Math.sin(t * 6) * 3 : Math.sin(t * 2.2 + side) * 2), t, side ? -1 : 1, h / 52); }
+  finally { Kabe.SCARF.color = c; }
+}
 
 /* ---------- 画質（2画面ぶん描くので重ければ「かるい」に） ---------- */
 function setFx(on, auto) {
@@ -123,52 +205,89 @@ function watchFps(g, dt) {
   if (perf.t > 8 && perf.sum / perf.n < 42) setFx(false, true);
 }
 
-/* ---------- 試合の流れ：さいしょ → 3・2・1 → プレイ → 結果 ---------- */
-function show(id) { for (const k of ['ovStart', 'ovCount', 'ovEnd']) $(k).hidden = k !== id; }
-function start() {
-  if (phase !== 'start' && phase !== 'end') return;
-  if (!ready[0] || !ready[1] || !api(0) || !api(1)) { $('startHint').textContent = 'よみこみ中…もう少し待ってね'; return; }
-  unlockAudio();
-  phase = 'count'; show('ovCount'); $('d0').hidden = $('d1').hidden = true;
-  seed = (Math.random() * 4294967295) >>> 0 || 1;
-  let n = 3; $('count').textContent = n;
-  const tick = () => {
-    if (--n > 0) { $('count').textContent = n; setTimeout(tick, 700); return; }
-    show(null); phase = 'play';
-    api(0).start(seed); api(1).start(seed);
-    const g = api(0).get(); lava.y = g.lavaY; lava.delay = g.delay; lastT = performance.now(); perf.t = perf.n = perf.sum = 0;
-  };
-  setTimeout(tick, 700);
+/* ---------- 板とメニュー（コントローラーは左右で選んで A） ---------- */
+const OVS = ['ovStart', 'ovCount', 'ovPause', 'ovEnd'];
+const nav = { box: null, i: 0 };
+let usingPad = false;
+function show(id) {
+  for (const k of OVS) $(k).hidden = k !== id;
+  nav.box = id ? $(id) : null; nav.i = 0; markSel();
 }
+const navItems = () => nav.box ? [...nav.box.querySelectorAll('[data-nav]')].filter(b => !b.disabled && b.offsetParent) : [];
+function markSel() { const it = navItems(); for (const [i, b] of it.entries()) b.classList.toggle('sel', i === nav.i && usingPad); }
+function menuKey(k) {
+  const it = navItems(); if (!it.length) return;
+  if (!usingPad) { usingPad = true; markSel(); if (k !== 'A') return; }
+  if (k === 'A') { it[nav.i].click(); return; }
+  nav.i = (nav.i + (k === 'L' ? -1 : 1) + it.length) % it.length; markSel();
+}
+
+/* ---------- 試合の流れ：さいしょ → 3・2・1 → プレイ（一時停止）→ 結果 ---------- */
+function start() {
+  if (phase !== 'start' && phase !== 'end' && phase !== 'pause') return;
+  if (!ready[0] || !ready[1] || !api(0) || !api(1)) { toast('よみこみ中…もう少し待ってね'); return; }
+  unlockAudio();
+  phase = 'count'; show('ovCount'); countDrawn = false; for (const i of [0, 1]) $('d' + i).hidden = true;
+  seed = (Math.random() * 4294967295) >>> 0 || 1;
+  api(0).start(seed); api(1).start(seed);   // 先に作って見せておき、数え終わるまで動かさない
+  const g = api(0).get(); lava.y = g.lavaY; lava.delay = g.delay;
+  const steps = ['3', '2', '1', 'スタート！'];
+  const tick = i => {
+    const el = $('count'); el.textContent = steps[i]; el.className = i === 3 ? 'go' : ''; void el.offsetWidth; el.classList.add('pop');
+    if (i < 3) { setTimeout(() => tick(i + 1), 650); return; }
+    phase = 'play'; lastT = performance.now(); perf.t = perf.n = perf.sum = 0;
+    setTimeout(() => { if (phase === 'play') show(null); }, 600);
+  };
+  tick(0);
+}
+function pause() { if (phase !== 'play') return; phase = 'pause'; show('ovPause'); for (const i of [0, 1]) for (const k of ['L', 'R', 'A', 'D']) { const a = api(i); if (a) a.input(k, false); } }
+function resume() { if (phase !== 'pause') return; phase = 'play'; show(null); lastT = performance.now(); }
+function toMenu() { phase = 'start'; show('ovStart'); for (const i of [0, 1]) { const a = api(i); if (a) a.halt(); $('d' + i).hidden = true; } }
+$('btnStart').onclick = start; $('btnAgain').onclick = start; $('btnRestart').onclick = start;
+$('btnResume').onclick = resume; $('btnQuit').onclick = toMenu; $('btnMenu').onclick = toMenu;
+
 const CAUSE = { lava: '呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた' };
 // 勝負がついた：out[i] が true の人が落ちた（2人同時なら高い方の勝ち）
 function decide(out, g) {
   phase = 'over';
-  for (const i of [0, 1]) { if (!out[i]) api(i).halt(); $('d' + i).hidden = !out[i]; }
+  for (const i of [0, 1]) { if (!out[i]) api(i).halt(); }
   const win = out[0] && out[1] ? (g[0].m === g[1].m ? -1 : g[0].m > g[1].m ? 0 : 1) : out[0] ? 1 : 0;
+  for (const i of [0, 1]) {
+    const d = $('d' + i), b = d.querySelector('b'); d.hidden = false;
+    b.textContent = win < 0 ? 'ひきわけ' : i === win ? 'かち！' : 'まけ'; b.style.color = i === win ? `var(--p${i + 1})` : 'var(--cream)';
+  }
+  result = { win, out, g };
   setTimeout(() => {
     phase = 'end';
-    $('resTitle').innerHTML = win < 0 ? '引き分け！' : `<span class="w${win}">${win ? '2P' : '1P'} の勝ち！</span>`;
-    const lose = g.map((x, i) => out[i] ? `${i ? '2P' : '1P'} は${x.cause === 'lava' ? x.rise + 'に' : ''}${CAUSE[x.cause] || '落ちた'}` : '').filter(Boolean).join('・');
-    $('resSub').textContent = `${lose}（1P ${g[0].m}m ・ 2P ${g[1].m}m）`;
+    $('winTitle').innerHTML = win < 0 ? 'ひきわけ！' : `<span class="c${win + 1}">${NAME[win]}</span> のかち！`;
+    for (const i of [0, 1]) {
+      $('rc' + i).classList.toggle('won', i === win);
+      $('rm' + i).textContent = g[i].m + 'm';
+      $('rw' + i).textContent = out[i] ? (g[i].cause === 'lava' ? g[i].rise + 'に' : '') + (CAUSE[g[i].cause] || '落ちた') : `結晶 ${g[i].got}個`;
+    }
     show('ovEnd'); endAt = performance.now();
-  }, 1200);
+  }, 1400);
 }
-$('btnStart').onclick = start; $('btnAgain').onclick = start;
-$('btnMenu').onclick = () => { phase = 'start'; show('ovStart'); };
 
-/* ---------- 入力：k は L 左・R 右・A 蹴る・D 下 ---------- */
+/* ---------- 入力：k は L 左・R 右・A 蹴る・D 下・P 一時停止 ---------- */
 function input(side, k, down) {
-  if (phase === 'play') { const a = api(side); if (a) a.input(k, down); return; }
-  if (down && k === 'A' && (phase === 'start' || performance.now() - endAt > 1500)) start();   // 結果が出てすぐの連打では始めない
+  if (phase === 'play') {
+    if (k === 'P') { if (down) pause(); return; }
+    const a = api(side); if (a) a.input(k, down); return;
+  }
+  if (!down || phase === 'count' || phase === 'over') return;
+  if (phase === 'end' && performance.now() - endAt < 1500) return;   // 結果が出てすぐの連打では押さない
+  if (k === 'P') { if (phase === 'pause') resume(); return; }
+  menuKey(k === 'D' ? 'R' : k);
 }
 const KEYS = { a: [0, 'L'], d: [0, 'R'], w: [0, 'A'], s: [0, 'D'], ' ': [0, 'A'],
-  ArrowLeft: [1, 'L'], ArrowRight: [1, 'R'], ArrowUp: [1, 'A'], ArrowDown: [1, 'D'], Enter: [1, 'A'] };
+  ArrowLeft: [1, 'L'], ArrowRight: [1, 'R'], ArrowUp: [1, 'A'], ArrowDown: [1, 'D'], Enter: [1, 'A'], Escape: [0, 'P'], p: [0, 'P'] };
 const keyOf = key => KEYS[key.length === 1 ? key.toLowerCase() : key];
 function onKey(key, down, repeat) { const m = keyOf(key); if (m && !repeat) input(m[0], m[1], down); }
 window.__vsKey = onKey;   // 画面（iframe）に入力が向いていても、ここに届く
-addEventListener('keydown', e => { if (keyOf(e.key) && e.target.tagName !== 'BUTTON') e.preventDefault(); onKey(e.key, true, e.repeat); });
+addEventListener('keydown', e => { if (keyOf(e.key)) e.preventDefault(); onKey(e.key, true, e.repeat); });
 addEventListener('keyup', e => onKey(e.key, false, false));
+addEventListener('pointermove', () => { if (usingPad) { usingPad = false; markSel(); } });
 
 /* ---------- コントローラー ----------
    ボタンを押した順に 1P・2P（参加）。リモコンなどコントローラー扱いの機器が混ざっても、押さなければ入らない。
@@ -177,9 +296,9 @@ addEventListener('keyup', e => onKey(e.key, false, false));
 const slot = [null, null], prev = [{}, {}];
 function padKeys(p) {
   const b = i => !!(p.buttons[i] && p.buttons[i].pressed), x = p.axes[0] || 0, y = p.axes[1] || 0;
-  if (p.mapping === 'standard') return { L: b(14) || x < -0.5, R: b(15) || x > 0.5, A: b(0) || b(3) || b(12) || y < -0.6, D: b(1) || b(2) || b(13) || y > 0.6 };
+  if (p.mapping === 'standard') return { L: b(14) || x < -0.5, R: b(15) || x > 0.5, A: b(0) || b(3) || b(12) || y < -0.6, D: b(1) || b(2) || b(13) || y > 0.6, P: b(9) || b(8) };
   const hat = p.axes.length > 9 ? p.axes[9] : 9, hl = hat > 0.3 && hat < 1.1, hr = hat > -0.8 && hat < -0.1;   // ハット：-1 上・-0.43 右・0.14 下・0.71 左（離すと 3.3）
-  return { L: x < -0.5 || hl, R: x > 0.5 || hr, A: b(0) || b(3) || y < -0.6, D: b(1) || b(2) || y > 0.6 };
+  return { L: x < -0.5 || hl, R: x > 0.5 || hr, A: b(0) || b(3) || y < -0.6, D: b(1) || b(2) || y > 0.6, P: b(9) || b(8) };
 }
 function allPads() {
   const map = new Map(), navs = [navigator];
@@ -193,7 +312,6 @@ function allPads() {
 const anyPressed = p => p.buttons.some(b => b && b.pressed);
 const padName = p => (p.id || '').replace(/\s*\(.*$/, '').replace(/^[0-9a-f]{4}-[0-9a-f]{4}-/i, '').slice(0, 22) || 'コントローラー';
 $('btnReset').onclick = () => { slot[0] = slot[1] = null; prev[0] = {}; prev[1] = {}; toast('ボタンを押した順に 1P・2P になる'); };
-let listText = '';
 // 1秒に何回コントローラーの状態が新しくなったか（スティックを回し続けて見る）。2台目だけ少なければ iPad・Bluetooth 側の遅れ
 const rate = new Map();
 function countRate(pads) {
@@ -204,62 +322,70 @@ function countRate(pads) {
     if (now - r.t0 >= 1000) { r.hz = Math.round(r.n * 1000 / (now - r.t0)); r.n = 0; r.t0 = now; }
   }
 }
+let listText = '';
 function pollPads() {
   const pads = allPads(); countRate(pads);
-  for (const i of [0, 1]) if (slot[i] != null && !pads.has(slot[i])) { slot[i] = null; prev[i] = {}; }   // 外れた
+  for (const i of [0, 1]) if (slot[i] != null && !pads.has(slot[i])) { slot[i] = null; prev[i] = {}; pause(); toast(`${NAME[i]} のコントローラーが外れた`); }
   for (const [idx, p] of pads) {
     if (slot.includes(idx) || !anyPressed(p)) continue;
     const i = slot.indexOf(null); if (i < 0) break;
     slot[i] = idx; prev[i] = padKeys(p);   // 参加したボタンは操作にしない
-    if (phase !== 'start') toast(`${i ? '2P' : '1P'} にコントローラーが入った`);
+    usingPad = true; markSel(); toast(`${NAME[i]} にコントローラーが入った`);
   }
   for (const i of [0, 1]) {
     const p = slot[i] != null ? pads.get(slot[i]) : null;
     if (!p) continue;
     const now = padKeys(p);
-    for (const k of ['L', 'R', 'A', 'D']) if (now[k] !== !!prev[i][k]) input(i, k, now[k]);
+    for (const k of ['L', 'R', 'A', 'D', 'P']) if (now[k] !== !!prev[i][k]) input(i, k, now[k]);
     prev[i] = now;
   }
   if (phase !== 'start') return;
-  // さいしょの画面：だれが入ったか・見つかったコントローラー（押しているボタンの番号も。iPad で原因を探す用）
   for (const i of [0, 1]) {
     const p = slot[i] != null ? pads.get(slot[i]) : null;
-    $('pad' + i).classList.toggle('on', !!p);
+    $('pl' + i).classList.toggle('on', !!p);
     const t = p ? padName(p) : 'ボタンを押して参加';
-    if ($('pk' + i).textContent !== t) $('pk' + i).textContent = t;
+    if ($('who' + i).textContent !== t) $('who' + i).textContent = t;
   }
-  const list = [...pads.values()].map(p => { const on = p.buttons.map((x, i) => x && x.pressed ? i : -1).filter(i => i >= 0);
-    return `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}${p.mapping === 'standard' ? '' : '［標準でない］'}${on.length ? ' 押す:' + on.join(',') : ''}${rate.get(p.index) && rate.get(p.index).hz ? ` 更新${rate.get(p.index).hz}回/秒` : ''}`; });
-  const t = list.length ? '見つかったコントローラー ' + list.join(' ・ ') : 'コントローラーはまだ見つかってない（つないだら、どれかボタンを押してね）';
+  // 見つかったコントローラー（押しているボタンの番号・標準の並びか・更新回数も。iPad で原因を探す用）
+  const list = [...pads.values()].map(p => { const on = p.buttons.map((x, i) => x && x.pressed ? i : -1).filter(i => i >= 0), r = rate.get(p.index);
+    return `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}${p.mapping === 'standard' ? '' : '［標準でない］'}${on.length ? ' 押す:' + on.join(',') : ''}${r && r.hz ? ` 更新${r.hz}回/秒` : ''}`; });
+  const t = list.length ? '見つかったコントローラー　' + list.join('　') : 'コントローラーはつないで、どれかボタンを押すと出てくる';
   if (t !== listText) $('padList').textContent = listText = t;
 }
 
 /* ---------- 溶岩（2人で1つ） ----------
-   基本の速さ ×（ブレーキ（3m以内で持っている人がいれば）＋ 2人の欲ばりの上乗せ）。どちらかが一時停止中は止める */
+   基本の速さ ×（ブレーキ（3m以内で持っている人がいれば）＋ 2人の欲ばりの上乗せ） */
 let lastT = performance.now();
 function lavaStep(g, dt) {
-  if (phase !== 'play' || g.some(x => x.st === 'pause')) return;
   if (lava.delay > 0) { lava.delay -= dt; return; }
   lava.y -= g[0].speed * (Math.min(g[0].brake, g[1].brake) + g[0].greed + g[1].greed) * dt;
 }
 
-/* ---------- 毎フレーム ---------- */
+/* ---------- 毎フレーム：コントローラー → 溶岩 → 2つの画面を同じフレームで動かす ---------- */
 function loop() {
-  const now = performance.now(), dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  const now = performance.now(), dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;   // 本編と同じく 0.1 秒まで
   pollPads();
   const a0 = api(0), a1 = api(1), g = a0 && a1 ? [a0.get(), a1.get()] : null;
   if (g && g[0] && g[1]) {
-    lavaStep(g, dt);
+    if (phase === 'play') lavaStep(g, dt);
     a0.put(g[1], lava); a1.put(g[0], lava);
-    a0.frame(); a1.frame();   // 入力を渡した直後に、2つの画面を同じフレームで動かして描く
+    // 一時停止・数えている間は止める（数え始めに1回だけ描いて、新しい縦穴を見せておく）
+    if (phase !== 'pause' && phase !== 'count') { a0.frame(); a1.frame(); }
+    else if (phase === 'count' && !countDrawn) { a0.frame(); a1.frame(); countDrawn = true; }
     if (phase === 'play') {
       watchFps(g, dt);
       const out = g.map(x => x.st === 'dying' || x.st === 'end' || x.sunk);
       if (out[0] || out[1]) decide(out, g);
     }
   }
+  // 板の中のおばけ
+  const t = now / 1000;
+  if (phase === 'start') for (const i of [0, 1]) drawGhost($('cv' + i), i, slot[i] != null ? (Math.floor(t * 0.7 + i) % 3 === 0 ? 'wave' : 'stand') : 'sleep', t);
+  if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'dizzy', t);
   requestAnimationFrame(loop);
 }
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+show('ovStart');
 requestAnimationFrame(loop);
 })();
 </script>

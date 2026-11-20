@@ -11,7 +11,7 @@
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編・2人対戦・`pools.html` が共通で読む |
 | `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（オフラインは sw.js が前に取ったものを返す。アイコンは `tools/make_icon.js`） |
 
-タイトル `#ovTitle`：プレイ・着せ替え（`WARDROBE`。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`。演出は水晶ガチャと同じ `show`（`kind: 'look'`）と `showFx`）・設定（`#ovSettings`）。ろうそく `kabe_candles` は結果画面で 100m ごとに1本（`META`）。右上「開発」に開発用ページへのリンク。
+タイトル `#ovTitle`：プレイ・着せ替え（`WARDROBE`。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`。演出は水晶ガチャと同じ `show`（`kind: 'look'`）と `showFx`）・設定（`#ovSettings`）。ろうそく `kabe_candles` は結果画面で 100m ごとに1本（`META`）。「ひとりで」の横の「ふたりで」は `versus.html` へ。右上「開発」に開発用ページへのリンク。
 
 **2人対戦**
 | ファイル | 中身 |
@@ -31,7 +31,7 @@
 | `tools/` | 確認用スクリプト（下の「確かめ方」）と公開用のコピー作り |
 
 `index.html` の区切り（`grep -n "^/\* ===" index.html`）：動きの数値 → 地形 → 動き（`physStep`、ゲームとチェックで共通）→ 到達チェック → ゲーム → 見た目（2D）→ シェーダー（`glfx`）→ 効果音 → 2人対戦。
-画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。ガチャの演出は #gShow（2D）を `showFx` が別の WebGL canvas（.gshowfx）で仕上げる。
+画面は #cv（2D）→ #gl（シェーダー）→ #hud（HUD）の3枚重ね。画面の形が `ASPECT`（0.375〜0.8）の間なら画面いっぱい（太い分は額縁 `#deco`、`resize` と `decoSync`）。ガチャの演出は #gShow（2D）を `showFx` が別の WebGL canvas（.gshowfx）で仕上げる。
 きれい画質は 2D の画面を送らず、GPU の中で組み立てる（`drawGL` → `glfx.scene`）。地形・地層は1回だけ絵にして少しずつ送り、丸・線・溶岩は GPU で描き、キャラなど動く物だけ小さい絵にまとめて送る。#cv に描くのは「かるい」と D・V の表示のときだけ。描く物を足したら `drawGL` 側にも足す。`?perf` で1フレームに送った量（送信 k/f）が見られる。
 軽さの決まり：毎フレーム描き直して送ってよいのはオバケだけ。動く物は1回描いて GPU で回す（`wspr` の rot）か、動きを段階に分けて絵を使い回す。小さく動く粒は GPU の点（`wdisc`）。背景3枚は半分の解像度。点光源と影は1/4の「光の地図」。HUD は表示が変わったときだけ描く。`?perf` の下の段に、1フレームの内訳（動き・組み立て・送る・仕上げ・HUD）が出る。
 

@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.07">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.10">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -45,7 +45,17 @@
   }
   @media (display-mode: standalone) { html { min-height: calc(100% + env(safe-area-inset-top, 0px)); } }   /* iOS 26 のホーム画面アプリは固定の要素が下を切られるので、ページ自体を画面の高さまでのばす */
   #app { position: fixed; left: 0; top: 0; width: 100%; height: 100%; height: 100dvh; display: grid; place-items: center; }   /* 画面に固定して上から下まで（高さは resize で端末に合わせる） */
-  #frame { position: relative; --u: 1; border-radius: calc(var(--u) * 10px); overflow: hidden; }
+  #frame { position: relative; --u: 1; border-radius: calc(var(--u) * 10px); overflow: hidden; grid-area: 1 / 1; box-shadow: 0 0 0 calc(var(--u) * 2px) var(--dRim, transparent), 0 0 calc(var(--u) * 28px) rgba(0,0,0,.55); }
+  /* 額縁：画面がゲームより太いとき（幅÷高さ が ASPECT.max まで）、左右の余りをゾーンの色の岩の模様で埋める（色は syncLook で --dA〜--dRim） */
+  #deco { grid-area: 1 / 1; --u: 1; background-color: var(--dA, #1a1420); transition: background-color 1.5s;
+    background-image:
+      radial-gradient(ellipse 60% 75% at 50% 50%, transparent 35%, rgba(0,0,0,.5) 100%),
+      radial-gradient(circle at 30% 40%, var(--dB, #2a2030) 0 calc(var(--u) * 1.4px), transparent calc(var(--u) * 1.6px)),
+      radial-gradient(circle at 75% 80%, var(--dB, #2a2030) 0 calc(var(--u) * 1px), transparent calc(var(--u) * 1.2px)),
+      repeating-linear-gradient(176deg, transparent 0 calc(var(--u) * 46px), var(--dB, #2a2030) calc(var(--u) * 46px) calc(var(--u) * 49px), transparent calc(var(--u) * 49px) calc(var(--u) * 83px)),
+      repeating-linear-gradient(183deg, transparent 0 calc(var(--u) * 71px), var(--dC, #33283a) calc(var(--u) * 71px) calc(var(--u) * 73px), transparent calc(var(--u) * 73px) calc(var(--u) * 120px));
+    background-size: auto, calc(var(--u) * 37px) calc(var(--u) * 29px), calc(var(--u) * 23px) calc(var(--u) * 41px), auto, auto; }
+  #deco[hidden] { display: none; }
   #cv { display: block; touch-action: none; cursor: pointer; }
   .layer { position: absolute; left: 0; top: 0; pointer-events: none; }
   #gl[hidden], #hud[hidden] { display: none; }
@@ -109,6 +119,12 @@
   .bestChip a { color: var(--teal); }
   .btn.big { font-size: calc(var(--u) * 22px); padding: calc(var(--u) * 12px) calc(var(--u) * 64px); animation: breathe 2.4s ease-in-out infinite; }
   @keyframes breathe { 50% { box-shadow: 0 calc(var(--u) * 4px) 0 var(--pink-deep), 0 0 0 calc(var(--u) * 7px) rgba(255,244,230,.16); } }
+  /* ひとりで（大きい）・ふたりで（2人対戦のページへ） */
+  .playRow { display: grid; grid-template-columns: auto auto; gap: calc(var(--u) * 10px); align-items: center; justify-content: center; }
+  .btn.big { padding-left: calc(var(--u) * 40px); padding-right: calc(var(--u) * 40px); }
+  .btn.duo { text-decoration: none; display: grid; justify-items: center; line-height: 1.1; padding: calc(var(--u) * 8px) calc(var(--u) * 18px); font-size: calc(var(--u) * 17px);
+    background: var(--glow); box-shadow: 0 calc(var(--u) * 4px) 0 color-mix(in srgb, var(--glow) 55%, #000); }
+  .btn.duo small { margin: 0; font-size: .62em; opacity: .75; }
   .menu3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: calc(var(--u) * 8px); width: calc(var(--u) * 290px); }
   .chips { display: flex; gap: calc(var(--u) * 6px); align-items: center; }
   .candleChip { display: inline-flex; align-items: center; gap: calc(var(--u) * 3px); font-weight: 800; font-size: calc(var(--u) * 13px); background: rgba(0,0,0,.3); border-radius: 999px; padding: calc(var(--u) * 1px) calc(var(--u) * 12px) calc(var(--u) * 1px) calc(var(--u) * 6px); font-variant-numeric: tabular-nums; }
@@ -277,6 +293,7 @@
 <body>
 <div id="safeProbe" aria-hidden="true" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)"></div>
 <div id="app">
+  <div id="deco" aria-hidden="true" hidden></div>
   <div id="frame">
     <canvas id="cv" aria-label="ゲーム画面"></canvas>
     <canvas id="gl" class="layer" aria-hidden="true"></canvas>
@@ -289,7 +306,6 @@
           <a href="chara.html">キャラの動き<small>ポーズ・表情・マフラー</small></a>
           <a href="pools.html">プール一覧<small>パーツと「ここから遊ぶ」</small></a>
           <a href="simulator.html">シミュレーター<small>壁ジャンプの数値</small></a>
-          <a href="versus.html">2人対戦<small>左右に分けて、コントローラー2台</small></a>
           <a href="?perf">重さを見る<small>1フレームの内訳（?perf）</small></a>
           <button id="btnTestGems" type="button" hidden>水晶を選ぶ<small>テストプレイ用</small></button>
         </div>
@@ -301,7 +317,10 @@
       <canvas class="uic tGhost" id="tGhost" data-w="200" data-h="150" aria-hidden="true"></canvas>
       <div class="titleBottom">
         <div class="chips"><p class="bestChip" id="bestTitle"></p><span class="candleChip" aria-label="持っているろうそく"><canvas class="uic" data-candle data-w="16" data-h="20" aria-hidden="true"></canvas><b class="candleN">0</b></span></div>
-        <button class="btn big" id="btnStart" type="button">プレイ</button>
+        <div class="playRow">
+          <button class="btn big" id="btnStart" type="button">ひとりで</button>
+          <a class="btn duo" id="btnDuo" href="versus.html">ふたりで<small>対戦</small></a>
+        </div>
         <div class="menu3">
           <button class="mbtn" id="btnWardrobe" type="button"><canvas class="uic ic" id="icWard" data-w="26" data-h="20" aria-hidden="true"></canvas>着せ替え</button>
           <button class="mbtn" id="btnLook" type="button"><canvas class="uic ic" id="icLook" data-w="26" data-h="20" aria-hidden="true"></canvas>ガチャ</button>
@@ -413,12 +432,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.07"></script>
-<script src="data/pieces.js?v=2026.12.07"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.10"></script>
+<script src="data/pieces.js?v=2026.12.10"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.07';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.10';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -437,6 +456,7 @@ const MOVE = {
 
 /* ---------- 画面と単位 ---------- */
 const CELL = 18, COLS = 20;          // 1マス18px、横20マス
+const ASPECT = { min: 0.375, max: 0.8 };   // 画面いっぱいにする形（幅÷高さ）。細い方は H=960、太い方は額縁でうめる（それより外は帯）
 const W = CELL * COLS;
 let H = 640;   // 画面の縦（ゲームの px）。縦長の端末では端末に合わせてのばす（resize）
 const SAFE = { top: 0, bottom: 0 };   // ノッチ・ホームバーの分（ゲームの px）。HUD をよけて置く
@@ -899,13 +919,17 @@ function resize() {
   const sb = screenBox(); $('app').style.height = sb.h + 'px';
   if (STANDALONE) { $('app').style.position = 'absolute'; document.documentElement.style.height = document.body.style.height = sb.h + 'px'; scrollTo(0, 0); }
   const bw = sb.w, bh = sb.h;
-  H = Math.round(clamp(W * bh / bw, 640, 960));   // 縦長の端末は縦をのばして画面いっぱいに（横長・タブレットは 640 のまま）
-  scale = Math.min(bw / W, bh / H);
+  H = Math.round(clamp(W * bh / bw, 640, 960));   // 縦長の端末は縦をのばして画面いっぱいに（太い画面は 640 のまま）
+  // 画面の形（幅÷高さ）が ASPECT の間なら画面いっぱい。ゲーム（W×H）より太い分は左右の額縁 #deco で埋める。範囲の外だけ帯が出る
+  const ar = clamp(bw / bh, ASPECT.min, ASPECT.max), boxW = Math.min(bw, bh * ar), boxH = Math.min(bh, bw / ar);
+  scale = Math.min(boxW / W, boxH / H);
   const sp = getComputedStyle($('safeProbe')); SAFE.top = (parseFloat(sp.paddingTop) || 0) / scale; SAFE.bottom = (parseFloat(sp.paddingBottom) || 0) / scale;
   $('gShow').dataset.h = H;
   dpr = Math.min(window.devicePixelRatio || 1, 2);   // 描く大きさは画面の2倍まで（3倍の端末では GPU が追いつかずフレームが抜けるため。見た目はほぼ同じ）
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
-  frameEl.style.borderRadius = bh - ch < 4 && bw - cw < 4 ? '0' : '';   // 画面いっぱいのときは角を丸めない
+  frameEl.style.borderRadius = bh - ch < 4 ? '0' : '';   // 上下が画面の端に着くときは角を丸めない
+  const deco = $('deco'); deco.hidden = boxW - cw < 4;
+  deco.style.width = Math.round(boxW) + 'px'; deco.style.height = Math.round(boxH) + 'px'; deco.style.setProperty('--u', scale.toFixed(4));
   PERF.box = `画面 ${bw}×${Math.round(bh)}（innerHeight ${innerHeight}・screen ${screen.width}×${screen.height}${STANDALONE ? '・アプリ' : ''}）ゲーム ${cw}×${ch}・H ${H}・ノッチ ${Math.round(SAFE.top * scale)}・ホームバー ${Math.round(SAFE.bottom * scale)}`;
   cv.style.width = frameEl.style.width = cw + 'px'; cv.style.height = frameEl.style.height = ch + 'px';
   frameEl.style.setProperty('--u', scale.toFixed(4));
@@ -1459,12 +1483,22 @@ function palAt(m) {
 }
 // 背景・光・粒の色をカメラの高さに合わせる。8段階ずつ変え、変わったら背景の絵を作り直す
 let lookKey = '';
+// 額縁の色：ゾーンの背景を暗くした地に、地形の影の色で地層の線と粒
+const hexMix = (a, b, k) => { const p = h => /^#[0-9a-f]{6}$/i.test(h) ? [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)) : [20, 16, 26]; const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
+function decoSync() {
+  const st = $('deco').style, base = PAL.bgBottom || PAL.bgTop || '#1a1420';
+  st.setProperty('--dA', hexMix(base, '#000000', 0.45));
+  st.setProperty('--dB', hexMix(base, PAL.terrainShade, 0.16));
+  st.setProperty('--dC', hexMix(base, PAL.terrain, 0.1));
+  frameEl.style.setProperty('--dRim', hexMix(PAL.terrainShade, '#000000', 0.3));
+}
 function syncLook() {
   const m = Math.max(0, -(cam.y + H * 0.5) / PX_PER_M), b = Math.round(m / 100), k = Math.max(0, Math.min(1, (m - (b * 100 - LOOK_BLEND)) / (LOOK_BLEND * 2)));
   const q = Math.round(k * 8) / 8, key = b + '|' + q;
   if (key === lookKey) return;
   lookKey = key;
   Object.assign(PAL, palAt(b * 100 - LOOK_BLEND + q * LOOK_BLEND * 2));
+  decoSync();
   if (glfx && glfx.scene && GLW.k) { const S = glfx.scene; for (const m of [GLW.strata, GLW.mid]) for (const L of m.values()) L.stale = true; if (GLW.far) { S.delTex(GLW.far); GLW.far = null; } }   // 地層と奥の壁は少しずつ描き直す（glKeep）。遠景は小さいのですぐ
 }
 // 暗い区間（m）：地下の 100m より上に、100mごとに2か所。前後4mで暗くなる。灯りの中（自分・結晶・キノコ・ランプ・ガチャ所）だけが見える
@@ -1723,7 +1757,7 @@ function drawPlayer() {
   if (!live) updatePose(1);
   const X = bodyXf();
   // 残像：速く飛んでいるあいだ、うすい影が後ろに残る
-  const o = vsRival(); if (o) { ctx.globalAlpha = VERSUS_ALPHA; Kabe.ghost(ctx, PAL, 'sheet', o.pose, o.x, o.y, 0, o.face, 1); }   // 対戦：相手をうすく
+  const o = vsRival(); if (o) { ctx.globalAlpha = VERSUS_ALPHA; vsScarf(o, () => Kabe.ghost(ctx, PAL, 'sheet', o.pose, o.x, o.y, 0, o.face, 1)); }   // 対戦：相手をうすく
   if (!calm) for (const a of trail) { ctx.globalAlpha = 0.22 * a.life / 0.22; ctx.save(); ctx.translate(a.x, a.y); Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, a.face, 1); ctx.restore(); }
   ctx.globalAlpha = G.inv > 0 ? 0.65 : 1;
   ctx.save(); ctx.translate(X.ax, X.ay); if (X.rot) ctx.rotate(X.rot); ctx.scale(X.sx, X.sy);
@@ -2344,7 +2378,7 @@ function playerGL() {
   if (G.charging) { const k = Math.min(1, G.chargeT / 0.6); wdisc(p.x, p.y, 15 + k * 7, PAL.glow, 0.1 + 0.2 * k + (k >= 1 ? 0.08 * Math.sin(G.time * 20) : 0)); }   // 溜め蹴り：体のまわりに光
   const at = (x0, y0) => () => { ctx.translate(x0, y0); if (rot) ctx.rotate(rot); ctx.scale(sx, sy); Kabe.ghost(ctx, PAL, 'sheet', 'live', 0, 0, t, face, 1); };   // 最初に呼んだ点に描く（同じ絵を別の点にも置く）
   const ia = G.inv > 0 ? 0.65 : 1;
-  const o = vsRival(); if (o) wspr(`vs|${o.pose}|${o.face}`, o.x, o.y, [-36, -36, 36, 36], () => Kabe.ghost(ctx, PAL, 'sheet', o.pose, o.x, o.y, 0, o.face, 1), VERSUS_ALPHA);   // 対戦：相手をうすく
+  const o = vsRival(); if (o) wspr(`vs|${o.pose}|${o.face}|${o.scarf}`, o.x, o.y, [-36, -36, 36, 36], () => vsScarf(o, () => Kabe.ghost(ctx, PAL, 'sheet', o.pose, o.x, o.y, 0, o.face, 1)), VERSUS_ALPHA);   // 対戦：相手をうすく
   if (!calm) for (const a of trail) wspr('pl', a.x, a.y, bbP, at(a.x, a.y), 0.22 * a.life / 0.22 * ia, false);
   wspr('pl', ax, ay, bbP, at(ax, ay), ia, false);
   if (air && (p.air > 0 || (gemLv('triple') && G.tripleCd <= 0))) wdisc(p.x, p.y + 19, 1.6, p.air > 0 ? PAL.playerShade : PAL.glow, 1);
@@ -3974,7 +4008,7 @@ addEventListener('keydown', e => {
   else if (e.key === 'd' || e.key === 'D') debug = !debug;
   else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play') $('pauseBtn').onclick(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !VERSUS) $('pauseBtn').onclick(); });   // 2人対戦では親ページが止める
 
 // タイトル：オバケは床でうとうと。カメラは下で少し止まってから縦穴をゆっくり上へ流し、上で止まったら暗くして下へ戻る（24秒でくり返す）
 const TITLE = { t: 0, fade: 0, cycle: 24, rise: 1150 };
@@ -4064,6 +4098,8 @@ const seeded = a => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 
 let trnd = Math.random;   // 地形を決める乱数（対戦のときだけ種つき）
 
 const VERSUS_ALPHA = 0.4, VERSUS_CAP = 2;   // 相手のうすさ・溶岩を近づけても相手の何 m 下まで
+// 相手は相手のマフラーの色で描く
+function vsScarf(o, fn) { const c = Kabe.SCARF.color; if (o.scarf) Kabe.SCARF.color = o.scarf; try { fn(); } finally { Kabe.SCARF.color = c; } }
 // 対戦の相手（見えているときだけ）。ポーズは止まった絵を使い回す
 function vsRival() {
   const o = VERSUS && VERSUS.ghost; if (!o || (o.st !== 'play' && o.st !== 'gacha')) return null;
@@ -4088,7 +4124,7 @@ function versusInit() {
   // 本編の focus()（ガチャ所を開いたときなど）も、枠を動かすだけにする
   HTMLElement.prototype.focus = function () { if (this.tagName !== 'BUTTON') return; for (const b of document.querySelectorAll('.vsSel')) b.classList.remove('vsSel'); this.classList.add('vsSel'); };
   // 1P・2P の札と、ガチャ所の中の「溶岩まで」（本編の HUD はガチャ所の中では出ないので）
-  const tag = document.createElement('div'); tag.className = 'vsTag'; tag.textContent = VERSUS.side ? '2P' : '1P'; tag.style.setProperty('--vc', VERSUS.side ? '#ffb38a' : '#8fd0ff');
+  const tag = document.createElement('div'); tag.className = 'vsTag'; tag.textContent = VERSUS.side ? '2P' : '1P'; tag.style.setProperty('--vc', VERSUS.side ? '#f2b544' : '#8fd0ff');   // versus.html の --p1・--p2 と同じ
   const warn = document.createElement('div'); warn.className = 'vsWarn'; warn.hidden = true;
   $('frame').append(tag, warn);
   VERSUS.warn = () => {
@@ -4111,7 +4147,7 @@ function versusInit() {
       if (!P || !G) return null;
       const pose = P.side ? 'cling' : P.ground ? 'stand' : P.vy < 0 ? 'jump' : 'fall';
       const gr = gemVal('greed'), bk = gemVal('brake'), near = (G.lavaY - P.y) / PX_PER_M < 3;
-      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause,
+      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause, scarf: Kabe.SCARF.color, got: G.got, time: G.time,
         // 溶岩：速さ・欲ばりの上乗せ・ブレーキ（自分の3m以内のときだけ）・ガチャ中に呑まれたか
         speed: LAVA.speed, lavaY: G.lavaY, delay: G.lavaDelay, greed: gr ? gr.lava - 1 : 0, brake: bk && near ? bk.k : 1,
         sunk: P.y + HB * 0.4 > G.lavaY, rise: riseName(), fps };
@@ -4120,7 +4156,10 @@ function versusInit() {
     put(o, lava) { VERSUS.ghost = o; if (lava && G && state !== 'title') { G.lavaY = lava.y; G.lavaDelay = lava.delay; } VERSUS.warn(); },
     fx(on) { FX.ok = !!on && !!glfx; fxLabel(); },
     // 親ページの1つのループから、入力を渡した直後に2つの画面を動かす（画面ごとにフレームがずれて片方の入力が遅れるのを防ぐ）
-    frame() { VERSUS.driven = true; loop(performance.now()); },   // 画質（2人対戦では親ページが決める。ソロの設定は変えない）
+    frame() { VERSUS.driven = true; const now = performance.now(); if (now - last > 250) last = now - 16; loop(now); },   // 一時停止のあとは間をとばす
+    // マフラーの色：1P は自分の着せ替え、2P は見分けやすい色（親ページの札の色と同じ）
+    scarf(id) { Kabe.SCARF.color = id; },
+    look() { return Kabe.SCARF.color; },   // 画質（2人対戦では親ページが決める。ソロの設定は変えない）
     // 勝負がついた：その場で止める（結果は親ページが出す）
     halt() { if (state === 'gacha' || state === 'pause') showOnly(null); state = 'end'; holding = false; },
   };
