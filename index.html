@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30u">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30v">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30u"></script>
-<script src="data/pieces.js?v=2026.11.30u"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30v"></script>
+<script src="data/pieces.js?v=2026.11.30v"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30u';
+const VERSION = '2026.11.30v';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -828,7 +828,7 @@ function resize() {
   scale = Math.min(bw / W, bh / H);
   const sp = getComputedStyle($('safeProbe')); SAFE.top = (parseFloat(sp.paddingTop) || 0) / scale; SAFE.bottom = (parseFloat(sp.paddingBottom) || 0) / scale;
   $('gShow').dataset.h = H;
-  dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  dpr = Math.min(window.devicePixelRatio || 1, 2);   // 描く大きさは画面の2倍まで（3倍の端末では GPU が追いつかずフレームが抜けるため。見た目はほぼ同じ）
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
   frameEl.style.borderRadius = bh - ch < 4 && bw - cw < 4 ? '0' : '';   // 画面いっぱいのときは角を丸めない
   PERF.box = `画面 ${bw}×${Math.round(bh)}（innerHeight ${innerHeight}・screen ${screen.width}×${screen.height}${STANDALONE ? '・アプリ' : ''}）ゲーム ${cw}×${ch}・H ${H}・ノッチ ${Math.round(SAFE.top * scale)}・ホームバー ${Math.round(SAFE.bottom * scale)}`;
