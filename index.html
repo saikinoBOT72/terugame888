@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.16">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.17">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -296,7 +296,8 @@
   body.vs .vsBadge { font-weight: 800; font-size: calc(var(--u) * 18px); color: #1b1426; background: var(--vc, #8fd0ff); border-radius: 999px; padding: 0 calc(var(--u) * 14px); }
   body.vs.p2 { --vc: #f2b544; }
   body.vs .vsPad { font-weight: 800; font-size: calc(var(--u) * 12px); color: var(--dim); background: rgba(0,0,0,.35); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 10px); animation: blink 1.4s ease-in-out infinite; }
-  body.vs .vsPad.on { color: var(--cream); animation: none; }
+  body.vs .vsPad.on { color: var(--cream); }
+  body.vs .vsPad { animation: none; }
   @keyframes blink { 50% { opacity: .45; } }
   body.vs .dev, body.vs .chips, body.vs #btnLook, body.vs #btnSettings, body.vs #btnDuo, body.vs .ver, body.vs .tagline { display: none !important; }
   body.vs .menu3 { grid-template-columns: 1fr; width: calc(var(--u) * 140px); }
@@ -479,12 +480,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.16"></script>
-<script src="data/pieces.js?v=2026.12.16"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.17"></script>
+<script src="data/pieces.js?v=2026.12.17"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.16';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.17';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4330,7 +4331,13 @@ function versusInit() {
     // 親ページの1つのループから、入力を渡した直後に2つの画面を動かす（画面ごとにフレームがずれて片方の入力が遅れるのを防ぐ）
     frame() { VERSUS.driven = true; const now = performance.now(); if (now - last > 250) last = now - 16; loop(now); },   // 一時停止のあとは間をとばす
     // 参加したコントローラーの名前（null なら「ボタンで参加」）
-    pad(name) { const el = $('vsPad'); el.textContent = name ? name : 'コントローラーのボタンで参加'; el.classList.toggle('on', !!name); },
+    pad(name) { const el = $('vsPad'); el.textContent = name ? name : 'タッチで遊べる（コントローラーはボタンで参加）'; el.classList.toggle('on', !!name); },
+    // 親ページのタッチの膜から（2人同時に押しても届くように、タッチは親でまとめて受ける）。x・y はこの画面の中の座標。タッチと同じく 左・右・下の帯
+    tap(x, y) {
+      if (state !== 'play') return;
+      const r = cv.getBoundingClientRect(), gx = (x - r.left) / r.width * W, gy = (y - r.top) / r.height * H, s = gx < W / 2 ? -1 : 1;
+      if (gy > H - zoneH()) special(s); else press(s);
+    },
     mode(m, shared) { if (shared) OPT.cont = !!shared.cont; setMode(m, true); },   // 2P のタイトルに 1P が選んだモードと「続ける」を出す
     modeNow() { return MODE; },
     optNow() { return { cont: OPT.cont }; },

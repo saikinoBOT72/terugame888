@@ -27,6 +27,11 @@
   #wrap { position: fixed; top: var(--st); right: var(--sr); bottom: var(--sb); left: var(--sl); display: flex; gap: 4px; background: #000; }
   .side { position: relative; flex: 1; min-width: 0; overflow: hidden; }
   .side iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+  /* タッチの膜：プレイ中だけ（ガチャ所のメニューの間は外す）。2人のタッチを親ページでまとめて受けるので、同時に押しても届く */
+  .tl { position: absolute; inset: 0; z-index: 2; touch-action: none; pointer-events: none; }
+  .tl.on { pointer-events: auto; }
+  /* 対面：左（1P）の画面を逆さにして、テーブルに置いた iPad を向かい合って遊ぶ */
+  #s0.face { transform: rotate(180deg); }
   .done { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(20,15,28,.6); z-index: 3; pointer-events: none; }
   .done b { font-weight: 800; font-size: clamp(28px, 6vmin, 54px); paint-order: stroke fill; -webkit-text-stroke: 7px rgba(20,15,28,.92); }
 
@@ -75,12 +80,13 @@
 </head>
 <body>
 <div id="wrap">
-  <div class="side" id="s0"><div class="done" id="d0" hidden><b></b></div></div>
-  <div class="side" id="s1"><div class="done" id="d1" hidden><b></b></div></div>
+  <div class="side" id="s0"><div class="tl" id="tl0"></div><div class="done" id="d0" hidden><b></b></div></div>
+  <div class="side" id="s1"><div class="tl" id="tl1"></div><div class="done" id="d1" hidden><b></b></div></div>
 </div>
 
 <div id="bar">
   <button class="sub" id="btnFx" type="button">画質：きれい</button>
+  <button class="sub" id="btnFace" type="button">対面：オフ</button>
   <button class="sub" id="btnReset" type="button">コントローラーを選び直す</button>
 </div>
 
@@ -180,6 +186,37 @@ function watchFps(g, dt) {
   perf.t += dt; if (perf.t < 2) return;
   perf.n++; perf.sum += Math.min(g[0].fps, g[1].fps);
   if (perf.t > 8 && perf.sum / perf.n < 42) setFx(false, true);
+}
+
+/* ---------- 対面（左の画面を逆さに） ---------- */
+let face = store.get('kabe_vs_face', false);
+function setFace(on) { face = on; store.set('kabe_vs_face', on); $('s0').classList.toggle('face', on); $('btnFace').textContent = '対面：' + (on ? 'オン' : 'オフ'); }
+$('btnFace').onclick = () => setFace(!face);
+setFace(face);
+
+/* ---------- タッチ：プレイ中は親ページの膜で受けて、その画面のゲームへ渡す（左・右・下の帯はゲームの中で決める） ----------
+   iPad の Safari は、別々のページ（iframe）を2人が同時に押すと片方が届かないことがあるため。指ごとに覚えて、はなしたら離したことにする */
+const fingers = [new Map(), new Map()];
+for (const i of [0, 1]) {
+  const tl = $('tl' + i);
+  tl.addEventListener('pointerdown', e => {
+    e.preventDefault(); unlockAudio();
+    const r = $('s' + i).getBoundingClientRect(); let x = e.clientX - r.left, y = e.clientY - r.top;
+    if (i === 0 && face) { x = r.width - x; y = r.height - y; }   // 逆さの画面は座標も逆に
+    fingers[i].set(e.pointerId, true); try { tl.setPointerCapture(e.pointerId); } catch (er) {}
+    const a = api(i); if (a) a.tap(x, y);
+  });
+  const up = e => { if (!fingers[i].delete(e.pointerId)) return; const a = api(i); if (a) a.input('A', false); };
+  tl.addEventListener('pointerup', up); tl.addEventListener('pointercancel', up);
+}
+// 膜をつけるのは、その人がプレイ中（やられて復活待ちを含む）のときだけ。外すときは押したままの指をはなす
+function syncLayers(g) {
+  for (const i of [0, 1]) {
+    const on = phase === 'play' && !!g && (g[i].st === 'play' || g[i].st === 'dying'), tl = $('tl' + i);
+    if (tl.classList.contains('on') === on) continue;
+    tl.classList.toggle('on', on);
+    if (!on && fingers[i].size) { fingers[i].clear(); const a = api(i); if (a) a.input('A', false); }
+  }
 }
 
 /* ---------- 親の板（一時停止・結果）のメニュー：スティックの左右で選んで A で決定 ---------- */
@@ -359,6 +396,7 @@ function loop() {
     // 一時停止・数えている間は止める（数え始めに1回だけ描いて、新しい縦穴を見せておく）
     if (phase !== 'pause' && phase !== 'count') { a0.frame(); a1.frame(); }
     else if (phase === 'count' && !countDrawn) { a0.frame(); a1.frame(); countDrawn = true; }
+    syncLayers(g);
     if (phase === 'play') {
       watchFps(g, dt);
       const out = g.map((x, i) => !!gone[i] || x.sunk || ((x.st === 'dying' || x.st === 'end') && !x.down));   // シンプルジャンプの復活待ち（down）は負けにしない
