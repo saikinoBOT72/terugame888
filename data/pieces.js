@@ -6491,6 +6491,228 @@ piece('g_springfunnel2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
+piece('g_springalcoves', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+####^.............##
+####^..........^####
+####............####
+##^............^####
+##^............^####
+####.....SS.....####
+####.....##......^##
+####.............^##
+####............####
+##................##
+##................##
+`);
+piece('g_springboulder', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^...............##
+##^...............##
+##......../\.....^##
+##^....../##\....^##
+##^...../####\....##
+##......\####/....##
+##.......\##/.....##
+##........\/......##
+##................##
+##..SS............##
+##..##............##
+##................##
+##................##
+`);
+piece('g_springcomb', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+######............##
+##^..............^##
+##^...........SS####
+##..............####
+##^..............^##
+######...........^##
+##^..............^##
+##^...........######
+##................##
+##................##
+##................##
+`);
+piece('g_springdiamond', { diff: 2 }, String.raw`
+##................##
+##................##
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##^..............^##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######^..SS..^######
+######^..##..^######
+#####/...^^...\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('g_springdrops', { diff: 2 }, String.raw`
+##................##
+##................##
+##...............^##
+##..##...........^##
+##..\/............##
+##^..............^##
+##^..............^##
+##................##
+##............##.^##
+##^...........\/.^##
+##^...............##
+##^.....SS........##
+##^.....##........##
+##................##
+##................##
+`);
+piece('g_springlantern', { diff: 2 }, String.raw`
+##................##
+##................##
+###...............##
+####............####
+#####^.........#####
+####............####
+###^............^###
+###^............^###
+###.....SS.......###
+####....##......####
+#####..........#####
+####............####
+###..............###
+##................##
+##................##
+`);
+piece('g_springribs', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+###^..............##
+###^............^###
+##^..............###
+##^..............^##
+###.....SS.......^##
+###^....##........##
+##^..............###
+##^..............###
+##................##
+##................##
+`);
+piece('g_springslant', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##/...........######
+###/...........#####
+####/..........^####
+#####/...........###
+######/..........^##
+######......SS...^##
+#####/......##...###
+####/.......^^..####
+###/...........#####
+##/...........######
+##................##
+##................##
+##................##
+`);
+piece('g_springsplit', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^......SS......^##
+##^......##......^##
+##......^##^......##
+##......^##^......##
+##.......##.......##
+##.......##.......##
+##.......##.......##
+##.......^^.......##
+##................##
+##................##
+`);
+piece('g_springsqueeze', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^..............^##
+##^..............^##
+##................##
+######.....^########
+######^....^########
+######^.....########
+######......########
+##...............^##
+##.......SS......^##
+##.......##.......##
+##................##
+##................##
+`);
+piece('g_springstepcave', { diff: 2 }, String.raw`
+##................##
+##................##
+###..............^##
+####.............^##
+####.............###
+###.............####
+##^........SS..#####
+##^........##...####
+###..............^##
+####.............^##
+#####............###
+####............####
+###............#####
+##................##
+##................##
+`);
+piece('g_springterrace', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##.............#####
+##^..............^##
+##^..............^##
+##.........SS#######
+##................##
+##................##
+##.......###########
+##...............^##
+##...............^##
+##....##############
+##................##
+##................##
+`);
+piece('g_springhooks', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+#######...........##
+####\............^##
+##^..............^##
+##^...............##
+##..........########
+##...SS........../##
+##...##...........##
+##...##^.........^##
+#######^.........^##
+####\............^##
+##...............^##
+##................##
+##................##
+`);
 
 // ===== 新しいパーツ（700m）
 piece('h_spincannon2', { diff: 2 }, String.raw`
@@ -8998,7 +9220,7 @@ const POOLS = [
   { from: 400, name: '草の崖', pieces: ['e_bridge', 'e_crumble', 'e_cliff', 'e_spinshaft', 'e_bridgepair', 'e_crumblesteps', 'e_spinbridge', 'e_crumblezig', 'e_bridgefunnel', 'e_spinslope', 'e_crumblefloor', 'e_bridgeshelf', 'e_spinspikes', 'e_crumblepillar', 'e_spincave', 'e_spinzig', 'e_spinladder', 'e_spinrocks', 'e_bridgecave', 'e_bridgezig', 'e_bridgespikes', 'e_crumblecave', 'e_crumblebridge', 'e_crumblespikes', 'e_crumblestairs', 'e_spinbridges', 'e_spincrumble', 'e_spinfunnel', 'e_bridgeshaft', 'e_cliffs', 'e_spin', 'e_spinpair', 'e_bridgealcoves', 'e_bridgehooks', 'e_bridgeribs', 'e_bridgesplit', 'e_bridgestepcave', 'e_bridgeterrace', 'e_crumblecomb', 'e_crumblediamond', 'e_crumblelantern', 'e_crumblepebbles', 'e_crumbleslant', 'e_crumbleterrace', 'e_spinalcoves', 'e_spinboulder', 'e_spincomb', 'e_spindiamond', 'e_spinlantern', 'e_spinsqueeze'] },
   { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan', 'f_stakeshaft', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'f_cannonopen', 'f_cannonladder', 'f_cannoncave', 'f_cannonbridge', 'f_stakeladder', 'f_stakefunnel', 'f_stakecrumble2', 'f_stakespikes', 'f_rockcannon', 'f_windcannon', 'f_stakeshelves', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'f_stakeopen', 'f_cannonalcoves', 'f_cannondiamond', 'f_cannondrops', 'f_cannonlantern', 'f_cannonpebbles', 'f_cannonsplit', 'f_cannonsqueeze', 'f_stakeboulder', 'f_stakecomb', 'f_stakehooks', 'f_stakeribs', 'f_stakeslant', 'f_staketerrace', 'f_stakestepcave'] },
   { from: 600, name: '古い水路', pieces: ['g_springpair', 'g_spring', 'g_springzig', 'g_springshelf', 'g_springbridge', 'g_springcrumble', 'g_springstake', 'g_springcannon', 'f_stakezig',
-    'g_springtower', 'g_springledges', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'e_spinspikes', 'g_springcave', 'g_springladder', 'g_springspin2', 'g_springcannon2', 'g_springbridge2', 'g_springcrumble2', 'g_springpend2', 'g_springbox', 'g_springpops2', 'g_springfan', 'g_springhops', 'g_springchute', 'g_springrocks', 'g_springshelves2', 'g_springlift', 'g_springtwin', 'g_springshutter', 'g_springfunnel2', 'g_springspin'] },
+    'g_springtower', 'g_springledges', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'e_spinspikes', 'g_springcave', 'g_springladder', 'g_springspin2', 'g_springcannon2', 'g_springbridge2', 'g_springcrumble2', 'g_springpend2', 'g_springbox', 'g_springpops2', 'g_springfan', 'g_springhops', 'g_springchute', 'g_springrocks', 'g_springshelves2', 'g_springlift', 'g_springtwin', 'g_springshutter', 'g_springfunnel2', 'g_springspin', 'g_springalcoves', 'g_springboulder', 'g_springcomb', 'g_springdiamond', 'g_springdrops', 'g_springlantern', 'g_springribs', 'g_springslant', 'g_springsplit', 'g_springsqueeze', 'g_springstepcave', 'g_springterrace', 'g_springhooks'] },
   { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon'] },
   // 800m〜 上空：雲の足場・ただよう機雷・曲がるトゲブロック・突風・雷の柱・風車。雨のパーツでは壁に掴まっていられる時間が1/4
   { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudgust', 'i_minewalls', 'i_cloudmill', 'i_cloudlayers', 'i_chimmines', 'i_dogmines'] },
