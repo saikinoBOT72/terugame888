@@ -120,7 +120,8 @@ const store = { get(k, d) { try { const v = localStorage.getItem(k); return v ==
 const ready = [false, false], frames = [], NAME = ['1P', '2P'];
 const MODE_NAME = { simple: 'シンプルジャンプモード', advance: 'アドバンスモード' };
 // モード名とオプション（例：シンプルジャンプモード・復活5秒・予測線・続ける）
-const modeLabel = () => [MODE_NAME[mode], mode === 'simple' && `復活${opt.resp || 5}秒`, mode === 'simple' && opt.predict && '予測線', opt.cont && '続ける'].filter(Boolean).join('・');
+const modeLabel = () => [MODE_NAME[mode], opt.cont && '続ける'].filter(Boolean).join('・');
+const optLabel = x => mode === 'simple' ? `復活${x.resp}秒${x.predict ? '・予測線' : ''}` : '';   // 人ごとのオプション
 let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false, mode = 'advance', opt = {};
 const gone = [null, null];   // オプション「1人やられても続ける」：やられた人の記録（高さなど）。2人そろったら勝ち負け
 // 2人で1つ：溶岩（ゲームの座標。上がマイナス）・試合の時計（秒。障害物はこれで動くので2人とも同じ動きになる）
@@ -192,11 +193,28 @@ function show(id) {
 }
 const navItems = () => nav.box ? [...nav.box.querySelectorAll('[data-nav]')].filter(b => !b.disabled && b.offsetParent) : [];
 function markSel() { const it = navItems(); for (const [i, b] of it.entries()) b.classList.toggle('sel', i === nav.i && usingPad); }
+// 向き（SL・SR・SU・SD）の方にあるいちばん近いボタンへ（本編の spatialNext と同じ）
+function spatialNext(items, cur, k) {
+  const d = { SL: [-1, 0], SR: [1, 0], SU: [0, -1], SD: [0, 1] }[k]; if (!d) return null;
+  const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  // 上下：いちばん近い段（行）の中で、横にいちばん近いもの。左右：同じ段（縦が重なる）の中で、いちばん近いもの（無ければ動かない）
+  const c = [];
+  for (const b of items) {
+    if (b === cur) continue;
+    const q = b.getBoundingClientRect(), x = q.left + q.width / 2 - cx, y = q.top + q.height / 2 - cy;
+    const along = x * d[0] + y * d[1], across = Math.abs(d[0] ? y : x);
+    if (along > 4 && (!d[0] || (q.top < r.bottom && q.bottom > r.top))) c.push({ b, along, across });
+  }
+  if (!c.length) return null;
+  const near = Math.min(...c.map(o => o.along));
+  const row = d[0] ? c : c.filter(o => o.along <= near + 12);
+  return row.reduce((m, o) => (d[0] ? o.along < m.along : o.across < m.across) ? o : m).b;
+}
 function menuKey(k) {
   const it = navItems(); if (!it.length || k === 'B') return;
   if (!usingPad) { usingPad = true; markSel(); if (k !== 'A') return; }
   if (k === 'A') { it[nav.i].click(); return; }
-  nav.i = (nav.i + (k === 'SL' ? -1 : 1) + it.length) % it.length; markSel();
+  const to = spatialNext(it, it[nav.i], k); if (to) { nav.i = it.indexOf(to); markSel(); }
 }
 
 /* ---------- 試合の流れ：タイトル（左右に分かれる）→ 3・2・1 → プレイ（一時停止）→ 結果 ---------- */
@@ -248,14 +266,14 @@ function decide(out, g) {
       $('rc' + i).classList.toggle('won', i === win);
       $('rm' + i).textContent = g[i].m + 'm';
       const why = out[i] ? (g[i].cause === 'lava' || g[i].sunk ? g[i].rise + 'に呑まれた' : CAUSE[g[i].cause] || '落ちた') : '';
-      $('rw' + i).textContent = mode === 'simple' ? [why, `やられた ${g[i].downs}回`].filter(Boolean).join('・') : why || `結晶 ${g[i].got}個`;
+      $('rw' + i).textContent = mode === 'simple' ? [why, `やられた ${g[i].downs}回`, optLabel(g[i])].filter(Boolean).join('・') : why || `結晶 ${g[i].got}個`;
     }
     show('ovEnd'); endAt = performance.now();
   }, 1400);
 }
 
 /* ---------- 入力：k は A（画面の右）・B（画面の左）・SR（右下）・SL（左下）・P（一時停止） ---------- */
-const PAD_KEYS = ['A', 'B', 'SR', 'SL'];
+const PAD_KEYS = ['A', 'B', 'SR', 'SL', 'SU', 'SD'];   // SU・SD（上下）はメニューだけ
 function input(side, k, down) {
   if (phase === 'play') {
     if (k === 'P') { if (down) pause(); return; }
@@ -267,8 +285,8 @@ function input(side, k, down) {
   if (k === 'P') { if (phase === 'pause') resume(); return; }
   menuKey(k);
 }
-const KEYS = { d: [0, 'A'], a: [0, 'B'], c: [0, 'SR'], z: [0, 'SL'], ' ': [0, 'A'],
-  ArrowRight: [1, 'A'], ArrowLeft: [1, 'B'], '.': [1, 'SR'], ',': [1, 'SL'], Enter: [1, 'A'], Escape: [0, 'P'], p: [0, 'P'] };
+const KEYS = { d: [0, 'A'], a: [0, 'B'], c: [0, 'SR'], z: [0, 'SL'], w: [0, 'SU'], s: [0, 'SD'], ' ': [0, 'A'],
+  ArrowRight: [1, 'A'], ArrowLeft: [1, 'B'], '.': [1, 'SR'], ',': [1, 'SL'], ArrowUp: [1, 'SU'], ArrowDown: [1, 'SD'], Enter: [1, 'A'], Escape: [0, 'P'], p: [0, 'P'] };
 const keyOf = key => KEYS[key.length === 1 ? key.toLowerCase() : key];
 function onKey(key, down, repeat) { const m = keyOf(key); if (m && !repeat) input(m[0], m[1], down); }
 window.__vsKey = onKey;   // 画面（iframe）に入力が向いていても、ここに届く
@@ -283,10 +301,12 @@ addEventListener('pointermove', () => { if (usingPad) { usingPad = false; markSe
    スティックは倒し始め 0.55・戻し 0.35 で切り替える（真ん中付近でばたつかない）。標準の並びでないものは十字キーの代わりにハット（軸9） */
 const slot = [null, null], prev = [{}, {}], padName = ['', ''];
 function padKeys(p, was) {
-  const b = i => !!(p.buttons[i] && p.buttons[i].pressed), x = p.axes[0] || 0;
-  const std = p.mapping === 'standard', hat = !std && p.axes.length > 9 ? p.axes[9] : 9;   // ハット：-1 上・-0.43 右・0.14 下・0.71 左（離すと 3.3）
+  const b = i => !!(p.buttons[i] && p.buttons[i].pressed), x = p.axes[0] || 0, y = p.axes[1] || 0;
+  const std = p.mapping === 'standard', hat = !std && p.axes.length > 9 ? p.axes[9] : 9;   // ハット：-1 上・-0.43 右・0.14 下・0.71 左・1 左上（離すと 3.3）
   const dl = std ? b(14) : hat > 0.3 && hat < 1.1, dr = std ? b(15) : hat > -0.8 && hat < -0.1;
-  return { A: b(0), B: b(1), SR: dr || x > (was.SR ? 0.35 : 0.55), SL: dl || x < (was.SL ? -0.35 : -0.55), P: b(9) || b(8) };
+  const du = std ? b(12) : hat < -0.6 || (hat > 0.85 && hat < 1.1), dd = std ? b(13) : hat > -0.3 && hat < 0.6;
+  return { A: b(0), B: b(1), SR: dr || x > (was.SR ? 0.35 : 0.55), SL: dl || x < (was.SL ? -0.35 : -0.55),
+    SU: du || y < (was.SU ? -0.35 : -0.55), SD: dd || y > (was.SD ? 0.35 : 0.55), P: b(9) || b(8) };
 }
 function allPads() {
   const map = new Map(), navs = [navigator];
