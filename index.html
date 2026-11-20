@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30d">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30e">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -154,6 +154,20 @@
   /* 操作の札：色の丸に印（なし＝灰・長押し＝ピンク・下スワイプ＝オレンジ・横スワイプ＝紫・左右＝砂色） */
   .fuda { display: inline-grid; place-items: center; width: calc(var(--u) * 14px); height: calc(var(--u) * 14px); border-radius: 50%; background: var(--fc); color: #2b2235; font-style: normal; font-weight: 800; font-size: calc(var(--u) * 8.5px); line-height: 1; }
   .gtile > .fuda { position: absolute; top: calc(var(--u) * -6px); left: calc(var(--u) * -5px); box-shadow: 0 0 0 calc(var(--u) * 2px) var(--panel); }
+  /* テストの水晶選び：1行に 印・名前（押すと装備）・Lv の4つのボタン */
+  .tgCard { max-height: 100%; grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+  .tgNote { text-align: left; }
+  .tgList { width: 100%; overflow-y: auto; display: grid; gap: calc(var(--u) * 5px); padding: 2px; min-height: 0; }
+  .tgRow { display: grid; grid-template-columns: auto 1fr auto; gap: calc(var(--u) * 6px); align-items: center; background: rgba(0,0,0,.2); border-radius: calc(var(--u) * 10px); padding: calc(var(--u) * 3px) calc(var(--u) * 8px) calc(var(--u) * 3px) calc(var(--u) * 4px); border: 2px solid transparent; }
+  .tgRow.on { border-color: var(--tone); background: color-mix(in srgb, var(--tone) 14%, rgba(0,0,0,.2)); }
+  .tgName { font: inherit; text-align: left; background: none; border: 0; color: var(--cream); cursor: pointer; display: flex; align-items: center; gap: calc(var(--u) * 5px); padding: calc(var(--u) * 2px) 0; font-weight: 800; font-size: calc(var(--u) * 12px); }
+  .tgName .st { color: var(--tone); font-size: .85em; }
+  .tgName small { font-weight: 500; color: var(--dim); font-size: .82em; }
+  .tgName:disabled { cursor: default; opacity: .55; }
+  .tgLv { display: inline-flex; border: 1px solid rgba(255,244,230,.2); border-radius: 999px; overflow: hidden; }
+  .tgLv button { font: inherit; font-size: calc(var(--u) * 11px); font-weight: 800; color: var(--dim); background: none; border: 0; padding: calc(var(--u) * 2px) calc(var(--u) * 8px); cursor: pointer; }
+  .tgLv button[aria-pressed="true"] { background: var(--tone); color: var(--ink); }
+  .tgLv button:focus-visible, .tgName:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
   .fudaLine { display: flex; align-items: center; gap: calc(var(--u) * 5px); margin-top: calc(var(--u) * 2px); color: var(--dim); }
   .gshow { position: absolute; inset: 0; z-index: 5; cursor: pointer; touch-action: none; }
   .gshowfx { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; }
@@ -200,6 +214,7 @@
         <button class="btn" id="btnStart" type="button">はじめる</button>
         <p id="bestTitle"></p>
         <div class="row">
+          <button class="sub" id="btnTestGems" type="button" hidden>水晶を選ぶ</button>
           <button class="sub" id="btnHow" type="button">遊び方</button>
           <button class="sub" id="btnMute" type="button">音：オン</button>
           <button class="sub" id="btnCalm" type="button">演出：ふつう</button>
@@ -227,7 +242,17 @@
         <h2>ひとやすみ</h2>
         <div class="grows" id="pGems"></div>
         <button class="btn" id="btnResume" type="button">つづける</button>
+        <button class="sub" id="btnPauseGems" type="button" hidden>水晶を選ぶ（テスト）</button>
         <button class="sub" id="btnQuit" type="button">タイトルへ</button>
+      </div>
+    </section>
+    <section id="ovGems" class="ov" hidden>
+      <div class="card gcard tgCard">
+        <div class="ghead"><h2>水晶を選ぶ（テスト）</h2><span class="small" id="tgSlots"></span></div>
+        <p class="small tgNote">Lv を選ぶと持っている状態、名前を押すと装備（2つまで・同じ札は1つまで）。選んだ水晶は「ここから遊ぶ」のどのテストでも使われる</p>
+        <p class="gresult" id="tgMsg" aria-live="polite"></p>
+        <div id="tgList" class="tgList scroll"></div>
+        <div class="row"><button class="btn" id="btnTgDone" type="button">決める</button><button class="sub" id="btnTgClear" type="button">全部なし</button></div>
       </div>
     </section>
     <section id="ovGacha" class="ov" hidden>
@@ -261,12 +286,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30d"></script>
-<script src="data/pieces.js?v=2026.11.30d"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30e"></script>
+<script src="data/pieces.js?v=2026.11.30e"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30d';
+const VERSION = '2026.11.30e';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -735,6 +760,20 @@ function ensureAhead() {
 // テストプレイ：?from=100 で、その高さの床から始める（下の分もふつうに作っておく。記録は残さない）
 const TEST_FROM = (() => { const v = Math.floor(+new URLSearchParams(location.search).get('from') || 0); return v > 0 && v <= 5000 ? v : 0; })();
 const TEST_CRYSTALS = 40;   // テストで始めるときの結晶（100mにつき）
+// テストモード：?from=N か ?test のとき。水晶を自由に選べる（タイトルと一時停止の「水晶を選ぶ」）。
+// 選んだ水晶は URL（gems=charge3e.bigjump2e.hover1：数字が Lv、e が装備）と、この端末に覚える（プール一覧のどの「ここから遊ぶ」でも同じ水晶で始まる）
+const TEST_MODE = TEST_FROM > 0 || /[?&]test\b/.test(location.search);
+const TG = { gems: {}, equip: [] };
+const tgParse = str => { const o = { gems: {}, equip: [] }; for (const t of String(str || '').split('.')) { const m = t.match(/^([a-z]+)([1-3])(e?)$/); if (m && GEMS[m[1]]) { o.gems[m[1]] = +m[2]; if (m[3] && o.equip.length < GACHA.slots) o.equip.push(m[1]); } } return o; };
+const tgString = () => GEM_ORDER.filter(id => TG.gems[id]).map(id => id + TG.gems[id] + (TG.equip.includes(id) ? 'e' : '')).join('.');
+if (TEST_MODE) {
+  const q = new URLSearchParams(location.search).get('gems');
+  Object.assign(TG, tgParse(q != null ? q : store.get('kabe_test_gems', '')));
+}
+function tgSave() {
+  store.set('kabe_test_gems', tgString());
+  try { const u = new URL(location.href); if (tgString()) u.searchParams.set('gems', tgString()); else u.searchParams.delete('gems'); history.replaceState(null, '', u); } catch (e) {}
+}
 function newGame() {
   world = newWorld(); lookKey = ''; OCC.key = ''; grassPals.clear(); grassCache.clear();
   placePiece('z1_start');
@@ -752,6 +791,7 @@ function newGame() {
     cam.y = P.y + HB + 60 - H; G.lavaY = P.y + HB + 200; G.test = TEST_FROM;
     G.best = heightM(); G.mark = Math.floor(G.best / 10); G.zone = poolAt(G.best).name; G.crystals = Math.round(TEST_FROM / 100 * TEST_CRYSTALS);
   }
+  if (TEST_MODE) { G.test = TEST_FROM || 'test'; G.gems = Object.assign({}, TG.gems); G.equip = TG.equip.filter(id => G.gems[id]); if (!TEST_FROM) G.crystals = TEST_CRYSTALS; }   // テスト：選んだ水晶で始める（記録は残らない）
   ensureAhead();
 }
 function heightM() { return Math.max(0, -P.y - HB) / PX_PER_M; }
@@ -2814,11 +2854,12 @@ function ambTick(dt) {
   if (lava > 0.4 && due('blub', 0.4, 1.4)) tone(90 + Math.random() * 60, 0.18, 'sine', 0.03 * lava, 55, 0, 0.01);   // 溶岩のぼこぼこ
 }
 /* ---------- menus & loop ---------- */
-const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha') };
+const ov = { title: $('ovTitle'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha'), gems: $('ovGems') };
 function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
 function renderBest() {
   const b = store.get('kabe_best2', 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : '';
-  if (TEST_FROM) {   // テストプレイのとき：ボタンの文字と、ふつうに遊ぶへのリンク
+  $('btnTestGems').hidden = !TEST_MODE;
+  if (TEST_MODE) {   // テストプレイのとき：ボタンの文字と、ふつうに遊ぶへのリンク
     $('btnStart').textContent = `${TEST_FROM}mから テスト`;
     el.textContent = '記録は残らない・結晶つき　'; const a = document.createElement('a'); a.href = location.pathname; a.textContent = 'ふつうに遊ぶ'; a.style.color = 'var(--teal)'; el.append(a);
   }
@@ -3358,7 +3399,52 @@ $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard
 const toTitle = () => { TITLE.t = 0; state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
 $('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
-$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); showOnly('pause'); } };
+$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); $('btnPauseGems').hidden = !TEST_MODE; showOnly('pause'); } };
+/* ---------- テスト：水晶を選ぶ ---------- */
+let tgFrom = 'title';
+function tgRender(focusId) {
+  const list = $('tgList'); list.textContent = '';
+  $('tgSlots').textContent = `装備 ${TG.equip.length}/${GACHA.slots}`;
+  for (const id of GEM_ORDER) {
+    const lv = TG.gems[id] || 0, on = TG.equip.includes(id), fu = fudaOf(id);
+    const row = document.createElement('div'); row.className = 'tgRow' + (on ? ' on' : ''); row.style.setProperty('--tone', toneOf(id));
+    const name = document.createElement('button'); name.type = 'button'; name.className = 'tgName'; name.dataset.id = id; name.setAttribute('aria-pressed', on);
+    name.setAttribute('aria-label', `${GEMS[id].name}${on ? ' 装備中' : ''}（押すと${on ? '外す' : '装備'}）`);
+    const st = document.createElement('span'); st.className = 'st'; st.textContent = stars(id);
+    name.append(st, GEMS[id].name);
+    if (fu !== 'なし') { const fc = document.createElement('i'); fc.className = 'fuda'; fc.style.setProperty('--fc', FUDA[fu].color); fc.textContent = FUDA[fu].mark; fc.title = fu; name.append(fc); }
+    if (on) { const sm = document.createElement('small'); sm.textContent = '装備'; name.append(sm); }
+    name.onclick = () => {
+      let note = '';
+      if (on) TG.equip = TG.equip.filter(x => x !== id);
+      else {
+        if (!TG.gems[id]) TG.gems[id] = 1;
+        const same = fu !== 'なし' && TG.equip.find(x => fudaOf(x) === fu);
+        if (same) { TG.equip = TG.equip.filter(x => x !== same); note = `「${fu}」の水晶は1つまで。${GEMS[same].name}を外した`; }
+        TG.equip.push(id); if (TG.equip.length > GACHA.slots) { note = note || `装備は${GACHA.slots}つまで。${GEMS[TG.equip[0]].name}を外した`; TG.equip.shift(); }
+      }
+      $('tgMsg').textContent = note || `${GEMS[id].name}：${GEMS[id].desc(GEMS[id].lv[(TG.gems[id] || 1) - 1])}`;
+      sfx.tick(); tgRender(id);
+    };
+    const lvs = document.createElement('div'); lvs.className = 'tgLv'; lvs.setAttribute('role', 'group'); lvs.setAttribute('aria-label', `${GEMS[id].name}のレベル`);
+    ['なし', 1, 2, 3].forEach((label, n) => {
+      const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.setAttribute('aria-pressed', lv === n);
+      b.onclick = () => { if (n) TG.gems[id] = n; else { delete TG.gems[id]; TG.equip = TG.equip.filter(x => x !== id); } $('tgMsg').textContent = n ? `${GEMS[id].name} Lv${n}：${GEMS[id].desc(GEMS[id].lv[n - 1])}` : `${GEMS[id].name}をなしにした`; sfx.tick(); tgRender(id); };
+      lvs.append(b);
+    });
+    row.append(gemIcon(id, 28), name, lvs); list.append(row);
+  }
+  if (focusId) list.querySelector(`[data-id="${focusId}"]`)?.focus({ preventScroll: true });
+}
+function tgOpen(from) { tgFrom = from; $('tgMsg').textContent = ''; tgRender(); showOnly('gems'); }
+$('btnTestGems').onclick = () => tgOpen('title');
+$('btnPauseGems').onclick = () => tgOpen('pause');
+$('btnTgClear').onclick = () => { TG.gems = {}; TG.equip = []; $('tgMsg').textContent = '全部なしにした'; tgRender(); };
+$('btnTgDone').onclick = () => {
+  tgSave();
+  if (tgFrom === 'pause' && G) { G.gems = Object.assign({}, TG.gems); G.equip = TG.equip.filter(id => G.gems[id]); gemRows($('pGems'), G.equip); showOnly('pause'); }
+  else { newGame(); showOnly('title'); }
+};
 // 振り向きの水晶があるときは、画面の左半分＝左へ、右半分＝右へ
 /* iPhone の機能を止める：ピンチ・ダブルタップのズーム、長押しの拡大鏡とメニュー（ボタンの押下はそのまま） */
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(n => document.addEventListener(n, e => e.preventDefault(), { passive: false }));
