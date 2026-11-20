@@ -23,8 +23,9 @@
   *, *::before, *::after { box-sizing: border-box; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   html { touch-action: manipulation; }
 
-  /* 2つの画面：ノッチ・ホームバーの内側。タイトルも左右に分かれて、それぞれの画面の中に出る（1P にモードとスタート） */
-  #wrap { position: fixed; top: var(--st); right: var(--sr); bottom: var(--sb); left: var(--sl); display: flex; gap: 4px; background: #000; }
+  /* 2つの画面：上から下まで画面いっぱい（ソロと同じ）。ノッチ・ホームバーの分は、それぞれの画面の中で HUD と板がよける（safe で渡す）。左右だけは内側 */
+  #wrap { position: fixed; top: 0; right: var(--sr); bottom: 0; left: var(--sl); display: flex; gap: 4px; background: #000; }
+  #safeProbe { position: fixed; left: 0; top: 0; visibility: hidden; pointer-events: none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .side { position: relative; flex: 1; min-width: 0; overflow: hidden; }
   .side iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
   /* タッチの膜：プレイ中だけ（ガチャ所のメニューの間は外す）。2人のタッチを親ページでまとめて受けるので、同時に押しても届く */
@@ -79,6 +80,7 @@
 </style>
 </head>
 <body>
+<div id="safeProbe" aria-hidden="true"></div>
 <div id="wrap">
   <div class="side" id="s0"><div class="tl" id="tl0"></div><div class="done" id="d0" hidden><b></b></div></div>
   <div class="side" id="s1"><div class="tl" id="tl1"></div><div class="done" id="d1" hidden><b></b></div></div>
@@ -147,7 +149,7 @@ const api = i => { try { return frames[i].contentWindow.__vs || null; } catch (e
 window.__vsAudio = () => { unlockAudio(); return actx; };
 window.__vsReady = side => {
   ready[side] = true; const a = api(side); if (!a) return;
-  a.fx(fx); padsChanged();
+  a.fx(fx); padsChanged(); fit();
   if (ready[0] && ready[1]) { mode = api(0).modeNow(); opt = api(0).optNow(); api(1).mode(mode, opt); }
 };
 window.__vsStart = (m, o) => { mode = m; opt = Object.assign({}, o); unlockAudio(); start(); };          // 1P のタイトルの「スタート」
@@ -186,9 +188,27 @@ function watchFps(g, dt) {
   if (perf.t > 8 && perf.sum / perf.n < 42) setFx(false, true);
 }
 
+/* ---------- 画面の大きさ：ホーム画面アプリの iPhone・iPad は、ページの高さが画面より短くなることがあるので、端末の画面の高さを使う（本編の screenBox と同じ） ---------- */
+const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+function fit() {
+  const vw = innerWidth, vh = Math.max(innerHeight, document.documentElement.clientHeight, window.visualViewport ? visualViewport.height : 0);
+  let h = vh;
+  if (STANDALONE && screen.width) { const sl = Math.max(screen.width, screen.height), ss = Math.min(screen.width, screen.height); h = Math.max(vh, vw < vh ? sl : ss); }
+  const wrap = $('wrap'); wrap.style.height = h + 'px'; wrap.style.bottom = 'auto';
+  if (STANDALONE) { document.documentElement.style.height = document.body.style.height = h + 'px'; scrollTo(0, 0); }
+  sendSafe();
+}
+// ノッチ・ホームバーの分をそれぞれの画面へ（対面で逆さの左の画面は、上と下が入れかわる）
+function sendSafe() {
+  const sp = getComputedStyle($('safeProbe')), top = parseFloat(sp.paddingTop) || 0, bottom = parseFloat(sp.paddingBottom) || 0;
+  for (const i of [0, 1]) { const a = api(i); if (a && a.safe) { if (i === 0 && face) a.safe(bottom, top); else a.safe(top, bottom); } }
+}
+addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
+if (window.visualViewport) visualViewport.addEventListener('resize', fit);
+
 /* ---------- 対面（左の画面を逆さに） ---------- */
 let face = store.get('kabe_vs_face', false);
-function setFace(on) { face = on; store.set('kabe_vs_face', on); $('s0').classList.toggle('face', on); $('btnFace').textContent = '対面：' + (on ? 'オン' : 'オフ'); }
+function setFace(on) { face = on; store.set('kabe_vs_face', on); $('s0').classList.toggle('face', on); $('btnFace').textContent = '対面：' + (on ? 'オン' : 'オフ'); sendSafe(); }
 $('btnFace').onclick = () => setFace(!face);
 setFace(face);
 

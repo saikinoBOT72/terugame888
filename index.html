@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.20">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.21">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -43,7 +43,7 @@
     font: 500 13px/1.6 var(--font-round);
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  @media (display-mode: standalone) { html { min-height: calc(100% + env(safe-area-inset-top, 0px)); } }   /* iOS 26 のホーム画面アプリは固定の要素が下を切られるので、ページ自体を画面の高さまでのばす */
+  @media (display-mode: standalone) { html { min-height: calc(100% + max(env(safe-area-inset-top, 0px), var(--vs-st, 0px))); } }   /* iOS 26 のホーム画面アプリは固定の要素が下を切られるので、ページ自体を画面の高さまでのばす */
   #app { position: fixed; left: 0; top: 0; width: 100%; height: 100%; height: 100dvh; display: grid; place-items: center; }   /* 画面に固定して上から下まで（高さは resize で端末に合わせる） */
   #frame { position: relative; --u: 1; border-radius: calc(var(--u) * 10px); overflow: hidden; grid-area: 1 / 1; box-shadow: 0 0 0 calc(var(--u) * 2px) var(--dRim, transparent), 0 0 calc(var(--u) * 28px) rgba(0,0,0,.55); }
   /* 額縁：画面がゲームより太いとき（幅÷高さ が ASPECT.max まで）、左右の余りをゾーンの色の岩の模様で埋める（色は syncLook で --dA〜--dRim） */
@@ -62,7 +62,7 @@
   .ov {
     position: absolute; inset: 0; box-sizing: border-box;
     display: flex; align-items: center; justify-content: center;
-    padding: calc(var(--u) * 18px); padding-top: calc(var(--u) * 18px + env(safe-area-inset-top, 0px)); padding-bottom: calc(var(--u) * 18px + env(safe-area-inset-bottom, 0px)); background: rgba(30, 24, 38, .45);
+    padding: calc(var(--u) * 18px); padding-top: calc(var(--u) * 18px + max(env(safe-area-inset-top, 0px), var(--vs-st, 0px))); padding-bottom: calc(var(--u) * 18px + max(env(safe-area-inset-bottom, 0px), var(--vs-sb, 0px))); background: rgba(30, 24, 38, .45);
   }
   .card {
     max-height: 100%; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;   /* 画面より長いときは窓の中でスクロール（見切れない） */
@@ -99,7 +99,7 @@
   .stats .new { color: var(--teal); }
   /* タイトル：上にロゴ、まん中は絵（床でうとうとするおばけ）、下にボタン。右上に開発用のリンク */
   #ovTitle {
-    flex-direction: column; justify-content: space-between; padding-top: calc(var(--u) * 64px + env(safe-area-inset-top, 0px)); padding-bottom: calc(var(--u) * 34px + env(safe-area-inset-bottom, 0px));
+    flex-direction: column; justify-content: space-between; padding-top: calc(var(--u) * 64px + max(env(safe-area-inset-top, 0px), var(--vs-st, 0px))); padding-bottom: calc(var(--u) * 34px + max(env(safe-area-inset-bottom, 0px), var(--vs-sb, 0px)));
     background: linear-gradient(rgba(30,24,38,.82), rgba(30,24,38,.08) 40%, rgba(30,24,38,.05) 55%, rgba(30,24,38,.85));
   }
   .logo { display: grid; justify-items: center; gap: calc(var(--u) * 2px); text-align: center; }
@@ -138,7 +138,7 @@
   .mbtn:active { transform: translateY(calc(var(--u) * 2px)); box-shadow: 0 calc(var(--u) * 1px) 0 rgba(0,0,0,.3); }
   .mbtn:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
   /* 開発用（右上の小さなボタン → 一覧） */
-  .dev { position: absolute; right: calc(var(--u) * 10px); top: calc(var(--u) * 10px + env(safe-area-inset-top, 0px)); display: grid; justify-items: end; gap: calc(var(--u) * 4px); z-index: 2; }
+  .dev { position: absolute; right: calc(var(--u) * 10px); top: calc(var(--u) * 10px + max(env(safe-area-inset-top, 0px), var(--vs-st, 0px))); display: grid; justify-items: end; gap: calc(var(--u) * 4px); z-index: 2; }
   .devBtn { font: inherit; font-size: calc(var(--u) * 10.5px); color: var(--dim); background: rgba(0,0,0,.3); border: 1px solid rgba(255,244,230,.2); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 10px); cursor: pointer; }
   .devList { display: grid; gap: calc(var(--u) * 3px); background: rgba(20,15,28,.92); border: 1px solid rgba(255,244,230,.18); border-radius: calc(var(--u) * 10px); padding: calc(var(--u) * 6px); min-width: calc(var(--u) * 150px); }
   .devList a, .devList button { font: inherit; font-size: calc(var(--u) * 12px); color: var(--cream); text-decoration: none; text-align: left; background: transparent; border: 0; border-radius: calc(var(--u) * 6px); padding: calc(var(--u) * 4px) calc(var(--u) * 8px); cursor: pointer; }
@@ -308,7 +308,7 @@
   body.vs.p2 .mBtn:not(.on) { display: none; }
   body.vs button.vsSel { outline: calc(var(--u) * 3px) solid #fff; outline-offset: calc(var(--u) * 2px); }
   #pauseBtn {
-    position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + env(safe-area-inset-bottom, 0px));
+    position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + max(env(safe-area-inset-bottom, 0px), var(--vs-sb, 0px)));
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
     background: color-mix(in srgb, var(--ui-panel) 85%, transparent); border: 0; border-radius: 50%; cursor: pointer;
   }
@@ -480,12 +480,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.20"></script>
-<script src="data/pieces.js?v=2026.12.20"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.21"></script>
+<script src="data/pieces.js?v=2026.12.21"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.20';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.21';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -981,6 +981,8 @@ function resize() {
   const ar = clamp(bw / bh, ASPECT.min, ASPECT.max), boxW = Math.min(bw, bh * ar), boxH = Math.min(bh, bw / ar);
   scale = Math.min(boxW / W, boxH / H);
   const sp = getComputedStyle($('safeProbe')); SAFE.top = (parseFloat(sp.paddingTop) || 0) / scale; SAFE.bottom = (parseFloat(sp.paddingBottom) || 0) / scale;
+  // 2人対戦：iframe の中ではノッチ・ホームバーが分からないので、親ページが測って渡す（safe）。HUD と板の余白（--vs-st・--vs-sb）に使う
+  if (VERSUS && VERSUS.safe) { SAFE.top = VERSUS.safe[0] / scale; SAFE.bottom = VERSUS.safe[1] / scale; document.documentElement.style.setProperty('--vs-st', VERSUS.safe[0] + 'px'); document.documentElement.style.setProperty('--vs-sb', VERSUS.safe[1] + 'px'); }
   $('gShow').dataset.h = H;
   dpr = Math.min(window.devicePixelRatio || 1, 2);   // 描く大きさは画面の2倍まで（3倍の端末では GPU が追いつかずフレームが抜けるため。見た目はほぼ同じ）
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
@@ -4367,6 +4369,7 @@ function versusInit() {
     },
     mode(m, shared) { if (shared) OPT.cont = !!shared.cont; setMode(m, true); },   // 2P のタイトルに 1P が選んだモードと「続ける」を出す
     modeNow() { return MODE; },
+    safe(top, bottom) { VERSUS.safe = [top, bottom]; resize(); },   // この画面の上下のノッチ・ホームバーの分（px）
     optNow() { return { cont: OPT.cont }; },
     // 勝負がついた：その場で止める（結果は親ページが出す）
     halt() { if (state === 'gacha' || state === 'pause') showOnly(null); state = 'end'; holding = false; },
