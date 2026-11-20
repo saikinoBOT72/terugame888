@@ -24,10 +24,13 @@
   .bar button[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); }
   .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--ui-muted); margin: 10px 0 0; padding: 0; list-style: none; }
   .legend code { color: var(--ui-ink); font-weight: 800; }
-  section { margin-top: 26px; }
-  h2 { font-size: 18px; margin: 0 0 2px; font-weight: 800; }
-  h2 .range { color: var(--glow); margin-right: 8px; }
-  h2 { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; }
+  details { margin-top: 10px; border-top: 1px solid rgba(255,255,255,.1); padding-top: 10px; }
+  summary { font-size: 18px; margin: 0 0 2px; font-weight: 800; cursor: pointer; list-style: none; display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '▸'; color: var(--glow); width: 1em; transition: transform .15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  summary .range { color: var(--glow); margin-right: 8px; }
+  summary .cnt { font-size: 12px; font-weight: 600; opacity: .7; }
   a.play { margin-left: auto; font-size: 13px; font-weight: 800; text-decoration: none; color: var(--ink, #2b2235); background: var(--glow); border-radius: 999px; padding: 4px 14px; }
   a.play:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
   .sub { color: var(--ui-muted); font-size: 12px; margin: 0 0 10px; }
@@ -53,6 +56,8 @@
   <ul class="legend">
     <li><code>#</code> 壁</li><li><code>^</code> トゲ</li><li><code>/ \</code> 斜め</li><li><code>p q</code> 出入りトゲ</li><li><code>&gt; &lt;</code> 扇風機</li>
     <li><code>X</code> 往復ブロック</li><li><code>Y</code> 上下ブロック</li><li><code>T</code> 回る棒</li><li><code>=</code> シャッター</li>
+    <li><code>O</code> 振り子</li><li><code>K k</code> 筒</li><li><code>Z</code> 杭</li><li><code>B</code> 跳ね橋</li><li><code>%</code> 崩れる足場</li><li><code>S</code> バネ</li>
+    <li><code>~</code> 雲の足場</li><li><code>M</code> 機雷</li><li><code>J L</code> 曲がるトゲブロック（縦長・横長）</li><li><code>} {</code> 突風</li><li><code>|</code> 雷の柱</li><li><code>W</code> 風車</li>
   </ul>
   <div id="root"></div>
 </main>
@@ -75,7 +80,7 @@ const K = Kabe, { PIECES, POOLS } = KABE_DATA, CELL = 18, PX_PER_M = 120;
 const OB = { boxX: [26, 18], boxY: [20, 26], spin: 40, popOff: 1.6 };   // 本編の OB と同じ大きさ
 let zone = 'auto';   // auto：プールごとの見た目（本編と同じ 100mごとの段）
 const bar = document.getElementById('bar');
-const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['underground', 3], ['surface', 0], ['surface', 1], ['surface', 2], ['surface', 3]];   // 本編の LOOKS と同じ
+const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['underground', 3], ['surface', 0], ['surface', 1], ['surface', 2], ['surface', 3], ['sky', 0], ['sky', 1], ['sky', 2], ['sky', 3]];   // 本編の LOOKS と同じ
 const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Math.floor(m / 100)))]; return K.stagePal(L[0], L[1]); };
 [{ id: 'auto', name: 'プールの色' }].concat(K.ZONES).forEach(z => {
   const b = document.createElement('button'); b.type = 'button'; b.textContent = z.name; b.setAttribute('aria-pressed', z.id === zone);
@@ -178,26 +183,28 @@ function card(id, pools, noStar) {
   return el;
 }
 const root = document.getElementById('root');
+// 段は最初たたんでおき、はじめて開いたときに中のパーツを作る（パーツが多くても重くならない）
+function lazy(sec, build) { let done = false; sec.addEventListener('toggle', () => { if (sec.open && !done) { done = true; build(); } }); }
 const inPool = id => POOLS.filter(p => p.pieces.includes(id)).map(p => p.name);
 POOLS.forEach((pool, i) => {
-  const sec = document.createElement('section'), h = document.createElement('h2'), r = document.createElement('span'), sub = document.createElement('p'), grid = document.createElement('div');
+  const sec = document.createElement('details'), h = document.createElement('summary'), r = document.createElement('span'), sub = document.createElement('p'), grid = document.createElement('div');
   const to = POOLS[i + 1] ? POOLS[i + 1].from + 'm' : '';
   r.className = 'range'; r.textContent = `${pool.from}m〜${to}`; h.append(r, pool.name);
-  const play = document.createElement('a'); play.className = 'play'; play.href = pool.from ? `index.html?from=${pool.from}` : 'index.html?test';   // どれもテスト（選んだ水晶で始まる） play.textContent = 'ここから遊ぶ ▶';
+  const play = document.createElement('a'); play.className = 'play'; play.href = pool.from ? `index.html?from=${pool.from}` : 'index.html?test';   // どれもテスト（選んだ水晶で始まる）
+  play.textContent = 'ここから遊ぶ ▶';
   play.setAttribute('aria-label', `${pool.from}mからテストプレイ`); h.append(play);
   sub.className = 'sub'; sub.textContent = `パーツ ${pool.pieces.length}こ${i === POOLS.length - 1 ? '（これより上はこのプールが続く）' : ''}`;
   grid.className = 'grid';
-  card.m = pool.from;
-  pool.pieces.forEach(id => grid.append(card(id, inPool(id).filter(n => n !== pool.name).map(n => 'ほかに：' + n))));
-  card.m = 0;
+  const cnt = document.createElement('span'); cnt.className = 'cnt'; cnt.textContent = `${pool.pieces.length}こ`; h.insertBefore(cnt, play);
+  lazy(sec, () => { card.m = pool.from; pool.pieces.forEach(id => grid.append(card(id, inPool(id).filter(n => n !== pool.name).map(n => 'ほかに：' + n)))); card.m = 0; });
   sec.append(h, sub, grid); root.append(sec);
 });
 const used = new Set(POOLS.flatMap(p => p.pieces)), special = ['z1_start', ...Object.keys(PIECES).filter(id => PIECES[id].station)], rest = Object.keys(PIECES).filter(id => !used.has(id) && !special.includes(id));
 [['特別なパーツ', 'いちばん下のスタートと、60mごとのガチャ所（形は毎回ここから選ぶ）', special], ['どのプールにも入っていないパーツ', '予備', rest]].forEach(([title, note, ids]) => {
   if (!ids.length) return;
-  const sec = document.createElement('section'), h = document.createElement('h2'), sub = document.createElement('p'), grid = document.createElement('div');
-  h.textContent = title; sub.className = 'sub'; sub.textContent = note; grid.className = 'grid';
-  ids.forEach(id => grid.append(card(id, null, ids === special))); sec.append(h, sub, grid); root.append(sec);
+  const sec = document.createElement('details'), h = document.createElement('summary'), sub = document.createElement('p'), grid = document.createElement('div');
+  h.textContent = `${title}（${ids.length}こ）`; sub.className = 'sub'; sub.textContent = note; grid.className = 'grid';
+  lazy(sec, () => ids.forEach(id => grid.append(card(id, null, ids === special)))); sec.append(h, sub, grid); root.append(sec);
 });
 // 画面に見えているカードだけ動かす
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
