@@ -1064,7 +1064,7 @@ window.Kabe = (function () {
       for (var j = 1; j < n; j++) g.lineTo(L[j][0], L[j][1]);
       var A = L[n - 1], B = R[n - 1];
       for (var k = 0; k < scallops; k++) {   // すその丸い山（とがらせない）
-        var p0 = [A[0] + (B[0] - A[0]) * k / scallops, A[1] + (B[1] - A[1]) * k / scallops], p1 = [A[0] + (B[0] - A[0]) * (k + 1) / scallops, A[1] + (B[1] - A[1]) * (k + 1) / scallops], bump = 2.3;
+        var p0 = [A[0] + (B[0] - A[0]) * k / scallops, A[1] + (B[1] - A[1]) * k / scallops], p1 = [A[0] + (B[0] - A[0]) * (k + 1) / scallops, A[1] + (B[1] - A[1]) * (k + 1) / scallops], bump = CAPE.bump;
         g.bezierCurveTo(p0[0] + tx * bump, p0[1] + ty * bump, p1[0] + tx * bump, p1[1] + ty * bump, p1[0], p1[1]);
       }
       for (j = n - 2; j >= 0; j--) g.lineTo(R[j][0], R[j][1]);
@@ -1076,12 +1076,18 @@ window.Kabe = (function () {
     return pts.map(function (p, i) { return [o[0] + (p[0] - pts[0][0]) * k + Math.sin(t * 3.2 + i * 1.1) * flap * i, o[1] + (p[1] - pts[0][1]) * k + Math.cos(t * 2.7 + i * 1.3) * flap * 0.8 * i]; });
   }
 
-  /* マント：首の後ろから背中へ。ひもと同じに流れて、すそは丸い山3つ。裏地は1段暗く、前は金の留め具 */
+  /* マント：首の後ろから背中へたれる、すそまでの長さの布。すそは丸い山3つ。裏地は1段暗く、前は金の留め具。
+     マフラーより重い布なので、ひもの動きは半分だけ（CAPE.follow）：止まると背中にそってたれ、跳ぶと少し後ろへ持ち上がる。体から大きくはみ出さない */
+  var CAPE = { rest: [[-4, -1], [-6.6, 4.2], [-8.0, 9.4], [-8.7, 14.6], [-9.0, 19.6]], follow: 0.5, w0: 3.6, w1: 2.4, flap: 0.12, bump: 1.5 };
+  function capeRope(Q) {   // 立っているときのひも（POSES.stand）からのずれを、半分だけ足す
+    var st = POSES.stand.scarf;
+    return CAPE.rest.map(function (r, i) { var p = Q.scarf[i] || Q.scarf[Q.scarf.length - 1]; return [r[0] + (p[0] - st[i][0]) * CAPE.follow, r[1] + (p[1] - st[i][1]) * CAPE.follow]; });
+  }
   function capeBack(g, P, Q, t) {
-    var s = spline(ropeFrom(Q.scarf, [-5.2, -0.6], 0.86, t, 0.22), 5);
-    var lining = clothPath(g, s.map(function (p, i) { return [p[0] + 1.1, p[1] + 1.4 + i * 0.03]; }), function (f) { return 4.0 + 3.0 * f; }, 3);
+    var s = spline(ropeFrom(capeRope(Q), [-4.6, -0.8], 1, t, CAPE.flap), 5);
+    var lining = clothPath(g, s.map(function (p, i) { return [p[0] + 0.9, p[1] + 1.1 + i * 0.02]; }), function (f) { return CAPE.w0 - 0.3 + CAPE.w1 * 0.9 * f; }, 3);
     solid(g, lining, mix(P.scarfShade, '#000000', 0.22), mix(P.scarfShade, '#000000', 0.38), P.playerLine, 0.6, 1.0);
-    var cloth = clothPath(g, s, function (f) { return 4.2 + 3.3 * f; }, 3);
+    var cloth = clothPath(g, s, function (f) { return CAPE.w0 + CAPE.w1 * f; }, 3);
     solid(g, cloth, P.scarf, P.scarfShade, P.playerLine, 1.1, 1.0);
     g.save(); cloth(); g.clip();   // ひだ1本（内側の細い線）と、上のふちの光
     g.strokeStyle = alpha(P.scarfShade, 0.9); g.lineWidth = 0.7; g.lineCap = 'round'; g.beginPath();
@@ -1265,7 +1271,7 @@ window.Kabe = (function () {
         var C = scarfPal(P); g.scale(s, s); SCARF.sag = 3.6;
         if (id === 'cape') {
           g.translate(0, -4); SCARF.wrapH = 2.6; iconRing(g, C, -6.4); SCARF.wrapH = wh0;
-          g.save(); g.translate(5.2, -6.6); capeBack(g, C, { scarf: [[-4, -1], [-4.3, 4], [-4.5, 9], [-4.4, 14], [-4.1, 19]] }, t); g.restore();
+          g.save(); g.translate(7.6, -6.2); capeBack(g, C, { scarf: POSES.stand.scarf }, t); g.restore();
           neckBand(g, C, 2.6, -6.4);
           var c = bandPoint(0.0, -6.4); solid(g, function () { ell(g, c[0], c[1], 1.75, 1.75); }, GOLD.base, GOLD.shade, C.playerLine, 0.5, 1.0); shine(g, c[0] - 0.6, c[1] - 0.7, 0.55, 0.35, 0.85);
         } else if (id === 'ribbon') {
