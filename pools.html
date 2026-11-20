@@ -118,7 +118,7 @@ function prepare(pc) {
     if (ch === '%' && at(c - 1, r) !== '%') { let e = c; while (at(e + 1, r) === '%') e++; obs.push({ k: 'crumble', x, y, n: e - c + 1 }); }
     // 上空の仕掛け
     if (ch === '~' && at(c - 1, r) !== '~') { let e = c; while (at(e + 1, r) === '~') e++; obs.push({ k: 'cloud', x, y, w: (e - c + 1) * CELL }); }
-    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: c * 0.37 + r * 0.61 });
+    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, r, 13) * 4, per: 2.8 * (0.85 + K.hash(c, r, 15) * 0.3), amp: 22 * (0.75 + K.hash(c, r, 14) * 0.5) });   // 本編と同じずらし方
     if (ch === 'W') obs.push({ k: 'mill', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 0.9 : -0.9 });
     if (ch === '|' && at(c, r - 1) !== '|') { let e = r; while (at(c, e + 1) === '|') e++; obs.push({ k: 'bolt', x: x + CELL / 2, y0: y + CELL / 2, y1: (e + 0.5) * CELL, off: c * 0.53 }); }
     if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: r * 0.47 }); }
@@ -150,7 +150,7 @@ function draw(g, P, d, t) {
     else if (o.k === 'spring') K.spring(g, P, o.x, o.y, 0);
     else if (o.k === 'crumble') K.crumble(g, P, o.x, o.y, o.n, 0, t);
     else if (o.k === 'cloud') K.cloudPlat(g, P, o.x, o.y, o.w, t);
-    else if (o.k === 'mine') K.mine(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / 2.8) * 22);
+    else if (o.k === 'mine') K.mine(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / o.per) * o.amp);
     else if (o.k === 'mill') K.windmill(g, P, o.x, o.y, 28, K.spinAngle(t, o.speed));
     else if (o.k === 'bolt') { const ph = ((t + o.off) % 2.8 + 2.8) % 2.8; if (ph > 2.35) K.lightningBolt(g, o.x, o.y0 + 8, o.y1 - 8, 1, Math.floor(t * 18)); K.lightningRod(g, P, o.x, o.y0, 1, ph > 1.65); K.lightningRod(g, P, o.x, o.y1, -1, ph > 1.65); }
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }

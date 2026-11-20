@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01c">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.01d">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -403,12 +403,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.01c"></script>
-<script src="data/pieces.js?v=2026.12.01c"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.01d"></script>
+<script src="data/pieces.js?v=2026.12.01d"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.01c';
+const VERSION = '2026.12.01d';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -601,7 +601,7 @@ function addObstacles(w, r0, n) {
       if (ch === 'S') w.springs.push({ c, r, x: c * CELL, y: -(r + 1) * CELL });
       if (ch === '=' && row[c - 1] !== '=') { let e = c; while (row[e + 1] === '=') e++; w.obs.push({ type: 'shutter', x0: c * CELL, x1: (e + 1) * CELL, y, offset: r * 0.7 }); }
       if (ch === '~' && row[c - 1] !== '~') { let e = c; while (row[e + 1] === '~') e++; w.clouds.push({ x: c * CELL, x1: (e + 1) * CELL, y: -(r + 1) * CELL }); }
-      if (ch === 'M') w.obs.push({ type: 'mine', x, y, offset: c * 0.37 + r * 0.61, yMid: y });
+      if (ch === 'M') w.obs.push({ type: 'mine', x, y, offset: Kabe.hash(c, r, 13) * 4, period: SKY.minePeriod * (0.85 + Kabe.hash(c, r, 15) * 0.3), amp: SKY.mineAmp * (0.75 + Kabe.hash(c, r, 14) * 0.5), yMid: y });   // 玉ごとに、はじめの時間・周期・ゆれ幅をずらす
       if (ch === 'W') w.obs.push({ type: 'mill', x, y, len: SKY.millLen, speed: (c < COLS / 2 ? 1 : -1) * SKY.millSpeed, yMid: y });
       if (ch === '|' && (r === r0 || w.rows[r - 1][c] !== '|')) {   // 雷の柱：縦の並びの上と下に避雷針
         let e = r; while (e + 1 < r0 + n && w.rows[e + 1][c] === '|') e++;
@@ -646,7 +646,7 @@ function railPos(o, t) {
   for (const p of o.plan) { if (u <= p.d) { const k = p.d ? u / p.d : 1, e = k * k * (3 - 2 * k); return [p.a[0] + (p.b[0] - p.a[0]) * e, p.a[1] + (p.b[1] - p.a[1]) * e]; } u -= p.d; }
   return o.pts[0];
 }
-const minePos = (o, t) => o.y + Math.sin((t + o.offset) * Math.PI * 2 / SKY.minePeriod) * SKY.mineAmp;
+const minePos = (o, t) => o.y + Math.sin((t + o.offset) * Math.PI * 2 / o.period) * o.amp;
 function boltState(o, t) { const ph = ((t + o.offset) % SKY.boltPeriod + SKY.boltPeriod) % SKY.boltPeriod, s = SKY.boltPeriod - SKY.boltStrike; return ph >= s ? 'strike' : ph >= s - SKY.boltWarn ? 'warn' : 'idle'; }
 // トゲのマス → 当たる四角（となりの壁にくっついた側）
 function spikeRect(w, c, r) {

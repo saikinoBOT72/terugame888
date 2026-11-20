@@ -486,7 +486,7 @@ piece('b_shutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_boxlane', { diff: 2 }, String.raw`
+piece('b_boxlane', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -504,7 +504,7 @@ piece('b_boxlane', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_popfunnel', { diff: 1 }, String.raw`
+piece('b_popfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -636,7 +636,7 @@ piece('z2_shelfspikes', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ########..........##
-##^^..............##
+##^...............##
 ##................##
 ##................##
 ##................##
@@ -668,7 +668,7 @@ piece('c_pend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_lift', { diff: 1 }, String.raw`
+piece('c_lift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -738,7 +738,7 @@ piece('c_twinlift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendfunnel', { diff: 1 }, String.raw`
+piece('c_pendfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -800,7 +800,7 @@ piece('d_crossfan', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_liftshutter', { diff: 1 }, String.raw`
+piece('d_liftshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -910,7 +910,7 @@ piece('d_pendzig', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_gauntlet', { diff: 3 }, String.raw`
+piece('d_gauntlet', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1136,7 +1136,7 @@ piece('b_fanzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_popshelves', { diff: 3 }, String.raw`
+piece('b_popshelves', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1155,7 +1155,7 @@ piece('b_popshelves', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_twoshutters', { diff: 2 }, String.raw`
+piece('b_twoshutters', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1238,7 +1238,7 @@ piece('b_shutterledge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_boxsteps', { diff: 2 }, String.raw`
+piece('b_boxsteps', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1256,7 +1256,7 @@ piece('b_boxsteps', { diff: 2 }, String.raw`
 `);
 
 // ===== 200〜300m 追加（上下ブロック Y・回る棒 T） =====
-piece('c_liftzig', { diff: 1 }, String.raw`
+piece('c_liftzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1305,7 +1305,7 @@ piece('c_liftstagger', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendsteps', { diff: 1 }, String.raw`
+piece('c_pendsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1377,7 +1377,7 @@ piece('c_pendwedge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_liftshelf', { diff: 1 }, String.raw`
+piece('c_liftshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1413,7 +1413,7 @@ piece('c_pendpopsR', { diff: 3 }, String.raw`
 `);
 
 // ===== 300〜400m 追加（これまでの障害物の組み合わせ） =====
-piece('d_fanlift', { diff: 1 }, String.raw`
+piece('d_fanlift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1430,7 +1430,7 @@ piece('d_fanlift', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_shutterpend', { diff: 3 }, String.raw`
+piece('d_shutterpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1449,7 +1449,7 @@ piece('d_shutterpend', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_boxfan', { diff: 2 }, String.raw`
+piece('d_boxfan', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1482,7 +1482,7 @@ piece('d_popzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_pendledges', { diff: 2 }, String.raw`
+piece('d_pendledges', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1503,7 +1503,7 @@ piece('d_pendledges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_liftnarrow', { diff: 1 }, String.raw`
+piece('d_liftnarrow', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -1574,7 +1574,7 @@ piece('d_liftpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_spikewedges', { diff: 1 }, String.raw`
+piece('d_spikewedges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1632,7 +1632,7 @@ piece('e_bridge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumble', { diff: 1 }, String.raw`
+piece('e_crumble', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1667,7 +1667,7 @@ piece('e_cliff', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spinshaft', { diff: 1 }, String.raw`
+piece('e_spinshaft', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -1685,7 +1685,7 @@ piece('e_spinshaft', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_bridgepair', { diff: 1 }, String.raw`
+piece('e_bridgepair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1703,7 +1703,7 @@ piece('e_bridgepair', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblesteps', { diff: 1 }, String.raw`
+piece('e_crumblesteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1721,7 +1721,7 @@ piece('e_crumblesteps', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spinbridge', { diff: 2 }, String.raw`
+piece('e_spinbridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1743,7 +1743,7 @@ piece('e_spinbridge', { diff: 2 }, String.raw`
 `);
 
 // ===== 500〜600m のプール「風の岩場」（筒 K k・杭 Z の入門） =====
-piece('f_cannon', { diff: 2 }, String.raw`
+piece('f_cannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1761,7 +1761,7 @@ piece('f_cannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stake', { diff: 2 }, String.raw`
+piece('f_stake', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1781,7 +1781,7 @@ piece('f_stake', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonwedge', { diff: 1 }, String.raw`
+piece('f_cannonwedge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1801,7 +1801,7 @@ piece('f_cannonwedge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakezig', { diff: 1 }, String.raw`
+piece('f_stakezig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1822,7 +1822,7 @@ piece('f_stakezig', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonledge', { diff: 1 }, String.raw`
+piece('f_cannonledge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1838,7 +1838,7 @@ piece('f_cannonledge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_bridgecannon', { diff: 2 }, String.raw`
+piece('f_bridgecannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1877,7 +1877,7 @@ piece('f_stakespin', { diff: 3 }, String.raw`
 `);
 
 // ===== 600〜700m のプール「古い水路」（バネ S の入門と、これまでの仕掛けとの組み合わせ） =====
-piece('g_springpair', { diff: 1 }, String.raw`
+piece('g_springpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##...............^##
@@ -1915,7 +1915,7 @@ piece('g_spring', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springzig', { diff: 1 }, String.raw`
+piece('g_springzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##...............^##
@@ -1954,7 +1954,7 @@ piece('g_springshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springbridge', { diff: 1 }, String.raw`
+piece('g_springbridge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1972,7 +1972,7 @@ piece('g_springbridge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springcrumble', { diff: 2 }, String.raw`
+piece('g_springcrumble', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2052,7 +2052,7 @@ piece('h_springspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_spincannon', { diff: 2 }, String.raw`
+piece('h_spincannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2070,7 +2070,7 @@ piece('h_spincannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_crumblecannon', { diff: 1 }, String.raw`
+piece('h_crumblecannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2086,7 +2086,7 @@ piece('h_crumblecannon', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_stakebridge', { diff: 1 }, String.raw`
+piece('h_stakebridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2106,7 +2106,7 @@ piece('h_stakebridge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_crumblespin', { diff: 1 }, String.raw`
+piece('h_crumblespin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2144,7 +2144,7 @@ piece('h_gauntlet', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_chimney', { diff: 1 }, String.raw`
+piece('h_chimney', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -2177,8 +2177,8 @@ piece('h_bridgecrumble', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##BBBBBB.........^##
-##^..............^##
-##^...............##
+##...............^##
+##................##
 ##.........%%%%...##
 ##................##
 ##................##
@@ -2223,7 +2223,7 @@ piece('e_spinpair', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblezig', { diff: 1 }, String.raw`
+piece('e_crumblezig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2241,7 +2241,7 @@ piece('e_crumblezig', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_bridgefunnel', { diff: 1 }, String.raw`
+piece('e_bridgefunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -2260,7 +2260,7 @@ piece('e_bridgefunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spinslope', { diff: 1 }, String.raw`
+piece('e_spinslope', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2279,7 +2279,7 @@ piece('e_spinslope', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblefloor', { diff: 1 }, String.raw`
+piece('e_crumblefloor', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2324,8 +2324,8 @@ piece('e_spinspikes', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##...............^##
-##...............^##
+##................##
+##................##
 ##................##
 ##................##
 ##................##
@@ -2363,7 +2363,7 @@ piece('f_cannoncross', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakeshaft', { diff: 1 }, String.raw`
+piece('f_stakeshaft', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -2373,7 +2373,7 @@ piece('f_stakeshaft', { diff: 1 }, String.raw`
 ######........######
 ######ZZ......######
 ######........######
-######^.......######
+######........######
 ######......ZZ######
 ######........######
 ######.......^######
@@ -2386,7 +2386,7 @@ piece('f_stakeshaft', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakecrumble', { diff: 2 }, String.raw`
+piece('f_stakecrumble', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2424,7 +2424,7 @@ piece('f_cannonspin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakewedge', { diff: 1 }, String.raw`
+piece('f_stakewedge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2445,7 +2445,7 @@ piece('f_stakewedge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonsteps', { diff: 1 }, String.raw`
+piece('f_cannonsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2462,7 +2462,7 @@ piece('f_cannonsteps', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_bridgespin', { diff: 2 }, String.raw`
+piece('f_bridgespin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2539,7 +2539,7 @@ piece('g_springledges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springspin', { diff: 2 }, String.raw`
+piece('g_springspin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2558,7 +2558,7 @@ piece('g_springspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springfloor', { diff: 1 }, String.raw`
+piece('g_springfloor', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2582,8 +2582,8 @@ piece('g_springfunnel', { diff: 2 }, String.raw`
 ######^.......######
 ######^.......######
 ######^..SS...######
-######^..##..^######
-######.......^######
+######^..##...######
+######........######
 #####/........\#####
 ####/..........\####
 ###/............\###
@@ -2627,7 +2627,7 @@ piece('g_springbridges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springsteps', { diff: 2 }, String.raw`
+piece('g_springsteps', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##^..............^##
@@ -2647,7 +2647,7 @@ piece('g_springsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springpops', { diff: 1 }, String.raw`
+piece('g_springpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2686,7 +2686,7 @@ piece('h_spinstake', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_cannonbridge', { diff: 1 }, String.raw`
+piece('h_cannonbridge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2703,7 +2703,7 @@ piece('h_cannonbridge', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_crumblestake', { diff: 2 }, String.raw`
+piece('h_crumblestake', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2737,14 +2737,14 @@ piece('h_springchimney', { diff: 2 }, String.raw`
 ######........######
 ######...SS...######
 ######...##...######
-#####/....^...\#####
+#####/........\#####
 ####/..........\####
 ###/............\###
 ##/..............\##
 ##................##
 ##................##
 `);
-piece('h_spincrumble', { diff: 2 }, String.raw`
+piece('h_spincrumble', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2762,7 +2762,7 @@ piece('h_spincrumble', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_cannonspring', { diff: 2 }, String.raw`
+piece('h_cannonspring', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2822,7 +2822,7 @@ piece('h_bridgezig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_mixfunnel', { diff: 1 }, String.raw`
+piece('h_mixfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -3201,7 +3201,7 @@ piece('b_popcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_popladder', { diff: 1 }, String.raw`
+piece('b_popladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3253,7 +3253,7 @@ piece('b_popsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_fancave', { diff: 1 }, String.raw`
+piece('b_fancave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -3288,7 +3288,7 @@ piece('b_fanpillars', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_fanladder', { diff: 1 }, String.raw`
+piece('b_fanladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3432,7 +3432,7 @@ piece('b_boxnarrow', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_boxladder', { diff: 2 }, String.raw`
+piece('b_boxladder', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3468,7 +3468,7 @@ piece('b_spikecave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('b_spikezig', { diff: 3 }, String.raw`
+piece('b_spikezig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3521,7 +3521,7 @@ piece('b_fanshaft', { diff: 1 }, String.raw`
 `);
 
 // ===== 新しいパーツ（200m）
-piece('c_liftcave', { diff: 1 }, String.raw`
+piece('c_liftcave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -3554,7 +3554,7 @@ piece('c_liftpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_liftladder', { diff: 1 }, String.raw`
+piece('c_liftladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3589,7 +3589,7 @@ piece('c_liftpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_liftfan', { diff: 1 }, String.raw`
+piece('c_liftfan', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3605,7 +3605,7 @@ piece('c_liftfan', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_liftwall', { diff: 1 }, String.raw`
+piece('c_liftwall', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3622,7 +3622,7 @@ piece('c_liftwall', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendcave', { diff: 1 }, String.raw`
+piece('c_pendcave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -3640,7 +3640,7 @@ piece('c_pendcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendladder', { diff: 1 }, String.raw`
+piece('c_pendladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3658,7 +3658,7 @@ piece('c_pendladder', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendshutter', { diff: 2 }, String.raw`
+piece('c_pendshutter', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3674,7 +3674,7 @@ piece('c_pendshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendbox', { diff: 2 }, String.raw`
+piece('c_pendbox', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3707,7 +3707,7 @@ piece('c_pendrocks', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spikeshaft', { diff: 1 }, String.raw`
+piece('c_spikeshaft', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3760,7 +3760,7 @@ piece('c_boxpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_shutterpops', { diff: 1 }, String.raw`
+piece('c_shutterpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3777,7 +3777,7 @@ piece('c_shutterpops', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_fanpops', { diff: 1 }, String.raw`
+piece('c_fanpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3811,7 +3811,7 @@ piece('c_liftspikes2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_pendpillars', { diff: 2 }, String.raw`
+piece('c_pendpillars', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3829,7 +3829,7 @@ piece('c_pendpillars', { diff: 2 }, String.raw`
 `);
 
 // ===== 新しいパーツ（300m）
-piece('d_zigpops', { diff: 1 }, String.raw`
+piece('d_zigpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -3886,7 +3886,7 @@ piece('d_zigfan', { diff: 2 }, String.raw`
 ##.........#########
 ##^...............##
 ##...............<##
-##.....^..........##
+##................##
 #########.........##
 ##................##
 ##................##
@@ -3913,7 +3913,7 @@ piece('d_zigpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_funnelpops', { diff: 1 }, String.raw`
+piece('d_funnelpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -3947,7 +3947,7 @@ piece('d_funnelbox', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_funnelfan', { diff: 1 }, String.raw`
+piece('d_funnelfan', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -3957,7 +3957,7 @@ piece('d_funnelfan', { diff: 1 }, String.raw`
 #####^XXXXXXXX^#####
 #####^.........#####
 #####.........<#####
-#####^.........#####
+#####..........#####
 ####/..........\####
 ###/............\###
 ##/..............\##
@@ -3981,7 +3981,7 @@ piece('d_shelfpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_shelflift', { diff: 1 }, String.raw`
+piece('d_shelflift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4003,7 +4003,7 @@ piece('d_shelfshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##..........########
-##...............^##
+##................##
 ##................##
 ##................##
 ######............##
@@ -4035,7 +4035,7 @@ piece('d_bumpbox', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_bumppops', { diff: 1 }, String.raw`
+piece('d_bumppops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4044,8 +4044,8 @@ piece('d_bumppops', { diff: 1 }, String.raw`
 ####/.....Y......^##
 ##p.......Y......^##
 ##p.......Y.......##
-##^.......Y...../###
-##^.......Y.....####
+##........Y...../###
+##........Y.....####
 ##........Y.....\###
 ##........Y......q##
 ####\.....Y......q##
@@ -4093,7 +4093,7 @@ piece('d_cavepend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_cavebox', { diff: 1 }, String.raw`
+piece('d_cavebox', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -4129,7 +4129,7 @@ piece('d_cavelift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_twinpend', { diff: 2 }, String.raw`
+piece('d_twinpend', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4159,8 +4159,8 @@ piece('d_shutterlift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##.......Y........##
-##.......Y.......^##
-##.......Y.......^##
+##.......Y........##
+##.......Y........##
 ##.......Y........##
 ##.......Y........##
 ##................##
@@ -4185,7 +4185,7 @@ piece('d_boxpops', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_fanshutter', { diff: 1 }, String.raw`
+piece('d_fanshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4214,7 +4214,7 @@ piece('e_spincave', { diff: 2 }, String.raw`
 ###......T......####
 ####.............###
 ###...............##
-##...............^##
+##................##
 ##...............###
 ##..............####
 ###.............####
@@ -4234,13 +4234,13 @@ piece('e_spinzig', { diff: 2 }, String.raw`
 ##.......T........##
 ##................##
 ##................##
-##...............^##
-##...............^##
+##................##
+##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('e_spinladder', { diff: 1 }, String.raw`
+piece('e_spinladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4312,7 +4312,7 @@ piece('e_bridgezig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_bridgespikes', { diff: 1 }, String.raw`
+piece('e_bridgespikes', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4328,7 +4328,7 @@ piece('e_bridgespikes', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblecave', { diff: 1 }, String.raw`
+piece('e_crumblecave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4362,7 +4362,7 @@ piece('e_crumblebridge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblespikes', { diff: 1 }, String.raw`
+piece('e_crumblespikes', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4377,7 +4377,7 @@ piece('e_crumblespikes', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_crumblestairs', { diff: 1 }, String.raw`
+piece('e_crumblestairs', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4394,7 +4394,7 @@ piece('e_crumblestairs', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spinbridges', { diff: 2 }, String.raw`
+piece('e_spinbridges', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4410,7 +4410,7 @@ piece('e_spinbridges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spincrumble', { diff: 2 }, String.raw`
+piece('e_spincrumble', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4426,7 +4426,7 @@ piece('e_spincrumble', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_spinfunnel', { diff: 1 }, String.raw`
+piece('e_spinfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -4440,14 +4440,14 @@ piece('e_spinfunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_bridgeshaft', { diff: 1 }, String.raw`
+piece('e_bridgeshaft', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
 ###\............/###
 ####\........../####
-#####BBBB......^####
-#####^.........^####
+#####BBBB.......####
+#####^..........####
 #####^......BBBB####
 #####..........^####
 #####BBBB......^####
@@ -4476,7 +4476,7 @@ piece('e_cliffs', { diff: 2 }, String.raw`
 `);
 
 // ===== 新しいパーツ（500m）
-piece('f_cannonopen', { diff: 2 }, String.raw`
+piece('f_cannonopen', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4494,7 +4494,7 @@ piece('f_cannonopen', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonladder', { diff: 2 }, String.raw`
+piece('f_cannonladder', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4512,7 +4512,7 @@ piece('f_cannonladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannoncave', { diff: 1 }, String.raw`
+piece('f_cannoncave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4551,7 +4551,7 @@ piece('f_cannonzig', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonbridge', { diff: 2 }, String.raw`
+piece('f_cannonbridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4604,7 +4604,7 @@ piece('f_stakeopen', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakeladder', { diff: 1 }, String.raw`
+piece('f_stakeladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4641,7 +4641,7 @@ piece('f_stakepillar', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakefunnel', { diff: 1 }, String.raw`
+piece('f_stakefunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -4676,7 +4676,7 @@ piece('f_stakebridge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakecrumble2', { diff: 2 }, String.raw`
+piece('f_stakecrumble2', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4733,7 +4733,7 @@ piece('f_stakespin2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_rockcannon', { diff: 1 }, String.raw`
+piece('f_rockcannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4783,7 +4783,7 @@ piece('f_stakeshelves', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonshelves', { diff: 2 }, String.raw`
+piece('f_cannonshelves', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4802,7 +4802,7 @@ piece('f_cannonshelves', { diff: 2 }, String.raw`
 `);
 
 // ===== 新しいパーツ（600m）
-piece('g_springcave', { diff: 1 }, String.raw`
+piece('g_springcave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###^..............##
@@ -4825,7 +4825,7 @@ piece('g_springladder', { diff: 1 }, String.raw`
 ##................##
 ##^...............##
 ##^.............####
-##...............^##
+##................##
 ##...............^##
 ####.............^##
 ##^..............^##
@@ -4838,7 +4838,7 @@ piece('g_springladder', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springspin2', { diff: 1 }, String.raw`
+piece('g_springspin2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4848,8 +4848,8 @@ piece('g_springspin2', { diff: 1 }, String.raw`
 ##.......T........##
 ##................##
 ##................##
-##...............^##
-##...............^##
+##................##
+##................##
 ##................##
 ##..SS............##
 ##..##............##
@@ -4857,7 +4857,7 @@ piece('g_springspin2', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springcannon2', { diff: 1 }, String.raw`
+piece('g_springcannon2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4894,7 +4894,7 @@ piece('g_springstake2', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springbridge2', { diff: 1 }, String.raw`
+piece('g_springbridge2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -4922,8 +4922,8 @@ piece('g_springcrumble2', { diff: 2 }, String.raw`
 ##^..............^##
 ##^...............##
 ##^.........%%%%%%##
-##^...............##
-##^...............##
+##................##
+##................##
 ##^...............##
 ##^.........SS....##
 ##..........##....##
@@ -4974,8 +4974,8 @@ piece('g_springpops2', { diff: 1 }, String.raw`
 ##^..............^##
 ##p..............^##
 ##p...............##
-##...............q##
-##^..............q##
+##................##
+##^...............##
 ##^...............##
 ##p..............^##
 ##p..............^##
@@ -5058,7 +5058,7 @@ piece('g_springrocks', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springshelves2', { diff: 2 }, String.raw`
+piece('g_springshelves2', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##^...............##
@@ -5129,7 +5129,7 @@ piece('g_springshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springfunnel2', { diff: 1 }, String.raw`
+piece('g_springfunnel2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -5148,7 +5148,7 @@ piece('g_springfunnel2', { diff: 1 }, String.raw`
 `);
 
 // ===== 新しいパーツ（700m）
-piece('h_spincannon2', { diff: 2 }, String.raw`
+piece('h_spincannon2', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5201,7 +5201,7 @@ piece('h_spinbridge2', { diff: 2 }, String.raw`
 ##................##
 ##...........BBBBB##
 ##................##
-##^...............##
+##................##
 ##................##
 ##................##
 ##................##
@@ -5228,7 +5228,7 @@ piece('h_cannonstake', { diff: 3 }, String.raw`
 piece('h_cannoncrumble2', { diff: 2 }, String.raw`
 ##................##
 ##................##
-##^...............##
+##................##
 ##^...............##
 ##^...............##
 ##..........%%%%%%##
@@ -5243,7 +5243,7 @@ piece('h_cannoncrumble2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_springcannon2', { diff: 1 }, String.raw`
+piece('h_springcannon2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5302,7 +5302,7 @@ piece('h_springspin2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_bridgestake2', { diff: 1 }, String.raw`
+piece('h_bridgestake2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5335,7 +5335,7 @@ piece('h_crumblespin2', { diff: 2 }, String.raw`
 ##................##
 ##..........%%%%%%##
 ##................##
-##^...............##
+##................##
 ##................##
 ##................##
 ##................##
@@ -5359,7 +5359,7 @@ piece('h_pendcannon2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_pendstake2', { diff: 2 }, String.raw`
+piece('h_pendstake2', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5397,7 +5397,7 @@ piece('h_rockspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_rockcannon2', { diff: 1 }, String.raw`
+piece('h_rockcannon2', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5433,7 +5433,7 @@ piece('h_cavespin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_cavecannon', { diff: 1 }, String.raw`
+piece('h_cavecannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -5451,7 +5451,7 @@ piece('h_cavecannon', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_zigcannon', { diff: 2 }, String.raw`
+piece('h_zigcannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5478,7 +5478,7 @@ piece('h_shelfspin', { diff: 2 }, String.raw`
 ##................##
 ##..........########
 ##................##
-##...............^##
+##................##
 ##................##
 ######....T.......##
 ##................##
@@ -5489,7 +5489,7 @@ piece('h_shelfspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_funnelcannon', { diff: 1 }, String.raw`
+piece('h_funnelcannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -5527,7 +5527,7 @@ piece('h_triple', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_summit', { diff: 2 }, String.raw`
+piece('h_summit', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5550,80 +5550,120 @@ piece('h_summit', { diff: 2 }, String.raw`
 `);
 
 // ===== 新しいパーツ（800m）
-piece('i_clouds', { diff: 2 }, String.raw`
+piece('i_chimmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
-##................##
-##^...............##
-##^........~~~~~.^##
-##...............^##
-##^...............##
-##^...............##
-##^.~~~~~.........##
-##^...............##
-##^..............^##
-##^...............##
-##^........~~~~~.^##
-##^..............^##
-##^...............##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######..M.....######
+######........######
+######........######
+######.....M..######
+######........######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
 ##................##
 ##................##
 `);
-piece('i_cloudsteps', { diff: 2 }, String.raw`
+piece('i_dogmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##^..............^##
-##^...~~~~.......^##
-##...............^##
+##########........##
+##########........##
+##########...M....##
+##########........##
+##########........##
+##................##
+##................##
+##........##########
+##........##########
+##....M...##########
+##........##########
+##........##########
+##................##
+##................##
+`);
+piece('i_clouds', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##................##
 ##^...............##
-##^........~~~~..^##
-##...............^##
+##......M...~~~~..##
 ##................##
-##.....~~~~......^##
-##...............^##
-##^...............##
-##^~~~~..........^##
-##...............^##
+##................##
+##................##
+##................##
+##..........M.....##
+##..~~~~..........##
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('i_cloudsteps', { diff: 1 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+##..~~~...........##
+##................##
+##........M.......##
+##................##
+##...........~~~..##
+##................##
+##.......M........##
+##................##
+##..~~~...........##
+##................##
 ##................##
 ##................##
 `);
 piece('i_cloudmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
-##^...............##
-##^..............^##
-##...............^##
-##.~~~~~..........##
-##^..............^##
-##^..............^##
-##^......M........##
-##^...............##
-##^...............##
-##^.........~~~~~.##
-##^...............##
-##^...M...........##
+##................##
+##................##
+##................##
+##.~~~~...........##
+##..........M.....##
+##................##
+##.......M........##
+##................##
+##................##
+##......M.........##
+##...........~~~~.##
+##................##
 ##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('i_mines', { diff: 2 }, String.raw`
+piece('i_mines', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##.......M.......^##
-##...............^##
+##......M...M.....##
 ##................##
-##...............^##
-##...............^##
+##................##
 ##^..............^##
-##^.......M......^##
-##...............^##
-##^...............##
-##^...............##
+##................##
+##.....M..M.......##
+##................##
+##................##
+##................##
+##................##
 ##................##
 ##................##
 `);
@@ -5632,16 +5672,16 @@ piece('i_minepair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##...............^##
-##^...............##
-##^....M....M.....##
+##................##
+##................##
+##.....M....M.....##
 ##................##
 ##................##
 ##................##
-##...............^##
-##.......M.......^##
 ##................##
-##^...............##
+##.......M...M....##
+##................##
+##................##
 ##................##
 ##................##
 ##................##
@@ -5652,33 +5692,33 @@ piece('i_minecave', { diff: 2 }, String.raw`
 ###...............##
 ###..............###
 ##...............###
-##.......M......####
-###.............####
+##......M.......####
+###.........M...####
 ####.............###
 ###...............##
-##^...............##
-##^.......M......###
+##................##
+##........M......###
 ##..............####
 ###.............####
-###.............^^##
+###...............##
 ##................##
 ##................##
 `);
-piece('i_cloudcave', { diff: 2 }, String.raw`
+piece('i_cloudcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
-###^..............##
-###^............^###
-##^.............^###
-##^......~~~~~.^####
-###............^####
+###...............##
+###..............###
+##...............###
+##........~~~~..####
+###.............####
 ####.............###
 ###...............##
-##^..............^##
-##^..~~~~~.......###
-##.............^####
-###^...........^####
-###.............^^##
+##......M.........##
+##...............###
+##..........M...####
+###.............####
+###...............##
 ##................##
 ##................##
 `);
@@ -5688,16 +5728,16 @@ piece('i_cloudzig', { diff: 2 }, String.raw`
 ##................##
 ##.........#########
 ##................##
-##...........~~~~.##
-##^...............##
+##.~~~............##
+##...........M....##
 #########.........##
 ##................##
-##^~~~~...........##
-##^...............##
+##................##
+##.....M..........##
 ##.........#########
 ##................##
-##...........~~~~.##
-##^...............##
+##................##
+##................##
 #########.........##
 ##................##
 ##................##
@@ -5708,34 +5748,34 @@ piece('i_mineladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##..............####
-##...............^##
+##................##
 ##.......M........##
 ####..............##
 ##................##
-##...............^##
+##.........M......##
 ##..............####
 ##................##
-##........M.......##
+##......M.........##
 ####..............##
-##^^..............##
+##................##
 ##................##
 ##................##
 `);
-piece('i_cloudspikes', { diff: 2 }, String.raw`
+piece('i_cloudspikes', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-##................##
-##...............^##
-##.~~~~~~........^##
 ##................##
 ##................##
 ##^...............##
-##.........~~~~~~.##
+##^.........~~~~..##
+##................##
+##.......M........##
+##................##
+##...........M...^##
+##..~~~~.........^##
 ##................##
 ##................##
-##...............^##
-##.~~~~~~........^##
 ##................##
 ##................##
 ##................##
@@ -5746,15 +5786,15 @@ piece('i_rainclouds', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.........~~~~~..##
+##..........~~~~..##
 ##................##
-##^...............##
 ##................##
-##..~~~~~.........##
+##.......M........##
 ##................##
-##...............^##
+##..~~~~....M.....##
 ##................##
-##.........~~~~~..##
+##................##
+##................##
 ##................##
 ##................##
 ##................##
@@ -5764,102 +5804,103 @@ piece('i_rainmines', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-##^...............##
 ##................##
 ##.......M........##
 ##................##
 ##................##
 ##................##
+##..........M.....##
 ##................##
-##........M.......##
 ##................##
-##...............^##
+##......M.........##
+##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('i_cloudfunnel', { diff: 2 }, String.raw`
+piece('i_cloudfunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
 ###\............/###
 ####\........../####
 #####..........#####
-#####..~~~~~...#####
+#####...M......#####
 #####..........#####
-#####^.........#####
-#####.........^#####
+#####......M...#####
+#####..........#####
 ####/..........\####
 ###/............\###
 ##/..............\##
 ##................##
 ##................##
 `);
-piece('i_minefunnel', { diff: 2 }, String.raw`
+piece('i_minefunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
 ###\............/###
 ####\........../####
-#####.........^#####
 #####....M.....#####
 #####..........#####
 #####..........#####
 #####..........#####
+#####.....M....#####
 ####/..........\####
 ###/............\###
 ##/..............\##
 ##................##
 ##................##
 `);
-piece('i_cloudrocks', { diff: 2 }, String.raw`
+piece('i_cloudrocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
-##^...............##
+##................##
+##.....##..M......##
 ##.....##.........##
-##.....##.........##
-##.........~~~~~..##
+##................##
 ##................##
 ##..........##....##
-##..........##....##
+##....M.....##....##
 ##................##
-##.~~~~~..........##
+##...........~~~~.##
 ##................##
-##...............^##
+##................##
 ##................##
 ##................##
 `);
-piece('i_minerocks', { diff: 2 }, String.raw`
+piece('i_minerocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##....##..........##
-##....##..........##
+##.....##....M....##
+##.....##.........##
 ##................##
-##.............M..##
 ##................##
 ##..........##....##
 ##..........##....##
 ##................##
-##....M...........##
+##.....M..........##
+##................##
+##................##
 ##................##
 ##................##
 `);
-piece('i_cloudcannon', { diff: 2 }, String.raw`
+piece('i_cloudcannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##................k#
 ##................##
-##..~~~~~.........##
+##..~~~~..........##
 ##................##
 ##................##
 #K................##
 ##................##
-##.........~~~~~..##
+##........M.......##
 ##................##
 ##................k#
 ##................##
@@ -5877,9 +5918,9 @@ piece('i_minestake', { diff: 2 }, String.raw`
 ##.......M........##
 ##................##
 ##................##
-##............ZZZZ##
 ##................##
 ##................##
+##.........M......##
 ##................##
 ##................##
 ##................##
@@ -5891,35 +5932,35 @@ piece('i_cloudspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##...............^##
-##.~~~~~..........##
+##................##
+##.~~~~...........##
 ##................##
 ##................##
 ##................##
 ##........T.......##
 ##................##
+##.....M..........##
 ##................##
 ##................##
-##..........~~~~~.##
 ##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('i_cloudcrumble', { diff: 2 }, String.raw`
+piece('i_cloudcrumble', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##.........~~~~~..##
+##..........~~~~..##
 ##................##
-##...............^##
+##.......M........##
 ##................##
 ##%%%%%...........##
 ##................##
-##^...............##
-##........~~~~~...##
+##................##
+##.........M......##
 ##................##
 ##................##
 ##................##
@@ -5927,7 +5968,123 @@ piece('i_cloudcrumble', { diff: 2 }, String.raw`
 `);
 
 // ===== 新しいパーツ（900m）
-piece('j_gust', { diff: 2 }, String.raw`
+piece('j_chimgust', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######}.......######
+######........######
+######....M...######
+######........######
+######.......{######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('j_chimbend', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######...J....######
+######...J....######
+######...J....######
+######...J...{######
+######...J....######
+######...J....######
+######...J....######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('j_doggust', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########........##
+##########........##
+##########}.......##
+##########........##
+##########........##
+##................##
+##................##
+##........##########
+##........##########
+##.......{##########
+##........##########
+##........##########
+##................##
+##................##
+`);
+piece('j_dogbend', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########........##
+##########...J....##
+##########...J....##
+##########...J....##
+##########...J....##
+##................##
+##................##
+##........##########
+##..J.....##########
+##..J.....##########
+##..J.....##########
+##..J.....##########
+##................##
+##................##
+`);
+piece('j_pinchgust', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\}........./####
+#####\......../#####
+######\....../######
+#######......#######
+#######..M...#######
+######/......\######
+#####/........\#####
+####/.........{\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('j_pinchbend', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\}........./####
+#####\...J..../#####
+######\..J.../######
+#######..J...#######
+#######..J...#######
+######/..J...\######
+#####/...J....\#####
+####/....J.....\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('j_gust', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5936,7 +6093,7 @@ piece('j_gust', { diff: 2 }, String.raw`
 ##}...............##
 ##................##
 ##...............^##
-##................##
+##.......M........##
 ##................##
 ##...............{##
 ##................##
@@ -5945,7 +6102,7 @@ piece('j_gust', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustclouds', { diff: 2 }, String.raw`
+piece('j_gustclouds', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5954,7 +6111,7 @@ piece('j_gustclouds', { diff: 2 }, String.raw`
 ##.........~~~~~..##
 ##................##
 ##}...............##
-##................##
+##.........M......##
 ##................##
 ##..~~~~~.........##
 ##................##
@@ -5964,7 +6121,7 @@ piece('j_gustclouds', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustladder', { diff: 2 }, String.raw`
+piece('j_gustladder', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -5973,7 +6130,7 @@ piece('j_gustladder', { diff: 2 }, String.raw`
 ##................##
 ####..............##
 ##}...............##
-##................##
+##.......M........##
 ##..............####
 ##................##
 ##...............{##
@@ -6003,7 +6160,7 @@ piece('j_gustzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustmines', { diff: 2 }, String.raw`
+piece('j_gustmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6022,7 +6179,7 @@ piece('j_gustmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendL', { diff: 2 }, String.raw`
+piece('j_bendL', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6041,7 +6198,7 @@ piece('j_bendL', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendJ', { diff: 2 }, String.raw`
+piece('j_bendJ', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6060,7 +6217,7 @@ piece('j_bendJ', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendwide', { diff: 2 }, String.raw`
+piece('j_bendwide', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6069,7 +6226,7 @@ piece('j_bendwide', { diff: 2 }, String.raw`
 ##....LLLLLLL.....##
 ##..........L.....##
 ##..........L.....##
-##..........L.....##
+##.......M..L.....##
 ##..........L.....##
 ##..........L.....##
 ##................##
@@ -6078,7 +6235,7 @@ piece('j_bendwide', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendU', { diff: 2 }, String.raw`
+piece('j_bendU', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6097,7 +6254,7 @@ piece('j_bendU', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendS', { diff: 2 }, String.raw`
+piece('j_bendS', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6117,14 +6274,14 @@ piece('j_bendS', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendclouds', { diff: 2 }, String.raw`
+piece('j_bendclouds', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##.......J........##
 ##.......J........##
-##.~~~...J........##
+##.~~~...J...M....##
 ##.......J........##
 ##.......J........##
 ##.......JJJJJ....##
@@ -6155,7 +6312,7 @@ piece('j_bendgust', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendcave', { diff: 2 }, String.raw`
+piece('j_bendcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -6164,7 +6321,7 @@ piece('j_bendcave', { diff: 2 }, String.raw`
 ##.......L......####
 ###......L......####
 ####.....L.......###
-###......L........##
+###...M..L........##
 ##.......LLLL.....##
 ##...............###
 ##..............####
@@ -6173,7 +6330,7 @@ piece('j_bendcave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_bendmines', { diff: 2 }, String.raw`
+piece('j_bendmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6193,7 +6350,7 @@ piece('j_bendmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustcannon', { diff: 2 }, String.raw`
+piece('j_gustcannon', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6211,7 +6368,7 @@ piece('j_gustcannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustrocks', { diff: 2 }, String.raw`
+piece('j_gustrocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6223,7 +6380,7 @@ piece('j_gustrocks', { diff: 2 }, String.raw`
 ##..........##....##
 ##..........##....##
 ##................##
-##...............{##
+##.......M.......{##
 ##................##
 ##................##
 ##................##
@@ -6249,7 +6406,7 @@ piece('j_bendpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_gustfunnel', { diff: 2 }, String.raw`
+piece('j_gustfunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -6257,7 +6414,7 @@ piece('j_gustfunnel', { diff: 2 }, String.raw`
 ####\........../####
 #####..........#####
 #####}.........#####
-#####..........#####
+#####....M.....#####
 #####..........#####
 #####.........{#####
 ####/..........\####
@@ -6266,7 +6423,7 @@ piece('j_gustfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_raingust', { diff: 2, rain: 1 }, String.raw`
+piece('j_raingust', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6285,7 +6442,7 @@ piece('j_raingust', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('j_rainbend', { diff: 2, rain: 1 }, String.raw`
+piece('j_rainbend', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6306,7 +6463,123 @@ piece('j_rainbend', { diff: 2, rain: 1 }, String.raw`
 `);
 
 // ===== 新しいパーツ（1000m）
-piece('k_bolt', { diff: 2 }, String.raw`
+piece('k_chimbolt', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\...|..../#####
+######...|....######
+######...|....######
+######...|...{######
+######...|....######
+######...|....######
+######...|....######
+######...|.M..######
+#####/...|....\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('k_chimboltmines', { diff: 2 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\....|.../#####
+######....|...######
+######..M.|...######
+######....|...######
+######....|...######
+######........######
+######..M.....######
+######........######
+#####/........\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('k_dogbolt', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########...|....##
+##########...|....##
+##########...|....##
+##########...|....##
+##########...|....##
+##................##
+##................##
+##....|...##########
+##....|...##########
+##....|...##########
+##....|...##########
+##....|...##########
+##................##
+##................##
+`);
+piece('k_dogmines', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########....|...##
+##########....|...##
+##########....|...##
+##########....|...##
+##########....|...##
+##................##
+##................##
+##........##########
+##........##########
+##....M...##########
+##........##########
+##........##########
+##................##
+##................##
+`);
+piece('k_pinchbolt', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\}...|...../####
+#####\...|..../#####
+######\..|.../######
+#######..|...#######
+#######..|...#######
+######/..|...\######
+#####/...|....\#####
+####/....|.....\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('k_pinchmines', { diff: 2 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\...M..../#####
+######\....../######
+#######......#######
+#######......#######
+######/...M..\######
+#####/........\#####
+####/....|.....\####
+###/.....|......\###
+##/..............\##
+##................##
+##................##
+`);
+piece('k_bolt', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6315,7 +6588,7 @@ piece('k_bolt', { diff: 2 }, String.raw`
 ##.......|........##
 ##^......|........##
 ##.......|........##
-##.......|........##
+##....M..|........##
 ##.......|.......^##
 ##.......|........##
 ##.......|........##
@@ -6324,7 +6597,7 @@ piece('k_bolt', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltpair', { diff: 2 }, String.raw`
+piece('k_boltpair', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6343,13 +6616,13 @@ piece('k_boltpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltclouds', { diff: 2 }, String.raw`
+piece('k_boltclouds', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##........|.......##
 ##........|.......##
-##........|.......##
+##........|..M....##
 ##.~~~~~..|.......##
 ##........|.......##
 ##........|.......##
@@ -6362,7 +6635,7 @@ piece('k_boltclouds', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltladder', { diff: 2 }, String.raw`
+piece('k_boltladder', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6371,7 +6644,7 @@ piece('k_boltladder', { diff: 2 }, String.raw`
 ##.......|........##
 ####.....|........##
 ##.......|........##
-##.......|........##
+##....M..|........##
 ##.......|......####
 ##.......|........##
 ##.......|........##
@@ -6380,7 +6653,7 @@ piece('k_boltladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltsides', { diff: 2 }, String.raw`
+piece('k_boltsides', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6405,7 +6678,7 @@ piece('k_boltmines', { diff: 2 }, String.raw`
 ##................##
 ##.....|..........##
 ##.....|..........##
-##.....|..........##
+##.....|..M.......##
 ##.....|..........##
 ##.....|..........##
 ##.....|....M.....##
@@ -6418,7 +6691,7 @@ piece('k_boltmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltbend', { diff: 2 }, String.raw`
+piece('k_boltbend', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6438,7 +6711,7 @@ piece('k_boltbend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltgust', { diff: 2 }, String.raw`
+piece('k_boltgust', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6456,7 +6729,7 @@ piece('k_boltgust', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltcave', { diff: 2 }, String.raw`
+piece('k_boltcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -6465,7 +6738,7 @@ piece('k_boltcave', { diff: 2 }, String.raw`
 ##.......|......####
 ###......|......####
 ####.....|.......###
-###......|........##
+###...M..|........##
 ##.......|........##
 ##.......|.......###
 ##.......|......####
@@ -6474,7 +6747,7 @@ piece('k_boltcave', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltrocks', { diff: 2 }, String.raw`
+piece('k_boltrocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6492,7 +6765,7 @@ piece('k_boltrocks', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltfunnel', { diff: 2 }, String.raw`
+piece('k_boltfunnel', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##\............../##
@@ -6500,7 +6773,7 @@ piece('k_boltfunnel', { diff: 2 }, String.raw`
 ####\........../####
 #####....|.....#####
 #####....|.....#####
-#####....|.....#####
+#####....|..M..#####
 #####....|.....#####
 #####....|.....#####
 ####/..........\####
@@ -6509,7 +6782,7 @@ piece('k_boltfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltshelves', { diff: 2 }, String.raw`
+piece('k_boltshelves', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6517,7 +6790,7 @@ piece('k_boltshelves', { diff: 2 }, String.raw`
 ##......|.........##
 ##......|.........##
 ##......|.........##
-######..|.........##
+######..|..M......##
 ##......|.........##
 ##......|.........##
 ##......|.........##
@@ -6526,7 +6799,7 @@ piece('k_boltshelves', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_triplebolt', { diff: 3 }, String.raw`
+piece('k_triplebolt', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6563,7 +6836,7 @@ piece('k_boltcannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltspin', { diff: 3 }, String.raw`
+piece('k_boltspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6602,7 +6875,7 @@ piece('k_boltstake', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_boltcrumble', { diff: 2 }, String.raw`
+piece('k_boltcrumble', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6614,13 +6887,13 @@ piece('k_boltcrumble', { diff: 2 }, String.raw`
 ##........|.......##
 ##........|.......##
 ##........|..%%%%%##
-##........|.......##
+##....M...|.......##
 ##........|.......##
 ##................##
 ##................##
 ##................##
 `);
-piece('k_boltspring', { diff: 2 }, String.raw`
+piece('k_boltspring', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6629,7 +6902,7 @@ piece('k_boltspring', { diff: 2 }, String.raw`
 ##.......|........##
 ##.......|........##
 ##.......|........##
-##.......|........##
+##....M..|........##
 ##.......|........##
 ##................##
 ##................##
@@ -6639,7 +6912,7 @@ piece('k_boltspring', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_rainbolt', { diff: 2, rain: 1 }, String.raw`
+piece('k_rainbolt', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6648,7 +6921,7 @@ piece('k_rainbolt', { diff: 2, rain: 1 }, String.raw`
 ##.......|........##
 ##.......|........##
 ##.......|........##
-##.......|........##
+##....M..|........##
 ##.......|........##
 ##.......|........##
 ##.......|........##
@@ -6657,7 +6930,7 @@ piece('k_rainbolt', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('k_rainclouds', { diff: 2, rain: 1 }, String.raw`
+piece('k_rainclouds', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6666,7 +6939,7 @@ piece('k_rainclouds', { diff: 2, rain: 1 }, String.raw`
 ##.......|........##
 ##.......|........##
 ##.......|........##
-##................##
+##...........M....##
 ##.~~~~~..........##
 ##................##
 ##................##
@@ -6678,13 +6951,129 @@ piece('k_rainclouds', { diff: 2, rain: 1 }, String.raw`
 `);
 
 // ===== 新しいパーツ（1100m）
-piece('l_mill', { diff: 2 }, String.raw`
+piece('l_chimmill', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######........######
+######........######
+######...W....######
+######........######
+######........######
+######........######
+#####/....M...\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('l_chimstorm', { diff: 2 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\......../#####
+######........######
+######...W....######
+######........######
+######........######
+######........######
+######.......{######
+######........######
+#####/...M....\#####
+####/..........\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('l_dogmill', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########........##
+##########........##
+##########...W....##
+##########........##
+##########........##
+##................##
+##................##
+##........##########
+##........##########
+##....M...##########
+##........##########
+##........##########
+##................##
+##................##
+`);
+piece('l_dogstorm', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########....|...##
+##########....|...##
+##########....|...##
+##########....|...##
+##########....|...##
+##................##
+##................##
+##........##########
+##........##########
+##....W...##########
+##........##########
+##........##########
+##................##
+##................##
+`);
+piece('l_pinchmill', { diff: 1 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\........../####
+#####\...W..../#####
+######\....../######
+#######......#######
+#######......#######
+######/......\######
+#####/........\#####
+####/.........{\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('l_pinchstorm', { diff: 2 }, String.raw`
+##................##
+##................##
+##\............../##
+###\............/###
+####\....M...../####
+#####\......../#####
+######\....../######
+#######......#######
+#######......#######
+######/......\######
+#####/........\#####
+####/....W....{\####
+###/............\###
+##/..............\##
+##................##
+##................##
+`);
+piece('l_mill', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##^...............##
+##^......M........##
 ##................##
 ##................##
 ##.......W........##
@@ -6716,13 +7105,13 @@ piece('l_millpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millclouds', { diff: 2 }, String.raw`
+piece('l_millclouds', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##.~~~~...........##
-##................##
+##.......M........##
 ##................##
 ##................##
 ##........W.......##
@@ -6735,13 +7124,13 @@ piece('l_millclouds', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millladder', { diff: 2 }, String.raw`
+piece('l_millladder', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##..............####
 ##................##
-##................##
+##.......M........##
 ####..............##
 ##................##
 ##.......W........##
@@ -6753,7 +7142,7 @@ piece('l_millladder', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millgust', { diff: 2 }, String.raw`
+piece('l_millgust', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6772,7 +7161,7 @@ piece('l_millgust', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millbolt', { diff: 2 }, String.raw`
+piece('l_millbolt', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6792,7 +7181,7 @@ piece('l_millbolt', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millmines', { diff: 2 }, String.raw`
+piece('l_millmines', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6811,7 +7200,7 @@ piece('l_millmines', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millbend', { diff: 2 }, String.raw`
+piece('l_millbend', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6831,7 +7220,7 @@ piece('l_millbend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millcave', { diff: 2 }, String.raw`
+piece('l_millcave', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ###...............##
@@ -6842,14 +7231,14 @@ piece('l_millcave', { diff: 2 }, String.raw`
 ####.....W.......###
 ###...............##
 ##................##
-##...............###
+##.......M.......###
 ##..............####
 ###.............####
 ###...............##
 ##................##
 ##................##
 `);
-piece('l_millrocks', { diff: 2 }, String.raw`
+piece('l_millrocks', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6859,7 +7248,7 @@ piece('l_millrocks', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##..........##....##
-##..........##....##
+##....M.....##....##
 ##................##
 ##................##
 ##.......W........##
@@ -6872,7 +7261,7 @@ piece('l_millshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##..........########
-##................##
+##.......M........##
 ##................##
 ##................##
 ######...W........##
@@ -6884,7 +7273,7 @@ piece('l_millshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_stormgust', { diff: 3 }, String.raw`
+piece('l_stormgust', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6903,7 +7292,7 @@ piece('l_stormgust', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_stormbolt', { diff: 3 }, String.raw`
+piece('l_stormbolt', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6922,7 +7311,7 @@ piece('l_stormbolt', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_stormbend', { diff: 3 }, String.raw`
+piece('l_stormbend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6961,7 +7350,7 @@ piece('l_millcannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_millstake', { diff: 2 }, String.raw`
+piece('l_millstake', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6981,7 +7370,7 @@ piece('l_millstake', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_rainmill', { diff: 2, rain: 1 }, String.raw`
+piece('l_rainmill', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -6999,7 +7388,7 @@ piece('l_rainmill', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_rainstorm', { diff: 2, rain: 1 }, String.raw`
+piece('l_rainstorm', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7018,7 +7407,7 @@ piece('l_rainstorm', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_rainbolts', { diff: 2, rain: 1 }, String.raw`
+piece('l_rainbolts', { diff: 1, rain: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7037,7 +7426,7 @@ piece('l_rainbolts', { diff: 2, rain: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('l_summit', { diff: 3 }, String.raw`
+piece('l_summit', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -7075,10 +7464,10 @@ const POOLS = [
     'g_springtower', 'g_springledges', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'e_spinspikes', 'g_springcave', 'g_springladder', 'g_springspin2', 'g_springcannon2', 'g_springbridge2', 'g_springcrumble2', 'g_springpend2', 'g_springbox', 'g_springpops2', 'g_springfan', 'g_springhops', 'g_springchute', 'g_springrocks', 'g_springshelves2', 'g_springlift', 'g_springtwin', 'g_springshutter', 'g_springfunnel2'] },
   { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon'] },
   // 800m〜 上空：雲の足場・ただよう機雷・曲がるトゲブロック・突風・雷の柱・風車。雨のパーツでは壁に掴まっていられる時間が1/4
-  { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudcannon', 'i_minestake', 'i_cloudspin', 'i_cloudcrumble', 'c_pend', 'c_pendpair', 'c_pendtrio', 'd_boxshutter', 'd_gauntlet', 'd_pendzig', 'd_shutterpend', 'd_ziglift', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit'] },
-  { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcannon', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'e_spin', 'e_spinpair', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'g_springspin', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon'] },
-  { from: 1000, name: '雷の通り道', pieces: ['k_bolt', 'k_boltpair', 'k_boltclouds', 'k_boltladder', 'k_boltsides', 'k_boltmines', 'k_boltbend', 'k_boltgust', 'k_boltcave', 'k_boltrocks', 'k_boltfunnel', 'k_boltshelves', 'k_triplebolt', 'k_boltcannon', 'k_boltspin', 'k_boltstake', 'k_boltcrumble', 'k_boltspring', 'k_rainbolt', 'k_rainclouds', 'f_stakeopen'] },
-  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_millcave', 'l_millrocks', 'l_millshelf', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millcannon', 'l_millstake', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit'] },
+  { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudcannon', 'i_minestake', 'i_cloudspin', 'i_cloudcrumble', 'c_pend', 'c_pendpair', 'c_pendtrio', 'd_boxshutter', 'd_gauntlet', 'd_pendzig', 'd_shutterpend', 'd_ziglift', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'i_chimmines', 'i_dogmines'] },
+  { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcannon', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'e_spin', 'e_spinpair', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'g_springspin', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend'] },
+  { from: 1000, name: '雷の通り道', pieces: ['k_bolt', 'k_boltpair', 'k_boltclouds', 'k_boltladder', 'k_boltsides', 'k_boltmines', 'k_boltbend', 'k_boltgust', 'k_boltcave', 'k_boltrocks', 'k_boltfunnel', 'k_boltshelves', 'k_triplebolt', 'k_boltcannon', 'k_boltspin', 'k_boltstake', 'k_boltcrumble', 'k_boltspring', 'k_rainbolt', 'k_rainclouds', 'f_stakeopen', 'k_chimbolt', 'k_chimboltmines', 'k_dogbolt', 'k_dogmines', 'k_pinchbolt', 'k_pinchmines'] },
+  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_millcave', 'l_millrocks', 'l_millshelf', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millcannon', 'l_millstake', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmill', 'l_chimstorm', 'l_dogmill', 'l_dogstorm', 'l_pinchmill', 'l_pinchstorm'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
