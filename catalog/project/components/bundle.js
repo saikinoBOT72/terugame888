@@ -1023,10 +1023,10 @@ window.Kabe = (function () {
   }
   /* ---------- 着せ替え（OUTFIT）：着る（wear：首まわり）とかぶる（hat：頭） ----------
      着るものの色は SCARF.color（scarfPal で P.scarf・scarfShade に入る）。かぶるものの色は OUTFIT.hatColor（hatPal で P.hat・hatShade・hatAccent）。
-     しましまマフラー以外は赤を使わない（赤はマフラーとハートだけ）。どれもプレイヤーの縁取り（player-line）・2段の影・光は左上・丸い形だけ。
+     色はどれもマフラーと同じ8色（赤はプレイヤーの着せ替えとハートだけ）。どれもプレイヤーの縁取り（player-line）・2段の影・光は左上・丸い形だけ。
      動きはマフラーのひもの点（Q.scarf）を使う：体に遅れてついてくる・跳ぶと後ろへ流れる・風に流れる・2段ジャンプを使い切るとしおれる */
   var OUTFIT = { wear: 'stripe', hat: null, hatColor: 'ao' };
-  var OUTFIT_COLORS = SCARF_COLORS.filter(function (c) { return c.id !== 'red'; }).map(function (c) {
+  var OUTFIT_COLORS = SCARF_COLORS.map(function (c) {   // マフラーと同じ8色（あかは tokens.css の scarf のまま）
     return c.id === 'yuki' ? { id: c.id, name: c.name, scarf: c.scarf, shade: c.shade, stripe: '#dfe4ec', star: c.star } : c;   // ゆきの赤いしまは使わない
   });
   var OUTFIT_ITEMS = {
@@ -1038,7 +1038,7 @@ window.Kabe = (function () {
   function outfitColor(id) { for (var i = 0; i < OUTFIT_COLORS.length; i++) if (OUTFIT_COLORS[i].id === id) return OUTFIT_COLORS[i]; return OUTFIT_COLORS[0]; }
   function hatPal(P) {
     var c = outfitColor(OUTFIT.hatColor), key = (P.id || '') + '|' + c.id, Q = hatPalCache[key];
-    if (!Q || Q.base !== P) { Q = Object.create(P); Q.hat = c.scarf; Q.hatShade = c.shade; Q.hatAccent = c.stripe; Q.base = P; hatPalCache[key] = Q; }
+    if (!Q || Q.base !== P) { Q = Object.create(P); Q.hat = c.scarf || P.scarf; Q.hatShade = c.shade || P.scarfShade; Q.hatAccent = c.stripe || P.scarfStripe; Q.base = P; hatPalCache[key] = Q; }   // あかは scarf の色
     return Q;
   }
   // ひもの流れ：立っているとき（ひもが後ろ下へたれる）からのずれ [横, 縦] と、ひもの長さ（しおれると短い）

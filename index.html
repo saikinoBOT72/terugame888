@@ -17,10 +17,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.19">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.20">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
-     Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
+     Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
   :root {
     --cave: var(--bg-top);
     --panel: var(--ui-panel);
@@ -480,12 +480,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.19"></script>
-<script src="data/pieces.js?v=2026.12.19"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.20"></script>
+<script src="data/pieces.js?v=2026.12.20"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.19';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.20';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -3843,7 +3843,7 @@ let candles = store.get('kabe_candles', 0);
 const OWNED = Object.assign({ 'scarf.stripe': ['red'] }, store.get('kabe_owned', {}));
 if (!OWNED['scarf.stripe'].includes('red')) OWNED['scarf.stripe'].unshift('red');
 // 分類は「着る」（首まわり：マフラー・マント・リボン・首輪。どれか1つ）と「かぶる」（帽子。なしでもよい）。絵と動きはカタログの Kabe.OUTFIT（着る・かぶる）
-// 色：しましまマフラーは赤もある8色、ほかは赤なしの7色（赤はマフラーとハートだけ）。分類の id「scarf」は前の保存と合わせるため
+// 色：どれも あか をふくむ8色（赤はプレイヤーの着せ替えとハートだけ）。分類の id「scarf」は前の保存と合わせるため
 const wearItem = (id, name, colors) => ({ id, name, colors, wear: c => { Kabe.OUTFIT.wear = id; Kabe.SCARF.color = c; },
   icon: (g, w, h, t, c) => Kabe.outfitIcon(g, PAL, id, w / 2 + 1, h / 2 + 2, w / 30, t, c) });
 const hatItem = (id, name) => ({ id, name, colors: Kabe.OUTFIT_COLORS, wear: c => { Kabe.OUTFIT.hat = id; Kabe.OUTFIT.hatColor = c; },
