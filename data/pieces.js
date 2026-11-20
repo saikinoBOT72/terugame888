@@ -5784,189 +5784,168 @@ piece('f_cannonshelves', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonalcoves', { diff: 2 }, String.raw`
+piece('f_cannonduel', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+#K................k#
+##................##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('f_cannonshelter', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+#K..........###...##
+##..........###...##
+##................##
+##................##
+##................k#
+##................##
+##................##
+##................##
+`);
+piece('f_cannonmesa', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+#K................##
+##.....######.....##
+##.....######.....##
+##.....######.....##
+##................##
+##................##
+##................k#
+##................##
+##................##
+`);
+piece('f_cannonbluff', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##########........##
+#########/........##
+########/.........##
+#######/..........##
+##................##
+##................k#
+##................##
+##................##
+##................##
+`);
+piece('f_cannonhole', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##................##
+#K................##
+#######....#########
+##................##
+##................##
+##................k#
+##................##
+##................##
+##................##
+`);
+piece('f_cannoncorridor', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##....##############
+##................##
+#K................##
+##................##
+##############....##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('f_cannonnotch', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ####..............##
-####............####
-####............####
-#K..............####
-##..............####
-####............####
-####..............k#
+##................##
+#K................##
+##................##
 ####..............##
-####............####
-##................##
-##................##
-`);
-piece('f_cannondiamond', { diff: 2 }, String.raw`
-##................##
-##................##
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
-#K................##
-##\............../##
-###\............/###
-####\........../####
-#####\......../#####
-######........######
-#####/........\#####
-####/..........\####
-###/............\###
-##/..............\##
-##................k#
-##................##
-##................##
-`);
-piece('f_cannondrops', { diff: 2 }, String.raw`
-##................##
-##................##
-##................##
-##..##............##
-##..\/............##
-##................##
-#K................##
-##................##
-##................##
-##............##..##
-##............\/..##
-##................k#
-##................##
-##................##
-##................##
-`);
-piece('f_cannonlantern', { diff: 2 }, String.raw`
-##................##
-##................##
-##................##
-####............####
-###..............###
-##................##
-#K................##
-##................##
-###..............###
-####............####
-####............####
-###..............###
 ##................##
 ##................k#
 ##................##
 ##................##
-`);
-piece('f_cannonpebbles', { diff: 2 }, String.raw`
-##................##
-##................##
-##................##
-##.....#..........##
-#K................##
-##............#...##
-##................##
-##...#............##
-##................k#
-##..........#.....##
-##................##
-##................##
 ##................##
 `);
-piece('f_cannonsplit', { diff: 2 }, String.raw`
+piece('f_stakechimney', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.......##.......##
-#K.......##.......##
-##.......##.......##
-##.......##.......##
-##.......##.......k#
-##.......##.......##
-##.......##.......##
+##................##
+##................##
+##................##
+##......############
+##....ZZ############
+##......############
+##......############
+##......############
+##......############
 ##................##
 ##................##
 ##................##
 `);
-piece('f_cannonsqueeze', { diff: 2 }, String.raw`
+piece('f_stakegate', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-#K................##
+########..........##
+########ZZZ.......##
+########..........##
+########.......ZZZ##
+########..........##
 ##................##
 ##................##
-######......########
-######......########
-######......########
-######......########
-##................##
-##................##
-##................k#
-##................##
-##................##
-`);
-piece('f_stakeboulder', { diff: 2 }, String.raw`
-##................##
-##................##
-##................##
-##................##
-##ZZZ.............##
-##................##
-##......../\......##
-##......./##\.....##
-##....../####\....##
-##......\####/....##
-##.......\##/.....##
-##........\/......##
 ##................##
 ##................##
 ##................##
 ##................##
 `);
-piece('f_stakecomb', { diff: 2 }, String.raw`
+piece('f_stakeblock', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-######............##
 ##................##
-##............######
-##................##
-##ZZZ.............##
-######............##
-##................##
-##............######
+##........####ZZZ.##
+##.....ZZZ####....##
+##........####....##
 ##................##
 ##................##
 ##................##
-`);
-piece('f_stakehooks', { diff: 2 }, String.raw`
-##................##
-##................##
-##................##
-#######...........##
-####\.............##
-##................##
-##.............ZZZ##
-##................##
-##..........########
-##.............../##
-##................##
-#######...........##
-####\.............##
 ##................##
 ##................##
 ##................##
 `);
-piece('f_stakeribs', { diff: 2 }, String.raw`
+piece('f_stakeduo', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-###...............##
-###.............^###
-##...........ZZZ.###
 ##................##
-###...............##
-###^..............##
-##...............###
-##...............###
+##ZZZZ............##
+##................##
+##............ZZZZ##
+##................##
+##................##
+##................##
+##................##
+##................##
 ##................##
 ##................##
 `);
@@ -5986,37 +5965,34 @@ piece('f_stakeporch', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_staketerrace', { diff: 2 }, String.raw`
+piece('f_stakelip', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.............#####
-##.............ZZZ##
 ##................##
-##..........########
-##................##
-##................##
-##.......###########
+##########ZZ..######
+##^...............##
+##^...............##
 ##................##
 ##................##
-##....##############
+##................##
+##................##
 ##................##
 ##................##
 `);
-piece('f_stakestepcave', { diff: 2 }, String.raw`
+piece('f_stakefloat', { diff: 2 }, String.raw`
 ##................##
 ##................##
-###...............##
-####..............##
-####.............###
-###.............####
-##..........ZZZ#####
-##..............####
-###...............##
-####..............##
-#####............###
-####............####
-###............#####
+##................##
+##................##
+##................##
+##..#####ZZZ......##
+##................##
+##................##
+##................##
+##.........#####..##
+##................##
+##................##
 ##................##
 ##................##
 `);
@@ -9091,7 +9067,7 @@ const POOLS = [
     'd_fanlift', 'd_boxfan', 'd_popzig', 'd_pendledges', 'd_liftnarrow', 'd_fanpops', 'd_liftpend', 'd_spikewedges', 'c_liftspikewall', 'b_boxsteps', 'c_pendpopsR', 'd_zigpops', 'd_zigfan', 'd_zigpend', 'd_funnelpops', 'd_funnelbox', 'd_funnelfan', 'd_shelfpend', 'd_shelflift', 'd_shelfshutter', 'd_bumpbox', 'd_bumppops', 'd_bumplift', 'd_cavepend', 'd_cavebox', 'd_cavelift', 'd_twinpend', 'd_shutterlift', 'd_boxpops', 'd_fanshutter', 'd_boxshutter', 'd_gauntlet', 'd_pendzig', 'd_shutterpend', 'd_ziglift', 'd_liftpops', 'd_popstack', 'd_fanpend', 'd_pendwell', 'd_liftkeyhole', 'd_popmushroom', 'd_fanchute', 'd_boxcorner', 'd_shutterstep'] },
   // 400m〜 地上：仕掛けを少しずつ足す
   { from: 400, name: '草の崖', pieces: ['e_bridge', 'e_crumble', 'e_cliff', 'e_spinshaft', 'e_bridgepair', 'e_crumblesteps', 'e_spinbridge', 'e_crumblezig', 'e_bridgefunnel', 'e_spinslope', 'e_crumblefloor', 'e_bridgeshelf', 'e_spinspikes', 'e_crumblepillar', 'e_spincave', 'e_spinzig', 'e_spinladder', 'e_spinrocks', 'e_bridgecave', 'e_bridgezig', 'e_bridgespikes', 'e_crumblecave', 'e_crumblebridge', 'e_crumblespikes', 'e_crumblestairs', 'e_spinbridges', 'e_spincrumble', 'e_spinfunnel', 'e_bridgeshaft', 'e_cliffs', 'e_spin', 'e_spinpair', 'e_bridgecliff', 'e_bridgerock', 'e_bridgechimney', 'e_bridgepillar', 'e_bridgecanyon', 'e_bridgeledge', 'e_crumbleledges', 'e_crumblewalk', 'e_crumblestilts', 'e_crumbleisles', 'e_crumblecup', 'e_crumbletiers', 'e_spinledge', 'e_spingap', 'e_spinoverhang', 'e_spincorner', 'e_spinislands', 'e_spinchimney'] },
-  { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan', 'f_stakeshaft', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'f_cannonopen', 'f_cannonladder', 'f_cannoncave', 'f_cannonbridge', 'f_stakeladder', 'f_stakefunnel', 'f_stakecrumble2', 'f_stakespikes', 'f_rockcannon', 'f_windcannon', 'f_stakeshelves', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'f_stakeopen', 'f_cannonalcoves', 'f_cannondiamond', 'f_cannondrops', 'f_cannonlantern', 'f_cannonpebbles', 'f_cannonsplit', 'f_cannonsqueeze', 'f_stakeboulder', 'f_stakecomb', 'f_stakehooks', 'f_stakeribs', 'f_stakeporch', 'f_staketerrace', 'f_stakestepcave'] },
+  { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan', 'f_stakeshaft', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'f_cannonopen', 'f_cannonladder', 'f_cannoncave', 'f_cannonbridge', 'f_stakeladder', 'f_stakefunnel', 'f_stakecrumble2', 'f_stakespikes', 'f_rockcannon', 'f_windcannon', 'f_stakeshelves', 'f_cannoncrumble', 'f_cannonshelves', 'f_stake', 'f_stakebridge', 'f_stakecrumble', 'f_stakespin2', 'f_cannoncross', 'f_cannonspin', 'f_cannonzig', 'f_stakepillar', 'f_stakeopen', 'f_cannonduel', 'f_cannonshelter', 'f_cannonmesa', 'f_cannonbluff', 'f_cannonhole', 'f_cannoncorridor', 'f_cannonnotch', 'f_stakechimney', 'f_stakegate', 'f_stakeblock', 'f_stakeduo', 'f_stakeporch', 'f_stakelip', 'f_stakefloat'] },
   { from: 600, name: '古い水路', pieces: ['g_springpair', 'g_spring', 'g_springzig', 'g_springshelf', 'g_springbridge', 'g_springcrumble', 'g_springstake', 'g_springcannon', 'f_stakezig',
     'g_springtower', 'g_springledges', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'e_spinspikes', 'g_springcave', 'g_springladder', 'g_springspin2', 'g_springcannon2', 'g_springbridge2', 'g_springcrumble2', 'g_springpend2', 'g_springbox', 'g_springpops2', 'g_springfan', 'g_springhops', 'g_springchute', 'g_springrocks', 'g_springshelves2', 'g_springlift', 'g_springtwin', 'g_springshutter', 'g_springfunnel2', 'g_springspin', 'g_springalcoves', 'g_springboulder', 'g_springcomb', 'g_springdiamond', 'g_springdrops', 'g_springlantern', 'g_springribs', 'g_springcanopy', 'g_springsplit', 'g_springsqueeze', 'g_springstepcave', 'g_springterrace', 'g_springhooks'] },
   { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon'] },
