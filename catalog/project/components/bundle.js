@@ -821,8 +821,8 @@ window.Kabe = (function () {
   var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer',
     'kick2', 'grab', 'clingUp', 'apex', 'flip', 'twirl', 'panic', 'landHeavy', 'dizzy', 'stretch', 'wave', 'lookUp', 'fist'];
   // マフラーの決まり（chara.html でいじって決める）。はじめの値がいまの見た目
-  var SCARF_DEF = { wrapY: 0.8, wrapW: 21, wrapH: 3.6, sag: 2.2, wrapStripes: 5, stripeW: 0.9, knotX: -7.6, knotY: 1.1, knotR: 2.4,
-    tailX: -4, tailY: -1, len: 0.62, tailW: 3.4, taper: 0.2, back: 0.75, notch: 1.6, stripes: 2, front: 0 };
+  var SCARF_DEF = { wrapY: 0.8, wrapW: 21, wrapH: 3.6, sag: 2.2, wrapStripes: 5, stripeW: 0.9, knotX: -9.6, knotY: 0.9, knotR: 2.5,
+    tailX: -8.5, tailY: 1.4, len: 0.62, tailW: 3.4, taper: 0.2, back: 0.75, notch: 1.6, stripes: 2, front: 0 };
   var SCARF = {}; for (var sk in SCARF_DEF) SCARF[sk] = SCARF_DEF[sk];
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
   // ポーズの点の根元は [-4, -1]。SCARF.tailX/Y で根元ごとずらす

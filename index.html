@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30l">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30m">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -289,12 +289,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30l"></script>
-<script src="data/pieces.js?v=2026.11.30l"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30m"></script>
+<script src="data/pieces.js?v=2026.11.30m"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30l';
+const VERSION = '2026.11.30m';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -1446,7 +1446,7 @@ function poseMat(X, Q) {
 const scarfK = () => Kabe.SCARF.len;   // カタログの scarfTail が点を根元へ縮める割合（Kabe.SCARF）
 function scarfStep(dt) {
   if (!G || !P || !A.rest || !live) return;
-  const X = bodyXf(), M = poseMat(X, live), R0 = A.rest, n = R0.length, o = R0[0], t = G.time;
+  const X = bodyXf(), M = poseMat(X, live), SH = [Kabe.SCARF.tailX - A.rest[0][0], Kabe.SCARF.tailY - A.rest[0][1]], R0 = A.rest.map(p => [p[0] + SH[0], p[1] + SH[1]]), n = R0.length, o = R0[0], t = G.time;   // 根元は Kabe.SCARF.tailX/Y（結び目の所）にずらして動かす
   const has = P.air > 0 || (gemLv('triple') && G.tripleCd <= 0), spent = X.air && !has && state !== 'title';
   A.scLen += ((spent ? 0.72 : 1) - A.scLen) * Math.min(1, dt * (spent ? 5 : 16));
   const K = scarfK() * A.scLen, SK = scarfK();
@@ -1485,7 +1485,7 @@ function scarfStep(dt) {
   }
   // 世界の点 → ポーズの点（描くときの縮め方の分は戻す）
   const inv = 1 / (M[0] * M[3] - M[1] * M[2]);
-  live.scarf = S.map(q => { const dx = q[0] - X.ax, dy = q[1] - X.ay, lx = (M[3] * dx - M[1] * dy) * inv, ly = (M[0] * dy - M[2] * dx) * inv; return [o[0] + (lx - o[0]) / SK, o[1] + (ly - o[1]) / SK]; });
+  live.scarf = S.map(q => { const dx = q[0] - X.ax, dy = q[1] - X.ay, lx = (M[3] * dx - M[1] * dy) * inv, ly = (M[0] * dy - M[2] * dx) * inv; return [o[0] + (lx - o[0]) / SK - SH[0], o[1] + (ly - o[1]) / SK - SH[1]]; });
 }
 function drawPlayer() {
   const p = P, t = G.time;
