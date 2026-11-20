@@ -57,7 +57,7 @@
     <li><code>#</code> 壁</li><li><code>^</code> トゲ</li><li><code>/ \</code> 斜め</li><li><code>p q</code> 出入りトゲ</li><li><code>&gt; &lt;</code> 扇風機</li>
     <li><code>X</code> 往復ブロック</li><li><code>Y</code> 上下ブロック</li><li><code>T</code> 回る棒</li><li><code>=</code> シャッター</li>
     <li><code>O</code> 振り子</li><li><code>K k</code> 筒</li><li><code>Z</code> 杭</li><li><code>B</code> 跳ね橋</li><li><code>%</code> 崩れる足場</li><li><code>S</code> バネ</li>
-    <li><code>~</code> 雲の足場</li><li><code>M</code> 機雷</li><li><code>J L</code> 曲がるトゲブロック（縦長・横長）</li><li><code>} {</code> 突風</li><li><code>|</code> 雷の柱</li><li><code>W</code> 風車</li>
+    <li><code>~</code> 雲の足場</li><li><code>M</code> 機雷</li><li><code>J L</code> 曲がるトゲブロック（縦長・横長）</li><li><code>} {</code> 突風</li><li><code>E</code> 雷の装置（間を <code>|</code> 縦・<code>-</code> 横でつなぐ）</li><li><code>H</code> ぽよんブロック</li><li><code>W</code> 風車</li>
   </ul>
   <div id="root"></div>
 </main>
@@ -88,7 +88,7 @@ const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Ma
   bar.append(b);
 });
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
-  O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '{': '突風', '}': '突風', W: '風車' };
+  O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '-': '雷の柱（横）', E: '雷の装置', H: 'ぽよんブロック', '{': '突風', '}': '突風', W: '風車' };
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 
 // パーツ1つを描く。rows は上の行から
@@ -123,9 +123,13 @@ function prepare(pc) {
     if (ch === '%' && at(c - 1, r) !== '%') { let e = c; while (at(e + 1, r) === '%') e++; obs.push({ k: 'crumble', x, y, n: e - c + 1 }); }
     // 上空の仕掛け
     if (ch === '~' && at(c - 1, r) !== '~') { let e = c; while (at(e + 1, r) === '~') e++; obs.push({ k: 'cloud', x, y, w: (e - c + 1) * CELL }); }
-    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, r, 13) * 4, per: 2.8 * (0.85 + K.hash(c, r, 15) * 0.3), amp: 22 * (0.75 + K.hash(c, r, 14) * 0.5) });   // 本編と同じずらし方
+    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, r, 13) * 4, per: 2.8 * (0.85 + K.hash(c, r, 15) * 0.3), amp: 12 * (0.75 + K.hash(c, r, 14) * 0.5) });   // 本編と同じずらし方
     if (ch === 'W') obs.push({ k: 'mill', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 0.9 : -0.9 });
-    if (ch === '|' && at(c, r - 1) !== '|') { let e = r; while (at(c, e + 1) === '|') e++; obs.push({ k: 'bolt', x: x + CELL / 2, y0: y + CELL / 2, y1: (e + 0.5) * CELL, off: c * 0.53 }); }
+    if (ch === 'E') {   // 雷の装置：下へ | が続いて E があれば縦、右へ - が続いて E があれば横
+      if (at(c, r + 1) === '|') { let e = r + 1; while (at(c, e) === '|') e++; if (at(c, e) === 'E') obs.push({ k: 'bolt', v: true, x: x + CELL / 2, a: (r + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'down'], [x + CELL / 2, (e + 0.5) * CELL, 'up']], off: K.hash(c, r, 21) * 2.8 }); }
+      if (at(c + 1, r) === '-') { let e = c + 1; while (at(e, r) === '-') e++; if (at(e, r) === 'E') obs.push({ k: 'bolt', v: false, y: y + CELL / 2, a: (c + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'right'], [(e + 0.5) * CELL, y + CELL / 2, 'left']], off: K.hash(c, r, 22) * 2.8 }); }
+    }
+    if (ch === 'H') obs.push({ k: 'jelly', x, y });
     if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: r * 0.47 }); }
     if ((ch === 'J' || ch === 'L') && !seen.has(c + ',' + r)) obs.push(railOf(c, r, ch));
   }));
@@ -157,7 +161,12 @@ function draw(g, P, d, t) {
     else if (o.k === 'cloud') K.cloudPlat(g, P, o.x, o.y, o.w, t);
     else if (o.k === 'mine') K.mine(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / o.per) * o.amp);
     else if (o.k === 'mill') K.windmill(g, P, o.x, o.y, 22, K.spinAngle(t, o.speed * 0.6 / 0.9), 3);
-    else if (o.k === 'bolt') { const ph = ((t + o.off) % 2.8 + 2.8) % 2.8; if (ph > 2.35) K.lightningBolt(g, o.x, o.y0 + 8, o.y1 - 8, 1, Math.floor(t * 18)); K.lightningRod(g, P, o.x, o.y0, 1, ph > 1.65); K.lightningRod(g, P, o.x, o.y1, -1, ph > 1.65); }
+    else if (o.k === 'bolt') {
+      const ph = ((t + o.off) % 2.8 + 2.8) % 2.8;
+      if (ph > 2.35) { if (o.v) K.lightningBolt(g, o.x, o.a, o.b, 1, Math.floor(t * 18)); else { g.save(); g.translate(o.a, o.y); g.rotate(-Math.PI / 2); K.lightningBolt(g, 0, 0, o.b - o.a, 1, Math.floor(t * 18)); g.restore(); } }
+      for (const [ex, ey, dir] of o.ends) K.electrode(g, P, ex, ey, dir, ph > 1.65);
+    }
+    else if (o.k === 'jelly') K.jellyBlock(g, P, o.x, o.y, 0);
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
     else if (o.k === 'rail') {   // 道すじを一定の速さで往復（本編は角で少し止まる）
       K.railPath(g, P, o.pts); let u = (t * 50) % (o.len * 2); if (u > o.len) u = o.len * 2 - u;

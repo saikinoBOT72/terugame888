@@ -2,7 +2,7 @@
 // プールの目標（中央値）。0〜1600m で前の 0〜800m の上がり方になるように引きのばした（ゆっくり難しくなる）
 const TARGET = { 0: 0.5, 100: 0.75, 200: 1.0, 300: 1.3, 400: 1.6, 500: 1.9, 600: 2.2, 700: 2.4, 800: 2.6, 900: 2.8, 1000: 3.0, 1100: 3.2, 1200: 3.4, 1300: 3.6, 1400: 3.7, 1500: 3.8 };
 const LOW = 1.0, HIGH = 1.2;   // 幅は 目標-1.0〜目標+1.2
-const DIFF_W = { T: 2.0, O: 1.2, K: 1.0, k: 1.0, Y: 0.9, X: 0.9, Z: 0.8, B: 0.4, '%': 0.3, '=': 0.8, M: 0.8, W: 1.6, J: 1.2, L: 1.2, '|': 1.0, '{': 0.6, '}': 0.6 };   // 1つずつ（X = Z B % は横の並び、Y は縦の並びで1つ）
+const DIFF_W = { T: 2.0, O: 1.2, K: 1.0, k: 1.0, Y: 0.9, X: 0.9, Z: 0.8, B: 0.4, '%': 0.3, '=': 0.8, M: 0.8, W: 1.6, J: 1.2, L: 1.2, '|': 1.0, '-': 1.0, H: 0.4, '{': 0.6, '}': 0.6 };   // 1つずつ（X = Z B % は横の並び、Y は縦の並びで1つ）
 function inPage(W) {
   const K = window.__kabe, { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit } = K._dbg, CHECK = K.CHECK, PIECES = K.PIECES;
   const CELL = 18, HB = 10, DT = 1 / 120;
@@ -58,7 +58,7 @@ function inPage(W) {
       if (ch === 'J' || ch === 'L') {   // 曲がるトゲブロック：道すじの端（となりが1つ）2つで1つ
         const nb = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(([dr, dc]) => R[r + dr] && R[r + dr][c + dc] === ch).length;
         if (nb <= 1) haz[ch] = (haz[ch] || 0) + 0.5; continue; }
-      const run = ch === 'Y' || ch === '|' ? (R[r - 1] && R[r - 1][c] === ch) : 'X=ZB%'.includes(ch) ? R[r][c - 1] === ch : false;   // 並びのはじめだけ数える
+      const run = ch === 'Y' || ch === '|' ? (R[r - 1] && R[r - 1][c] === ch) : 'X=ZB%-'.includes(ch) ? R[r][c - 1] === ch : false;   // 並びのはじめだけ数える
       if (!run) haz[ch] = (haz[ch] || 0) + 1; }
     let h = 0; for (const c in haz) h += W[c] * haz[c];
     const bits = n ? tot / n : 99;

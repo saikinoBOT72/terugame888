@@ -624,6 +624,30 @@ window.Kabe = (function () {
     if (lit) { g.fillStyle = 'rgba(255,255,255,0.9)'; ell(g, x, y + 10 * dir, 2.4, 2.4); g.fill(); }
     bolt(g, P, x - 3.2, y, 1); bolt(g, P, x + 3.2, y, 1);
   }
+  // 雷の装置（1マスの硬いブロック。乗れる・張り付ける）。dir：雷が出る向き（up down left right）。lit：光っている
+  function electrode(g, P, cx, cy, dir, lit) {
+    var a = { up: -Math.PI / 2, down: Math.PI / 2, left: Math.PI, right: 0 }[dir] || 0, h = 9;
+    metalSolid(g, P, function () { rr(g, cx - h, cy - h, h * 2, h * 2, 3); }, 1.4);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 1;   // コイルの筋
+    for (var i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(cx - h + 3, cy + i * 4.5); g.lineTo(cx + h - 3, cy + i * 4.5); g.stroke(); }
+    g.save(); g.translate(cx, cy); g.rotate(a);   // 雷の出る先（とがった金具）
+    solid(g, function () { g.beginPath(); g.moveTo(h - 1, -3.2); g.lineTo(h + 4, 0); g.lineTo(h - 1, 3.2); g.closePath(); }, P.metal, P.metalShade, P.ink, 0.6, 1);
+    if (lit) { g.fillStyle = 'rgba(255,255,255,0.95)'; ell(g, h + 4, 0, 2.6, 2.6); g.fill(); g.fillStyle = 'rgba(220,235,255,0.45)'; ell(g, h + 4, 0, 6, 6); g.fill(); }
+    g.restore();
+    shine(g, cx - h + 3.5, cy - h + 3, 2.4, 1.2, 0.35);
+    bolt(g, P, cx - h + 3, cy + h - 3, 1); bolt(g, P, cx + h - 3, cy + h - 3, 1);
+  }
+  // ぽよんブロック（1マス）：乗る・張り付くと、ぷるぷるしてから横へはじく。k：-1.5〜1（正＝ぷるぷる、負＝へこむ）。痛くないのでトゲなし、縁取りあり
+  function jellyBlock(g, P, x, y, k) {
+    k = k || 0; var cx = x + 9, cy = y + 9, sx = 1 + (k < 0 ? -k * 0.12 : k * 0.06), sy = 1 + (k < 0 ? k * 0.14 : -k * 0.05), wob = k > 0 ? k * 1.2 : 0;
+    var base = '#a98cf0', shade = '#7d63c9', light = '#d8cbff';
+    g.save(); g.translate(cx + wob, cy); g.scale(sx, sy);
+    solid(g, function () { rr(g, -9, -9, 18, 18, 6); }, base, shade, P.ink, 1.4, 1.1);
+    g.fillStyle = alpha(light, 0.8); ell(g, -3.5, -4.5, 3.6, 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.9)'; ell(g, -4.5, -5, 1.3, 0.8); g.fill();
+    g.strokeStyle = alpha(shade, 0.9); g.lineWidth = 1.1; g.beginPath(); g.moveTo(-4, 3); g.quadraticCurveTo(0, 6, 4, 3); g.stroke();   // ぷにっとした線
+    g.restore();
+  }
   // 雷（白い光の折れ線）。k：0〜1 の強さ、seed で形が変わる
   function lightningBolt(g, x, y0, y1, k, seed) {
     var pts = [[x, y0]], n = Math.max(3, Math.round((y1 - y0) / 12)), i;
@@ -1493,7 +1517,7 @@ window.Kabe = (function () {
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
