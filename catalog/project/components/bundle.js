@@ -1265,7 +1265,7 @@ window.Kabe = (function () {
       var keepP = OUTFIT.propColor; if (colorId) OUTFIT.propColor = colorId;
       g.save(); g.translate(x, y); g.scale(s, s);
       try {
-        if (id === 'wand') { g.scale(1.1, 1.1); g.translate(-3, 5.5); PROPS.wand(g, P, { hands: [[0, 0], [0, 0]] }, t, [0, 0]); }
+        if (id === 'wand') { g.scale(0.82, 0.82); g.translate(-2.4, 8.5); PROPS.wand(g, P, { hands: [[0, 0], [0, 0]] }, t, [0, 0]); }
         else { g.scale(1.25, 1.25); var oc = { lolly: [9.6, 4.0], cane: [7.4, 3.8], rose: [9.2, 2.0] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
       } finally { g.restore(); OUTFIT.propColor = keepP; }
       return;
@@ -1358,7 +1358,7 @@ window.Kabe = (function () {
     santa: function (g, P, Q, t, b) {
       var spec = { sx: 1.06, top: -0.4, topSag: 1.4, hem: 8.4, bumps: 0, bump: 0.8, noTopLine: true };   // 上着はすその波の上まで
       garment(g, P, b, spec, P.scarf, P.scarfShade, function () {
-        g.fillStyle = BELT.base; g.beginPath(); g.moveTo(-16, 3.4); g.quadraticCurveTo(0, 4.3, 16, 3.4); g.lineTo(16, 4.8); g.quadraticCurveTo(0, 5.7, -16, 4.8); g.closePath(); g.fill();
+        g.fillStyle = BELT.base; g.beginPath(); g.moveTo(-16, 3.7); g.quadraticCurveTo(0, 4.6, 16, 3.7); g.lineTo(16, 4.4); g.quadraticCurveTo(0, 5.3, -16, 4.4); g.closePath(); g.fill();   // 細いベルト
         shine(g, -5.6, 0.8, 2.0, 0.9, 0.5);
       });
       // すその白いふわふわ（丸い山をつないだ帯。体の線の中だけ）
@@ -1371,8 +1371,8 @@ window.Kabe = (function () {
       };
       solid(g, fur, FUR.base, FUR.shade, P.playerLine, 0.7, 1.0); g.restore();
       // バックル（金の角丸）
-      var bx = 4.6; solid(g, function () { rr(g, bx - 1.5, 3.3, 3, 2.3, 0.7); }, GOLD.base, GOLD.shade, P.playerLine, 0.4, 1.0);
-      g.fillStyle = BELT.base; g.fillRect(bx - 0.55, 4.0, 1.1, 0.9);
+      var bx = 4.6; solid(g, function () { rr(g, bx - 1.1, 3.55, 2.2, 1.6, 0.5); }, GOLD.base, GOLD.shade, P.playerLine, 0.3, 0.9);
+      g.fillStyle = BELT.base; g.fillRect(bx - 0.4, 4.05, 0.8, 0.6);
       // 白いえり
       var Fp = Object.create(P); Fp.scarf = FUR.base; Fp.scarfShade = FUR.shade; neckBand(g, Fp, 2.2, -0.2);
     },
@@ -1396,17 +1396,17 @@ window.Kabe = (function () {
   function hatSanta(g, P, Q, t) {
     var H = hatPal(P), fl = flowOf(Q);
     var tx = -12.2 + fl[0] * 3.4 + Math.sin(t * 2.4) * 0.4, ty = -12.6 + fl[1] * 2.2 + Math.abs(Math.sin(t * 2.4)) * 0.4;
-    var cap = function () {
-      g.beginPath(); g.moveTo(-10.4, -9.4);
-      g.bezierCurveTo(-10.2, -15.4, -4.2, -18.6, 1.4, -17.2);   // 頭の上の丸み
-      g.bezierCurveTo(-3.2, -17.4, tx + 2.6, ty - 3.2, tx + 0.9, ty - 0.4);   // 後ろへたれる上の線
-      g.quadraticCurveTo(tx, ty + 1.2, tx - 0.4, ty + 0.2);
-      g.bezierCurveTo(tx + 0.6, ty - 2.2, -3.6, -14.2, 1.6, -14.8);   // 下の線
-      g.bezierCurveTo(6.2, -15.2, 10.2, -13.2, 10.4, -9.4);
+    var cap = function () {   // 1つの線で囲んだ形（線が交わらない）：前のふち → 頭の上の丸み → 後ろへたれる先 → 先の下 → 後ろのふち
+      g.beginPath(); g.moveTo(10.4, -9.4);
+      g.bezierCurveTo(10.2, -15.2, 5.2, -18.4, -0.6, -18.2);
+      g.bezierCurveTo(-6.4, -18.0, tx + 3.4, ty - 3.6, tx + 0.8, ty - 1.0);
+      g.quadraticCurveTo(tx - 0.2, ty + 0.4, tx + 0.6, ty + 1.0);
+      g.bezierCurveTo(tx + 2.6, ty + 1.2, -8.8, -13.6, -10.0, -11.6);
+      g.quadraticCurveTo(-10.5, -10.6, -10.4, -9.4);
       g.closePath();
     };
     solid(g, cap, H.hat, H.hatShade, P.playerLine, 1.5, 1.15);
-    shine(g, -3.2, -15.2, 1.9, 0.9, 0.6, -0.2);
+    shine(g, 2.0, -15.8, 2.0, 0.9, 0.6, -0.2);
     var furBand = function () {   // ふち：丸い山をつないだ白いふわふわ
       var x0 = -11.6, x1 = 11.6, n = 8; g.beginPath(); g.moveTo(x0, -10.4);
       for (var k = 0; k < n; k++) { var a = x0 + (x1 - x0) * k / n, c = x0 + (x1 - x0) * (k + 1) / n; g.quadraticCurveTo((a + c) / 2, -12.0 + Math.abs((a + c) / 2) * 0.03, c, -10.6 + Math.pow(c / 11.6, 2) * 0.4); }
@@ -1504,30 +1504,34 @@ window.Kabe = (function () {
     shine(g, fx - 1.6, fy - 1.9, 0.8, 0.45, 0.7);
   }
   // 星のステッキ（前の手で持つ。棒は手から外へ、先に角の丸い星。星のまわりに小さな光の粒）
-  function softStar(g, x, y, R, r, rot) {
-    g.beginPath();
-    for (var k = 0; k < 5; k++) {
-      var a = rot - Math.PI / 2 + k * Math.PI * 2 / 5, b = a + Math.PI / 5, ox = x + Math.cos(a) * R, oy = y + Math.sin(a) * R;
-      var pa = a - 0.28, pb = a + 0.28;   // 先を丸める：先の左右の点をつないで丸くする
-      if (k === 0) g.moveTo(x + Math.cos(pa) * R * 0.86, y + Math.sin(pa) * R * 0.86);
-      else g.lineTo(x + Math.cos(pa) * R * 0.86, y + Math.sin(pa) * R * 0.86);
-      g.quadraticCurveTo(ox, oy, x + Math.cos(pb) * R * 0.86, y + Math.sin(pb) * R * 0.86);
-      g.quadraticCurveTo(x + Math.cos(b) * r * 0.85, y + Math.sin(b) * r * 0.85, x + Math.cos(b + 0.28) * r * 1.3, y + Math.sin(b + 0.28) * r * 1.3);
+  function softStar(g, x, y, R, r, rot) {   // 5つの角の星。外の先だけ丸める（へこみはそのまま）
+    var O = [], I = [], k;
+    for (k = 0; k < 5; k++) { var a = rot - Math.PI / 2 + k * Math.PI * 2 / 5; O.push([x + Math.cos(a) * R, y + Math.sin(a) * R]); I.push([x + Math.cos(a + Math.PI / 5) * r, y + Math.sin(a + Math.PI / 5) * r]); }
+    var lerp = function (p, q, f) { return [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f]; };
+    g.beginPath(); g.moveTo(I[4][0], I[4][1]);
+    for (k = 0; k < 5; k++) {
+      var A = lerp(I[(k + 4) % 5], O[k], 0.74), B = lerp(O[k], I[k], 0.26);
+      g.lineTo(A[0], A[1]); g.quadraticCurveTo(O[k][0], O[k][1], B[0], B[1]); g.lineTo(I[k][0], I[k][1]);
     }
     g.closePath();
   }
+
+  // ほしのステッキ：前の手で、ほぼまっすぐ上へ持つ。長めの棒に しまがらせんに巻き、先に大きな星（角は丸い）。星のまわりに小さな光の粒
   function propWand(g, P, Q, t, hand) {
-    var C = propPal(P), h = hand || Q.hands[1], ox = h[0], oy = h[1] - 1;
-    var dx = (h[0] - 0) * 0.04 + 0.42, dy = -0.9, d = Math.hypot(dx, dy); dx /= d; dy /= d;   // 手の位置から少し外へ、上向き
-    var sw = Math.sin(t * 2) * 0.06, L = 10.5, cs = Math.cos(sw), sn = Math.sin(sw), ux = dx * cs - dy * sn, uy = dx * sn + dy * cs;
-    var tx = ox + ux * L, ty = oy + uy * L;
-    rod(g, P, [[ox - ux * 2, oy - uy * 2], [tx, ty]], 1.1, STICK.base);
-    var tw = 0.5 + 0.5 * Math.sin(t * 4);
-    g.fillStyle = alpha(mixHex(C.prop, '#ffffff', 0.6), 0.25 + 0.2 * tw);
-    ell(g, tx, ty - 1, 6.2, 6.2); g.fill();
-    solid(g, function () { softStar(g, tx, ty - 1, 4.1, 1.9, sw * 2); }, C.prop, C.propShade, P.playerLine, 0.8, 1.0);
-    shine(g, tx - 1.0, ty - 2.4, 0.9, 0.5, 0.85);
-    for (var i = 0; i < 3; i++) { var a2 = t * 1.3 + i * 2.1, rr2 = 6.5 + Math.sin(t * 2 + i) * 0.8, k = 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7); g.fillStyle = 'rgba(255,255,255,' + (0.4 + 0.5 * k) + ')'; ell(g, tx + Math.cos(a2) * rr2, ty - 1 + Math.sin(a2) * rr2, 0.5 + 0.4 * k, 0.5 + 0.4 * k); g.fill(); }
+    var C = propPal(P), h = hand || Q.hands[1], ox = h[0], oy = h[1] + 0.6;
+    var dx = 0.2 + h[0] * 0.012, dy = -1, d = Math.hypot(dx, dy); dx /= d; dy /= d;   // ほぼ上、少し前へ
+    var sw = Math.sin(t * 2) * 0.05, L = 13, cs = Math.cos(sw), sn = Math.sin(sw), ux = dx * cs - dy * sn, uy = dx * sn + dy * cs;
+    var bx = ox - ux * 2.4, by = oy - uy * 2.4, tx = ox + ux * L, ty = oy + uy * L;
+    rod(g, P, [[bx, by], [tx, ty]], 1.5, STICK.base);
+    g.save(); g.lineCap = 'butt'; g.strokeStyle = C.prop; g.lineWidth = 1.5;   // らせんのしま（ななめの短い帯）
+    for (var k = 0.1; k < 0.95; k += 0.14) { var px = bx + (tx - bx) * k, py = by + (ty - by) * k, nx = -uy * 0.75, ny = ux * 0.75; g.beginPath(); g.moveTo(px + nx + ux * 0.5, py + ny + uy * 0.5); g.lineTo(px - nx - ux * 0.5, py - ny - uy * 0.5); g.stroke(); }
+    g.restore();
+    solid(g, function () { ell(g, bx, by, 1.2, 1.2); }, C.prop, C.propShade, P.playerLine, 0.3, 0.9);   // 下の玉
+    var sx = tx + ux * 3.2, sy = ty + uy * 3.2, tw = 0.5 + 0.5 * Math.sin(t * 4), rot = -0.25 + sw * 2;
+    g.fillStyle = alpha(mixHex(C.prop, '#ffffff', 0.6), 0.08 + 0.08 * tw); ell(g, sx, sy, 7, 7); g.fill();   // 淡い光
+    solid(g, function () { softStar(g, sx, sy, 5.6, 2.5, rot); }, C.prop, C.propShade, P.playerLine, 1.0, 1.0);
+    shine(g, sx - 1.4, sy - 1.8, 1.1, 0.6, 0.85);
+    for (var i = 0; i < 4; i++) { var a2 = t * 1.2 + i * 1.57, rr2 = 8.2 + Math.sin(t * 2 + i) * 0.8, k2 = 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7); g.fillStyle = 'rgba(255,255,255,' + (0.4 + 0.5 * k2) + ')'; ell(g, sx + Math.cos(a2) * rr2, sy + Math.sin(a2) * rr2, 0.5 + 0.45 * k2, 0.5 + 0.45 * k2); g.fill(); }
   }
   var PROPS = { lolly: propLolly, wand: propWand, cane: propCane, rose: propRose };
   OUTFIT.prop = null; OUTFIT.propColor = 'red';
