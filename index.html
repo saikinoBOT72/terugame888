@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30e">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30f">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -286,12 +286,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30e"></script>
-<script src="data/pieces.js?v=2026.11.30e"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30f"></script>
+<script src="data/pieces.js?v=2026.11.30f"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30e';
+const VERSION = '2026.11.30f';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -824,13 +824,13 @@ function release() {
 // 急降下：空中で真下へ速く
 function doDive() {
   const v = gemVal('dive'); if (state !== 'play' || !v || canAct(P) || G.diveCd > 0) return;
-  P.vy = Math.min(1000, Math.max(P.vy, 0) + 420 * v.m); P.vx *= 0.3; G.diveCd = 0.35; G.diving = true; G.hovering = false; G.hoverLeft = 0;
+  P.vy = Math.min(1000, Math.max(P.vy, 0) + 420 * v.m); P.vx *= 0.3; G.diveCd = 0.35; G.diving = true; G.dashT = 0; G.hovering = false; G.hoverLeft = 0;
   kickLines(P.x, P.y, 0, 400); sfx.dive();
 }
 // 横っ飛び：空中で左右へまっすぐ3マス（0.15秒、重さなし）
 function doDash(dir) {
   const v = gemVal('dash'); if (state !== 'play' || !v || canAct(P) || G.dashCd > 0 || !dir) return;
-  G.dashT = 0.15; G.dashDir = dir; G.dashCd = v.cd; P.vx = dir * 360; P.vy = 0; P.face = dir;
+  G.dashT = 0.15; G.dashDir = dir; G.dashCd = v.cd; G.diving = false; P.vx = dir * 360; P.vy = 0; P.face = dir;
   kickLines(P.x, P.y, dir * 400, 0); puffCloud(P.x - dir * 6, P.y + 4); sfx.dash();
 }
 function tryAct() {
@@ -845,8 +845,9 @@ function tryAct() {
     // 壁のすぐ手前なら2段ジャンプを使わず、着いた瞬間に蹴る
     const r = Math.floor(-P.y / CELL), c = Math.floor(P.x / CELL), dir = Math.sign(P.vx);
     if (dir) { let k = 0; while (k < COLS && !isWall(raw(world, c + dir * (k + 1), r))) k++; const dist = dir > 0 ? (c + k + 1) * CELL - HB - P.x : P.x - (c - k) * CELL - HB; if (dist / Math.abs(P.vx) < 0.08) return; }
-    airJump(P); airBoost(P); inputBuf = 0; P.squash = -0.3; sfx.air();
-    puffCloud(P.x, P.y + 10);
+    airJump(P); airBoost(P); inputBuf = 0; P.squash = -0.3;
+    const fx0 = P.x, fy0 = P.y + 10, fx = () => { sfx.air(); puffCloud(fx0, fy0); };
+    if (G.deferFx) G.pendFx = fx; else fx();   // スワイプかもしれない間は、音と雲をあとで出す（取り消したら出さない）
     if (triple) { P.air = 0; G.tripleCd = gemVal('triple').cd; }
     if (turn >= 2 && dir) { P.vx = dir * Math.max(Math.abs(P.vx), MOVE.kickVx * Math.min(gemVal('fastkick') ? gemVal('fastkick').x : 1, KICK_CAP.side) * (turn >= 3 ? 1 : 0.7)); P.face = dir; }   // Lv2〜 2段ジャンプも押した側へ（Lv3 は蹴りと同じ横の速さ）
     G.airT = 0.45;   // この間は「2段ジャンプ」のポーズ
@@ -3456,21 +3457,31 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 document.addEventListener('selectstart', e => e.preventDefault());
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-// 空中で下・横スワイプの水晶を付けているときは、押してから最大0.06秒、指が動くかを見てから決める（動かなければいつものタップ）
+// 空中で下・横スワイプの水晶を付けているとき：押した瞬間にいつもどおり跳び（待たない）、0.06秒以内に指が動いてスワイプだと分かったら、
+// 跳ぶ前の状態に戻してから急降下・横っ飛びをする。跳びの音と雲は、スワイプでないと決まってから出す
 const SW = { p: null };
+const snapAct = () => ({ P: { x: P.x, y: P.y, vx: P.vx, vy: P.vy, air: P.air, face: P.face, squash: P.squash }, G: { airT: G.airT, tripleCd: G.tripleCd, hoverLeft: G.hoverLeft },
+  A: { flip: A.flip, flipKind: A.flipKind, flipDur: A.flipDur, flipDir: A.flipDir, rot: A.rot }, inputBuf });
+const undoAct = s => { Object.assign(P, s.P); Object.assign(G, s.G); Object.assign(A, s.A); inputBuf = s.inputBuf; };
+const flushSW = () => { SW.p = null; const f = G && G.pendFx; if (G) G.pendFx = null; if (f) f(); };   // タップだった：あとにしていた音と雲を出す
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); const r = cv.getBoundingClientRect(), dir = e.clientX - r.left < r.width / 2 ? -1 : 1;
-  if (state === 'play' && !canAct(P) && (gemLv('dive') || gemLv('dash'))) { holding = true; SW.p = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), dir, k: r.width / W }; return; }
+  if (state === 'play' && !canAct(P) && (gemLv('dive') || gemLv('dash'))) {
+    const snap = snapAct(); G.deferFx = true; G.pendFx = null; press(dir); G.deferFx = false;
+    SW.p = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now(), k: r.width / W, snap }; return;
+  }
   press(dir);
 });
 cv.addEventListener('pointermove', e => {
   const s = SW.p; if (!s || s.id !== e.pointerId) return;
   const dx = (e.clientX - s.x) / s.k, dy = (e.clientY - s.y) / s.k; if (Math.hypot(dx, dy) < 10) return;
-  SW.p = null;
-  if (dy > Math.abs(dx) && gemLv('dive')) doDive(); else if (Math.abs(dx) > Math.abs(dy) && gemLv('dash')) doDash(Math.sign(dx)); else press(s.dir);
+  const dive = dy > Math.abs(dx) && gemLv('dive'), dash = Math.abs(dx) > Math.abs(dy) && gemLv('dash');
+  if (!(dive || dash) || canAct(P)) { flushSW(); return; }   // スワイプの水晶が無い向き、またはもう壁や床に着いた：タップのまま
+  SW.p = null; G.pendFx = null; undoAct(s.snap);   // 跳びを取り消す
+  if (dive) doDive(); else doDash(Math.sign(dx));
 });
-const swipeTick = () => { const s = SW.p; if (s && performance.now() - s.t > 60) { SW.p = null; press(s.dir); } };
-const up = e => { if (SW.p && SW.p.id === e.pointerId) { const d = SW.p.dir; SW.p = null; press(d); } release(); };
+const swipeTick = () => { const s = SW.p; if (s && performance.now() - s.t > 60) flushSW(); };
+const up = e => { if (SW.p && SW.p.id === e.pointerId) flushSW(); release(); };
 addEventListener('pointerup', up); addEventListener('pointercancel', up);
 // ボタンをはなしたら、ぽよんと戻す（.pop をつけ直す）
 document.addEventListener('pointerup', e => { const b = e.target.closest && e.target.closest('button, a.sub'); if (!b || b.disabled) return; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
