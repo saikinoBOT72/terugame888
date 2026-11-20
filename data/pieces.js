@@ -8849,6 +8849,113 @@ piece('j_guststeps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
+piece('j_bendcliff', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+#######...........##
+#######...J.......##
+#######...J......^##
+#######...J......^##
+#######...J.......##
+#######...J......^##
+#######..........^##
+##................##
+##................##
+##................##
+`);
+piece('j_gustvent', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##}...............##
+##................##
+#####...######...###
+##^..............^##
+##^..............^##
+##..........M.....##
+##................##
+##................##
+##................##
+`);
+piece('j_bendwave', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##....JJJJJ.......##
+##^...J...........##
+##^...J..........^##
+##....JJJJJJJJ...^##
+##...........J....##
+##...........J....##
+##.......JJJJJ....##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('j_gustoverhang', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##........##########
+##^........\########
+##^.........\#######
+##................##
+##...............{##
+##................##
+##...M............##
+##................##
+##................##
+##................##
+`);
+piece('j_bendmine', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##^..............^##
+##^...J.....J....^##
+##....J.....J.....##
+##....J..M..J.....##
+##....J.....J.....##
+##....JJJJJJJ.....##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('j_gustmeet', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##...............^##
+##^~~~~..........^##
+##^...............##
+##}..............{##
+##................##
+##...........~~~~.##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('j_bendrail', { diff: 2 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+#############.....##
+##^...............##
+##^.LLLLLLLLL.....##
+##................##
+##................##
+##^..............^##
+##^...............##
+##................##
+##................##
+`);
 
 // ===== 新しいパーツ（1000m）
 piece('k_bouncebolt', { diff: 1 }, String.raw`
@@ -9989,7 +10096,7 @@ const POOLS = [
   { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'h_cannonbridge', 'h_springchimney', 'h_bridgezig', 'h_mixfunnel', 'z2_shelfspikes', 'h_spinbridge2', 'h_cannoncrumble2', 'h_springcannon2', 'h_springspin2', 'h_bridgestake2', 'h_crumblespin2', 'h_pendcannon2', 'h_rockspin', 'h_rockcannon2', 'h_cavespin', 'h_cavecannon', 'h_shelfspin', 'h_funnelcannon', 'h_cannonspring', 'h_crumblestake', 'h_spincrumble', 'h_summit', 'h_pendstake2', 'h_spincannon', 'h_spincannon2', 'h_zigcannon', 'h_peakcannon', 'h_pinnaclespin', 'h_cornice', 'h_chockstake', 'h_cavespring', 'h_plateaupend', 'h_spancannon', 'h_crevasse', 'h_icefall', 'h_ridgespin', 'h_lookout', 'h_boulderfield', 'h_torcannon', 'h_pendbridge', 'h_spinwindow', 'h_cannonledges', 'h_springstakes'] },
   // 800m〜 上空：雲の足場・ただよう機雷・曲がるトゲブロック・突風・雷の柱・風車。雨のパーツでは壁に掴まっていられる時間が1/4
   { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudgust', 'i_minewalls', 'i_cloudmill', 'i_cloudlayers', 'i_chimmines', 'i_dogmines', 'i_cloudstair', 'i_cloudbridge', 'i_cloudtower', 'i_cloudpillow', 'i_minelane', 'i_skyisland', 'i_cloudcanyon', 'i_cloudfloor', 'i_cloudspit', 'i_minegap', 'i_cloudcascade', 'i_hangrock', 'i_rainchimney', 'i_cloudhalo', 'i_cloudsplit', 'i_minepillar', 'i_cloudtiers', 'i_skyarch', 'i_cloudwell', 'i_drifters', 'i_rockshelfmine', 'i_cloudspiral', 'i_minefork', 'i_cloudbelt', 'i_skyledges', 'i_rainbridge', 'i_minecorner', 'i_cloudhook'] },
-  { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcross', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend', 'j_bounce', 'j_bouncepads', 'j_bouncegust', 'j_gustledge', 'j_bendhook', 'j_gustshelter', 'j_bendcloud', 'j_gustperch', 'j_bendcorner', 'j_gustwell', 'j_bendsweep', 'j_gustbridge', 'j_bendshaft', 'j_gustslot', 'j_gustcliffs', 'j_bendhanging', 'j_guststeps'] },
+  { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcross', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend', 'j_bounce', 'j_bouncepads', 'j_bouncegust', 'j_gustledge', 'j_bendhook', 'j_gustshelter', 'j_bendcloud', 'j_gustperch', 'j_bendcorner', 'j_gustwell', 'j_bendsweep', 'j_gustbridge', 'j_bendshaft', 'j_gustslot', 'j_gustcliffs', 'j_bendhanging', 'j_guststeps', 'j_bendcliff', 'j_gustvent', 'j_bendwave', 'j_gustoverhang', 'j_bendmine', 'j_gustmeet', 'j_bendrail'] },
   { from: 1000, name: '雷の通り道', pieces: ['k_bolt', 'k_boltpair', 'k_boltclouds', 'k_boltladder', 'k_boltsides', 'k_boltmines', 'k_boltbend', 'k_boltgust', 'k_boltcave', 'k_boltrocks', 'k_boltfunnel', 'k_boltshelves', 'k_triplebolt', 'k_boltgust2', 'k_boltmill', 'k_boltmines2', 'k_boltclouds2', 'k_boltblock', 'k_rainbolt', 'k_rainclouds', 'k_chimbolt', 'k_chimboltmines', 'k_dogbolt', 'k_dogmines', 'k_pinchbolt', 'k_pinchmines', 'k_hbolt', 'k_hboltpair', 'k_hboltshaft', 'k_hboltcave', 'k_bouncebolt'] },
   { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_cavemines', 'l_rockmines', 'l_shelfmines', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millgust2', 'l_millmines2', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmines', 'l_chimstorm', 'l_dogmines', 'l_dogstorm', 'l_pinchmines2', 'l_pinchstorm', 'l_bouncemill', 'l_bounceshaft'] },
 ];
