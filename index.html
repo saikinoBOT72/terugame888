@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.11">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.12">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -432,12 +432,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.11"></script>
-<script src="data/pieces.js?v=2026.12.11"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.12"></script>
+<script src="data/pieces.js?v=2026.12.12"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.11';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.12';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4163,9 +4163,10 @@ function versusInit() {
   window.__vs = {
     start(seed, rule) { VERSUS.seed = seed >>> 0 || 1; VERSUS.rule = rule || 'normal'; VERSUS.ghost = null; startGame(); if (vsDeath()) { G.hp = 1; G.safe = []; G.downs = 0; } },
     // k：L 左・R 右・A 蹴る（上）・D 下の水晶
+    // k：A 画面の右・B 画面の左・SR 右下・SL 左下（タッチの 左・右・下の帯 と同じ）。メニューは SL・SR で選んで A で決定（B は何もしない）
     input(k, down) {
-      if (state === 'play') { if (!down) { if (k !== 'D') release(); return; } if (k === 'D') special(P.face || 1); else press(k === 'L' ? -1 : k === 'R' ? 1 : 0); return; }
-      if (down && state !== 'dying' && state !== 'end') vsNav(k === 'L' ? -1 : k === 'R' || k === 'D' ? 1 : 'ok');
+      if (state === 'play') { if (!down) { release(); return; } if (k === 'SR' || k === 'SL') special(k === 'SR' ? 1 : -1); else press(k === 'A' ? 1 : -1); return; }
+      if (down && state !== 'dying' && state !== 'end' && k !== 'B') vsNav(k === 'SL' ? -1 : k === 'SR' ? 1 : 'ok');
     },
     get() {
       if (!P || !G) return null;

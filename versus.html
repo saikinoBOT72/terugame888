@@ -108,10 +108,10 @@
     </div>
     <p class="rules" id="ruleText"></p>
     <div class="players">
-      <div class="pl" id="pl0"><span class="tag">1P</span><canvas id="cv0" width="240" height="192"></canvas><span class="who" id="who0"></span><span class="keys">キーボード W A S D ／ 左の画面をタッチ</span></div>
-      <div class="pl p2" id="pl1"><span class="tag">2P</span><canvas id="cv1" width="240" height="192"></canvas><span class="who" id="who1"></span><span class="keys">キーボード ↑ ← ↓ → ／ 右の画面をタッチ</span></div>
+      <div class="pl" id="pl0"><span class="tag">1P</span><canvas id="cv0" width="240" height="192"></canvas><span class="who" id="who0"></span><span class="keys">キーボード D 右・A 左・C 右下・Z 左下 ／ 左の画面をタッチ</span></div>
+      <div class="pl p2" id="pl1"><span class="tag">2P</span><canvas id="cv1" width="240" height="192"></canvas><span class="who" id="who1"></span><span class="keys">キーボード → 右・← 左・. 右下・, 左下 ／ 右の画面をタッチ</span></div>
     </div>
-    <p class="rules">A：蹴る ・ 十字キー左右：向き ・ 下か B：「下」の水晶 ・ スタートボタン：一時停止</p>
+    <p class="rules">A：画面の右 ・ B：画面の左 ・ スティック右：右下 ・ スティック左：左下 ・ スタート：一時停止<br>メニューはスティックで選んで A で決定</p>
     <div class="row"><button class="btn big" id="btnStart" type="button" data-nav>はじめる</button></div>
     <div class="row">
       <button class="sub" id="btnFx" type="button" data-nav>画質：きれい</button>
@@ -235,15 +235,16 @@ const nav = { box: null, i: 0 };
 let usingPad = false;
 function show(id) {
   for (const k of OVS) $(k).hidden = k !== id;
-  nav.box = id ? $(id) : null; nav.i = 0; markSel();
+  nav.box = id ? $(id) : null; nav.i = Math.max(0, navItems().findIndex(b => b.classList.contains('big'))); markSel();   // はじめに選ぶのは大きいボタン（A ですぐ始まる）
 }
 const navItems = () => nav.box ? [...nav.box.querySelectorAll('[data-nav]')].filter(b => !b.disabled && b.offsetParent) : [];
 function markSel() { const it = navItems(); for (const [i, b] of it.entries()) b.classList.toggle('sel', i === nav.i && usingPad); }
+// 決定は A だけ。SL・SR（スティック・十字キーの左右）で選ぶ。B は何もしない
 function menuKey(k) {
-  const it = navItems(); if (!it.length) return;
+  const it = navItems(); if (!it.length || k === 'B') return;
   if (!usingPad) { usingPad = true; markSel(); if (k !== 'A') return; }
   if (k === 'A') { it[nav.i].click(); return; }
-  nav.i = (nav.i + (k === 'L' ? -1 : 1) + it.length) % it.length; markSel();
+  nav.i = (nav.i + (k === 'SL' ? -1 : 1) + it.length) % it.length; markSel();
 }
 
 /* ---------- 試合の流れ：さいしょ → 3・2・1 → プレイ（一時停止）→ 結果 ---------- */
@@ -264,7 +265,7 @@ function start() {
   };
   tick(0);
 }
-function pause() { if (phase !== 'play') return; phase = 'pause'; show('ovPause'); for (const i of [0, 1]) for (const k of ['L', 'R', 'A', 'D']) { const a = api(i); if (a) a.input(k, false); } }
+function pause() { if (phase !== 'play') return; phase = 'pause'; show('ovPause'); for (const i of [0, 1]) for (const k of PAD_KEYS) { const a = api(i); if (a) a.input(k, false); } }
 function resume() { if (phase !== 'pause') return; phase = 'play'; show(null); lastT = performance.now(); }
 function toMenu() { phase = 'start'; show('ovStart'); for (const i of [0, 1]) { const a = api(i); if (a) a.halt(); $('d' + i).hidden = true; } }
 $('btnStart').onclick = start; $('btnAgain').onclick = start; $('btnRestart').onclick = start;
@@ -294,7 +295,8 @@ function decide(out, g) {
   }, 1400);
 }
 
-/* ---------- 入力：k は L 左・R 右・A 蹴る・D 下・P 一時停止 ---------- */
+/* ---------- 入力：k は A（画面の右）・B（画面の左）・SR（右下）・SL（左下）・P（一時停止） ---------- */
+const PAD_KEYS = ['A', 'B', 'SR', 'SL'];
 function input(side, k, down) {
   if (phase === 'play') {
     if (k === 'P') { if (down) pause(); return; }
@@ -303,10 +305,10 @@ function input(side, k, down) {
   if (!down || phase === 'count' || phase === 'over') return;
   if (phase === 'end' && performance.now() - endAt < 1500) return;   // 結果が出てすぐの連打では押さない
   if (k === 'P') { if (phase === 'pause') resume(); return; }
-  menuKey(k === 'D' ? 'R' : k);
+  menuKey(k);
 }
-const KEYS = { a: [0, 'L'], d: [0, 'R'], w: [0, 'A'], s: [0, 'D'], ' ': [0, 'A'],
-  ArrowLeft: [1, 'L'], ArrowRight: [1, 'R'], ArrowUp: [1, 'A'], ArrowDown: [1, 'D'], Enter: [1, 'A'], Escape: [0, 'P'], p: [0, 'P'] };
+const KEYS = { d: [0, 'A'], a: [0, 'B'], c: [0, 'SR'], z: [0, 'SL'], ' ': [0, 'A'],
+  ArrowRight: [1, 'A'], ArrowLeft: [1, 'B'], '.': [1, 'SR'], ',': [1, 'SL'], Enter: [1, 'A'], Escape: [0, 'P'], p: [0, 'P'] };
 const keyOf = key => KEYS[key.length === 1 ? key.toLowerCase() : key];
 function onKey(key, down, repeat) { const m = keyOf(key); if (m && !repeat) input(m[0], m[1], down); }
 window.__vsKey = onKey;   // 画面（iframe）に入力が向いていても、ここに届く
@@ -317,13 +319,14 @@ addEventListener('pointermove', () => { if (usingPad) { usingPad = false; markSe
 /* ---------- コントローラー ----------
    ボタンを押した順に 1P・2P（参加）。リモコンなどコントローラー扱いの機器が混ざっても、押さなければ入らない。
    Safari は入力が向いているページにしか状態を渡さないことがあるので、親と左右の画面の両方から読んで新しい方を使う。
-   標準の並びでないもの（Joy-Con を1本ずつなど）は、ボタン 0 を A、1 を下、スティック／ハットで左右にする */
+   割り当て：A（ボタン0）＝画面の右、B（ボタン1）＝画面の左、左スティック（十字キーも）右＝右下・左＝左下、スタート（9・セレクト 8）＝一時停止。
+   スティックは倒し始め 0.55・戻し 0.35 で切り替える（真ん中付近でばたつかない）。標準の並びでないものは十字キーの代わりにハット（軸9） */
 const slot = [null, null], prev = [{}, {}];
-function padKeys(p) {
-  const b = i => !!(p.buttons[i] && p.buttons[i].pressed), x = p.axes[0] || 0, y = p.axes[1] || 0;
-  if (p.mapping === 'standard') return { L: b(14) || x < -0.5, R: b(15) || x > 0.5, A: b(0) || b(3) || b(12) || y < -0.6, D: b(1) || b(2) || b(13) || y > 0.6, P: b(9) || b(8) };
-  const hat = p.axes.length > 9 ? p.axes[9] : 9, hl = hat > 0.3 && hat < 1.1, hr = hat > -0.8 && hat < -0.1;   // ハット：-1 上・-0.43 右・0.14 下・0.71 左（離すと 3.3）
-  return { L: x < -0.5 || hl, R: x > 0.5 || hr, A: b(0) || b(3) || y < -0.6, D: b(1) || b(2) || y > 0.6, P: b(9) || b(8) };
+function padKeys(p, was) {
+  const b = i => !!(p.buttons[i] && p.buttons[i].pressed), x = p.axes[0] || 0;
+  const std = p.mapping === 'standard', hat = !std && p.axes.length > 9 ? p.axes[9] : 9;   // ハット：-1 上・-0.43 右・0.14 下・0.71 左（離すと 3.3）
+  const dl = std ? b(14) : hat > 0.3 && hat < 1.1, dr = std ? b(15) : hat > -0.8 && hat < -0.1;
+  return { A: b(0), B: b(1), SR: dr || x > (was.SR ? 0.35 : 0.55), SL: dl || x < (was.SL ? -0.35 : -0.55), P: b(9) || b(8) };
 }
 function allPads() {
   const map = new Map(), navs = [navigator];
@@ -354,14 +357,14 @@ function pollPads() {
   for (const [idx, p] of pads) {
     if (slot.includes(idx) || !anyPressed(p)) continue;
     const i = slot.indexOf(null); if (i < 0) break;
-    slot[i] = idx; prev[i] = padKeys(p);   // 参加したボタンは操作にしない
+    slot[i] = idx; prev[i] = padKeys(p, {});   // 参加したボタンは操作にしない
     usingPad = true; markSel(); toast(`${NAME[i]} にコントローラーが入った`);
   }
   for (const i of [0, 1]) {
     const p = slot[i] != null ? pads.get(slot[i]) : null;
     if (!p) continue;
-    const now = padKeys(p);
-    for (const k of ['L', 'R', 'A', 'D', 'P']) if (now[k] !== !!prev[i][k]) input(i, k, now[k]);
+    const now = padKeys(p, prev[i]);
+    for (const k of [...PAD_KEYS, 'P']) if (now[k] !== !!prev[i][k]) input(i, k, now[k]);
     prev[i] = now;
   }
   if (phase !== 'start') return;
