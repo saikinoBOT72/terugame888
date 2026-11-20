@@ -11,11 +11,13 @@ const BOT = {
   top: 6,                                   // 2手目まで読む1手目の数
   hold: 0.5,                                // 「押さずに待つ」手の秒（動く物のタイミング待ち）
   nearHurt: 40,                             // となりの押し方で当たるときの減点（1手=100）
+  wobble: 0.03, wobbleTop: 4, wobbleHurt: 60, // 上位の手は押す時間を ±wobble 秒ずらしても当たらないか試す（当たるたびに減点）
   runT: 45, maxMoves: 40,                   // 1回の挑戦の上限
 };
 function botInPage(BOT) {
   let ROWS = null, goalY = 0, mapNodes = null;
   ensureAhead = function () {};   // パーツ1つの世界から先を作らない
+  for (const k in sfx) if (typeof sfx[k] === 'function') sfx[k] = () => {};   // 音を止める（試すたびに音のノードがたまってメモリが尽きる）
   function rowsOf(id) { const pc = PIECES[id], b = pc.rows[0], t = pc.rows[pc.rows.length - 1], r = []; for (let i = 0; i < CHECK.padBelow; i++) r.push(b); for (const x of pc.rows) r.push(x); for (let i = 0; i < CHECK.padAbove; i++) r.push(t); return r; }
   // 動く物なしの地図（到達チェックと同じ総当たり）：着地点ごとに「ゴールまであと何手か」
   function buildMap(id) {
@@ -109,13 +111,21 @@ function botInPage(BOT) {
     for (const o of cands) { const k = Math.round(o.s.P.x / 6) + ',' + Math.round(o.s.P.y / 6) + ',' + (o.s.P.side || 0); if (seen.has(k)) continue; seen.add(k); deep.push(o); if (deep.length >= BOT.top) break; }
     const v2 = new Map();
     for (const o of deep) { const sec = tryAll(o.s, false, o.t); let b = -1e9; for (const q of sec) if (q.v > b) b = q.v; v2.set(o.s, b > -1e8 ? Math.max(b, o.v - 100) : o.v - 5000); }   // 2手目がどれも当たる＝行き止まり
-    let best = null, bs = -Infinity;
+    const scored = [];
     for (const o of first) {
-      if (o.r === 'hurt') continue;
+      if (o.r === 'hurt' || o.dup) continue;
       let sc = o.r === 'land' ? (v2.has(o.s) ? v2.get(o.s) : o.v - 150) : o.v;
       for (const [dw, dd] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { const n = grid.get((o.a.wi + dw) + ',' + (o.a.di + dd)); if (n && n.r === 'hurt') sc -= BOT.nearHurt; }
-      if (sc > bs) { bs = sc; best = o; }
+      scored.push([sc, o]);
     }
+    scored.sort((p, q) => q[0] - p[0]);
+    for (const it of scored.slice(0, BOT.wobbleTop)) {   // ぎりぎりの手を避ける：少しずらして試す
+      const a = it[1].a; if (a.hold) continue;
+      const vs = [[BOT.wobble, 0], [-BOT.wobble, 0]]; if (a.d != null) vs.push([0, BOT.wobble], [0, -BOT.wobble]);
+      for (const [ew, ed] of vs) { if (a.w + ew < 0) continue; load(s0); if (step({ w: a.w + ew, d: a.d == null ? null : a.d + ed }).r === 'hurt') it[0] -= BOT.wobbleHurt; }
+    }
+    let best = null, bs = -Infinity;
+    for (const [sc, o] of scored) if (sc > bs) { bs = sc; best = o; }
     load(s0);
     return best && { w: best.a.w, d: best.a.d, hold: !!best.a.hold, score: bs, kind: best.r };
   }
@@ -147,7 +157,7 @@ function botInPage(BOT) {
     return out;
   }
   function stepTrace(a, path) { const u = update; let n = 0; update = dt => { u(dt); if (++n % 3 === 0) path.push({ x: +P.x.toFixed(1), y: +P.y.toFixed(1), t: +G.time.toFixed(3) }); }; try { return step(a); } finally { update = u; } }
-  window.__bot = { BOT, run, setMap: id => { mapNodes = buildMap(id); return mapNodes.length; } };
+  window.__bot = { BOT, run, snapSize: () => { const o = snap(); const r = {}; for (const k in o) r[k] = JSON.stringify(o[k]).length; for (const k in o.w) r['w.' + k] = JSON.stringify(o.w[k]).length; return r; }, setMap: id => { mapNodes = buildMap(id); return mapNodes.length; } };
 }
 // リポジトリを http で配る小さなサーバー。index.html だけ、ボットを差し込んだものを返す
 function serve() {
