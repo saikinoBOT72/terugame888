@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.06">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.07">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -252,6 +252,10 @@
   .grow b { font-size: calc(var(--u) * 12.5px); } .grow b .st { color: var(--tone); margin-right: .3em; }
   .grow span { display: block; color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.4; }
   body.vs #pauseBtn, body.vs .dev { display: none !important; }
+  body.vs .vsTag { position: absolute; right: calc(var(--u) * 8px); bottom: calc(var(--u) * 8px); z-index: 60; padding: calc(var(--u) * 2px) calc(var(--u) * 10px); border-radius: 999px; background: var(--vc); color: #120d18; font-weight: 800; font-size: calc(var(--u) * 14px); pointer-events: none; }
+  body.vs .vsWarn { position: absolute; left: 50%; bottom: calc(var(--u) * 14px); transform: translateX(-50%); z-index: 60; padding: calc(var(--u) * 4px) calc(var(--u) * 12px); border-radius: 999px; background: rgba(20,15,28,.9); color: #fff4e6; font-weight: 800; font-size: calc(var(--u) * 14px); white-space: nowrap; pointer-events: none; }
+  body.vs .vsWarn.near { background: #c94a2a; }
+  body.vs .vsWarn[hidden] { display: none; }
   body.vs button.vsSel { outline: calc(var(--u) * 3px) solid #fff; outline-offset: calc(var(--u) * 2px); }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + env(safe-area-inset-bottom, 0px));
@@ -409,12 +413,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.06"></script>
-<script src="data/pieces.js?v=2026.12.06"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.07"></script>
+<script src="data/pieces.js?v=2026.12.07"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.06';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.07';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -884,7 +888,7 @@ const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, up: 0, ge
 const cvCtx = ctx;
 
 // 使える画面の大きさ。ホーム画面から開いたアプリの iPhone は、ページの高さがステータスバーの分だけ短くなるので、端末の画面の高さを使う
-const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const STANDALONE = (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches) && window.parent === window;   // 2人対戦の中（iframe）では、ホーム画面アプリでも自分の枠の大きさだけを使う
 function screenBox() {
   const vw = innerWidth, vh = Math.max(innerHeight, document.documentElement.clientHeight, window.visualViewport ? visualViewport.height : 0);
   if (!STANDALONE || !screen.width) return { w: vw, h: vh };
@@ -4019,7 +4023,7 @@ function loop(now) {
   const tD = performance.now();
   drawUi(now / 1000); showFx.frame();
   if (PERF.on) { PERF.parts = { upd: tB - tA, fx: t0 - tB, draw: tD - t0, ui: performance.now() - tD }; perfTick(performance.now() - t0, now); }
-  requestAnimationFrame(loop);
+  if (!(VERSUS && VERSUS.driven)) requestAnimationFrame(loop);   // 2人対戦では親ページが2つの画面を同じフレームで動かす（frame）
 }
 if (store.get('kabe_best2', null) == null && store.get('kabe_best', 0)) store.set('kabe_best2', Math.floor(Math.max(store.get('kabe_best', 0) / 2, store.get('kabe_best4', 0) / 8, store.get('kabe_bestm', 0) * 2)));   // 1m の長さを変えたので、前の記録を1/2にして引き継ぐ
 // 計測モードの板（画面の下）：押すたびにその部分をオフ／オン（解像度は変えない）
@@ -4083,6 +4087,17 @@ function versusInit() {
   };
   // 本編の focus()（ガチャ所を開いたときなど）も、枠を動かすだけにする
   HTMLElement.prototype.focus = function () { if (this.tagName !== 'BUTTON') return; for (const b of document.querySelectorAll('.vsSel')) b.classList.remove('vsSel'); this.classList.add('vsSel'); };
+  // 1P・2P の札と、ガチャ所の中の「溶岩まで」（本編の HUD はガチャ所の中では出ないので）
+  const tag = document.createElement('div'); tag.className = 'vsTag'; tag.textContent = VERSUS.side ? '2P' : '1P'; tag.style.setProperty('--vc', VERSUS.side ? '#ffb38a' : '#8fd0ff');
+  const warn = document.createElement('div'); warn.className = 'vsWarn'; warn.hidden = true;
+  $('frame').append(tag, warn);
+  VERSUS.warn = () => {
+    const on = state === 'gacha' && G.lavaDelay <= 0, m = (G.lavaY - P.y) / PX_PER_M;
+    if (warn.hidden !== !on) warn.hidden = !on;
+    if (!on) return;
+    const t = `▼ ${riseName()}まで ${Math.max(0, m).toFixed(1)}m`; if (warn.textContent !== t) warn.textContent = t;
+    warn.classList.toggle('near', m < 3);
+  };
   // 画面をタッチしたあとも、入力は親ページに戻す
   addEventListener('pointerup', () => { try { parent.focus(); } catch (e) {} });
   window.__vs = {
@@ -4099,10 +4114,13 @@ function versusInit() {
       return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause,
         // 溶岩：速さ・欲ばりの上乗せ・ブレーキ（自分の3m以内のときだけ）・ガチャ中に呑まれたか
         speed: LAVA.speed, lavaY: G.lavaY, delay: G.lavaDelay, greed: gr ? gr.lava - 1 : 0, brake: bk && near ? bk.k : 1,
-        sunk: P.y + HB * 0.4 > G.lavaY, dist: (G.lavaY - P.y) / PX_PER_M, rise: riseName() };
+        sunk: P.y + HB * 0.4 > G.lavaY, rise: riseName(), fps };
     },
     // o：相手、lava：2人で1つの溶岩 { y, delay }
-    put(o, lava) { VERSUS.ghost = o; if (lava && G && state !== 'title') { G.lavaY = lava.y; G.lavaDelay = lava.delay; } },
+    put(o, lava) { VERSUS.ghost = o; if (lava && G && state !== 'title') { G.lavaY = lava.y; G.lavaDelay = lava.delay; } VERSUS.warn(); },
+    fx(on) { FX.ok = !!on && !!glfx; fxLabel(); },
+    // 親ページの1つのループから、入力を渡した直後に2つの画面を動かす（画面ごとにフレームがずれて片方の入力が遅れるのを防ぐ）
+    frame() { VERSUS.driven = true; loop(performance.now()); },   // 画質（2人対戦では親ページが決める。ソロの設定は変えない）
     // 勝負がついた：その場で止める（結果は親ページが出す）
     halt() { if (state === 'gacha' || state === 'pause') showOnly(null); state = 'end'; holding = false; },
   };
