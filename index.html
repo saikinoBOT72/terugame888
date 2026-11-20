@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30h">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30i">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -43,7 +43,7 @@
     font: 500 13px/1.6 var(--font-round);
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  #app { width: 100%; height: 100%; display: grid; place-items: center; }
+  #app { position: fixed; left: 0; top: 0; width: 100%; height: 100%; height: 100dvh; display: grid; place-items: center; }   /* 画面に固定して上から下まで（高さは resize で端末に合わせる） */
   #frame { position: relative; --u: 1; border-radius: calc(var(--u) * 10px); overflow: hidden; }
   #cv { display: block; touch-action: none; cursor: pointer; }
   .layer { position: absolute; left: 0; top: 0; pointer-events: none; }
@@ -288,12 +288,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30h"></script>
-<script src="data/pieces.js?v=2026.11.30h"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30i"></script>
+<script src="data/pieces.js?v=2026.11.30i"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30h';
+const VERSION = '2026.11.30i';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -697,14 +697,25 @@ let scale = 1, dpr = 1;
 const PERF = { on: /[?&]perf\b/.test(location.search), off: {}, js: 0, up: 0, gen: 0 };   // gen：そのフレームに背景・地形の絵を作った時間（ms）
 const cvCtx = ctx;
 
+// 使える画面の大きさ。ホーム画面から開いたアプリの iPhone は、ページの高さがステータスバーの分だけ短くなるので、端末の画面の高さを使う
+const STANDALONE = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+function screenBox() {
+  const vw = innerWidth, vh = Math.max(innerHeight, document.documentElement.clientHeight, window.visualViewport ? visualViewport.height : 0);
+  if (!STANDALONE || !screen.width) return { w: vw, h: vh };
+  const portrait = vw < vh, sl = Math.max(screen.width, screen.height), ss = Math.min(screen.width, screen.height);
+  return { w: vw, h: Math.max(vh, portrait ? sl : ss) };
+}
 function resize() {
-  const box = $('app').getBoundingClientRect(), bw = box.width || innerWidth, bh = box.height || innerHeight;
+  const sb = screenBox(); $('app').style.height = sb.h + 'px';
+  const bw = sb.w, bh = sb.h;
   H = Math.round(clamp(W * bh / bw, 640, 960));   // 縦長の端末は縦をのばして画面いっぱいに（横長・タブレットは 640 のまま）
   scale = Math.min(bw / W, bh / H);
   const sp = getComputedStyle($('safeProbe')); SAFE.top = (parseFloat(sp.paddingTop) || 0) / scale; SAFE.bottom = (parseFloat(sp.paddingBottom) || 0) / scale;
   $('gShow').dataset.h = H;
   dpr = Math.min(window.devicePixelRatio || 1, 2.5);
   const cw = Math.floor(W * scale), ch = Math.floor(H * scale);
+  frameEl.style.borderRadius = bh - ch < 4 && bw - cw < 4 ? '0' : '';   // 画面いっぱいのときは角を丸めない
+  PERF.box = `画面 ${bw}×${Math.round(bh)}（innerHeight ${innerHeight}・screen ${screen.width}×${screen.height}${STANDALONE ? '・アプリ' : ''}）ゲーム ${cw}×${ch}・H ${H}・ノッチ ${Math.round(SAFE.top * scale)}・ホームバー ${Math.round(SAFE.bottom * scale)}`;
   cv.style.width = frameEl.style.width = cw + 'px'; cv.style.height = frameEl.style.height = ch + 'px';
   frameEl.style.setProperty('--u', scale.toFixed(4));
   cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr);
@@ -715,7 +726,8 @@ function resize() {
 }
 const bands = new Map();
 function clearBands() { for (const band of bands.values()) band.c.width = band.c.height = 0; bands.clear(); }   // 幅0にするとメモリがすぐ返る（iPhone の canvas の上限対策）
-addEventListener('resize', resize);
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 200));
+if (window.visualViewport) visualViewport.addEventListener('resize', resize);
 
 let state = 'title', world = null, P = null, G = null, inputBuf = 0, inputDir = 0, holding = false, debug = false, showCheck = false;
 const cam = { y: 0, shake: 0, lead: 0 };
@@ -3491,7 +3503,7 @@ document.addEventListener('dblclick', e => e.preventDefault(), { passive: false 
 document.addEventListener('selectstart', e => e.preventDefault());
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 // 画面は 左・右・下 の3つ。左右はいつものタップ（振り向きの水晶では押した側へ）、下の帯は特殊ゾーン（「下」の水晶：急降下・横っ飛び）
-const zoneH = () => Math.round(Math.max(90, H * 0.15) + SAFE.bottom);   // 下の特殊ゾーンの高さ（ゲームの px）
+const zoneH = () => Math.round(Math.max(60, H * 0.09) + SAFE.bottom);   // 下の特殊ゾーンの高さ（ゲームの px）。いちばん下だけ
 const specialGem = () => G && G.equip.find(id => fudaOf(id) === '下');
 function special(side) {   // 空中だけ「下」の水晶を使う。壁・床では いつもの蹴り、水晶がなければ いつものタップ
   const id = specialGem();
@@ -3569,7 +3581,7 @@ if (PERF.on) {
     if (now < next) return; next = now + 400;
     const st = glfx && glfx.scene ? glfx.scene.stats : null;
     const p = PERF.parts || {}, d = PERF.dp || {}, f = v => (v || 0).toFixed(1);
-    info.textContent = `${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'}${st ? ` ・ 送信 ${Math.round(PERF.up / 1000)}k/f` : ''} ・ v${VERSION}\n動き ${f(p.upd)} ・ 組み立て ${f(d.gl)}（送る ${f(d.end)}）・ 仕上げ ${f(d.fx)} ・ HUD ${f(d.hud)} ms`;
+    info.textContent = `${PERF.box || ''}\n${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'}${st ? ` ・ 送信 ${Math.round(PERF.up / 1000)}k/f` : ''} ・ v${VERSION}\n動き ${f(p.upd)} ・ 組み立て ${f(d.gl)}（送る ${f(d.end)}）・ 仕上げ ${f(d.fx)} ・ HUD ${f(d.hud)} ms`;
   };
 }
 resize(); renderBest(); newGame();
