@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30q">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30r">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -371,12 +371,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.30q"></script>
-<script src="data/pieces.js?v=2026.11.30q"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30r"></script>
+<script src="data/pieces.js?v=2026.11.30r"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30q';
+const VERSION = '2026.11.30r';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -3706,18 +3706,38 @@ function titleTick(dt) {
   ensureAhead();
 }
 let last = performance.now(), acc = 0, fps = 60;
+// フレームの間隔のゆれをそろえる：60・120Hz などに近ければその値ぴったりにする（毎フレーム同じ回数だけ動かす。ゆれのまま動かすと、たまに1回・3回のフレームが混ざってカクつく）
+const VSYNC = [1 / 60, 1 / 120, 1 / 90, 1 / 144, 1 / 30];
+function snapDt(raw) { for (const s of VSYNC) if (Math.abs(raw - s) < s * 0.15) return s; return raw; }
+// 描くときは、動きの1回前といまの位置の間を補う（おばけ・カメラ）。いまの位置は描いたあと戻す
+const LERP = { px: 0, py: 0, cy: 0, a: 0, on: false };
+function lerpIn() {
+  if (!LERP.on || state !== 'play' || !P) return null;
+  const k = LERP.a, keep = { x: P.x, y: P.y, cy: cam.y };
+  P.x = LERP.px + (P.x - LERP.px) * k; P.y = LERP.py + (P.y - LERP.py) * k; cam.y = LERP.cy + (cam.y - LERP.cy) * k;
+  return keep;
+}
+function lerpOut(keep) { if (keep) { P.x = keep.x; P.y = keep.y; cam.y = keep.cy; } }
+const JANK = { steps: {}, n: 0, maxGap: 0 };   // ?perf 用：1フレームに動かした回数の内訳と、いちばん長かった間隔
 function loop(now) {
-  const raw = Math.max(0, now - last) / 1000, frame = Math.min(0.1, raw) * MOVE.speed; last = now;
+  const raw = Math.max(0, now - last) / 1000, frame = snapDt(Math.min(0.1, raw)) * MOVE.speed; last = now;
   if (raw > 0) fps += (1 / raw - fps) * 0.05;   // 表示用になめらかに
   const tA = performance.now();
-  if (state === 'play') { acc += frame; while (acc >= DT && state === 'play') { update(DT); acc -= DT; } if (state === 'play' && !(G.stop > 0)) updatePose(frame); }
+  LERP.on = false;
+  if (state === 'play') {
+    acc += frame; let n = 0;
+    while (acc >= DT - 1e-6 && state === 'play') { LERP.px = P.x; LERP.py = P.y; LERP.cy = cam.y; update(DT); acc -= DT; n++; }
+    acc = Math.max(0, acc); LERP.on = n > 0 && Math.abs(P.x - LERP.px) + Math.abs(P.y - LERP.py) < 60; LERP.a = Math.min(1, acc / DT);   // 余った時間の分だけ前へ（1回ぶん遅れて、なめらかに）
+    if (PERF.on) { JANK.steps[n] = (JANK.steps[n] || 0) + 1; JANK.n++; JANK.maxGap = Math.max(JANK.maxGap, raw * 1000); }
+    if (state === 'play' && !(G.stop > 0)) updatePose(frame);
+  }
   else if (state === 'title') { G.time += frame; titleTick(frame); updatePose(frame); }
   else if (state === 'gacha') updateGacha(frame);
   else if (state === 'dying') G.time += frame;
   const tB = performance.now();
   updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
   const t0 = performance.now();
-  draw();
+  const keep = lerpIn(); draw(); lerpOut(keep);
   const tD = performance.now();
   drawUi(now / 1000); showFx.frame();
   if (PERF.on) { PERF.parts = { upd: tB - tA, fx: t0 - tB, draw: tD - t0, ui: performance.now() - tD }; perfTick(performance.now() - t0, now); }
@@ -3741,9 +3761,10 @@ if (PERF.on) {
     PERF.js += (ms - PERF.js) * 0.05;
     if (glfx && glfx.scene) PERF.up += (glfx.scene.stats.up - PERF.up) * 0.05;
     if (now < next) return; next = now + 400;
+    if (JANK.n > 300) { JANK.steps = {}; JANK.n = 0; JANK.maxGap = 0; }   // 5秒ほどで数え直す
     const st = glfx && glfx.scene ? glfx.scene.stats : null;
     const p = PERF.parts || {}, d = PERF.dp || {}, f = v => (v || 0).toFixed(1);
-    info.textContent = `${PERF.box || ''}\n${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'}${st ? ` ・ 送信 ${Math.round(PERF.up / 1000)}k/f` : ''} ・ v${VERSION}\n動き ${f(p.upd)} ・ 組み立て ${f(d.gl)}（送る ${f(d.end)}）・ 仕上げ ${f(d.fx)} ・ HUD ${f(d.hud)} ms`;
+    info.textContent = `${PERF.box || ''}\n${Math.round(fps)} FPS ・ JS ${PERF.js.toFixed(1)}ms ・ ${cv.width}×${cv.height} ・ ${FX.ok ? 'きれい' : 'かるい'}${st ? ` ・ 送信 ${Math.round(PERF.up / 1000)}k/f` : ''} ・ v${VERSION}\nゆれ：1フレームに動かした回数 ${Object.keys(JANK.steps).sort().map(k => `${k}回 ${Math.round(JANK.steps[k] / Math.max(1, JANK.n) * 100)}%`).join(' ')} ・ いちばん長い間隔 ${JANK.maxGap.toFixed(0)}ms\n動き ${f(p.upd)} ・ 組み立て ${f(d.gl)}（送る ${f(d.end)}）・ 仕上げ ${f(d.fx)} ・ HUD ${f(d.hud)} ms`;
   };
 }
 resize(); renderBest(); newGame();
