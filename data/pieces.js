@@ -10566,6 +10566,81 @@ piece('l_guststub', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
+piece('l_millshelf', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##...M............##
+##................##
+##...........W....##
+##................##
+##................##
+##########........##
+##................##
+##................##
+##................##
+##................##
+`);
+piece('l_minecurtain', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##.........M.....^##
+##...............^##
+##}...............##
+##................##
+##............~~~.##
+##................##
+##.........M......##
+##................##
+##................##
+##................##
+`);
+piece('l_boltduo', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+##E------E........##
+##................##
+##................##
+##....M...........##
+##................##
+##................##
+##........E------E##
+##................##
+##................##
+##................##
+`);
+piece('l_bounceledge', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##^....M.........^##
+##^..............^##
+##................##
+##................##
+##.........H########
+##...............^##
+##...............^##
+##................##
+##................##
+`);
+piece('l_stormgap', { diff: 3 }, String.raw`
+##................##
+##................##
+##................##
+##................##
+####.....^##########
+####.....^##########
+##^..............^##
+##^..............^##
+##.......W........##
+##................##
+##................##
+##................##
+`);
 
 const POOLS = [
   { from: 0, name: '地底の洞窟', pieces: ['z1_open', 'z1_alternate', 'z1_funnel', 'z1_shelves', 'z1_pillar', 'z1_blocks', 'z1_zigzag', 'z1_longwall', 'z1_sideleft',
@@ -10586,7 +10661,7 @@ const POOLS = [
   { from: 800, name: '雲の入り口', pieces: ['i_clouds', 'i_cloudsteps', 'i_cloudmines', 'i_mines', 'i_minepair', 'i_minecave', 'i_cloudcave', 'i_cloudzig', 'i_mineladder', 'i_cloudspikes', 'i_rainclouds', 'i_rainmines', 'i_cloudfunnel', 'i_minefunnel', 'i_cloudrocks', 'i_minerocks', 'i_cloudgust', 'i_minewalls', 'i_cloudmill', 'i_cloudlayers', 'i_chimmines', 'i_dogmines', 'i_cloudstair', 'i_cloudbridge', 'i_cloudtower', 'i_cloudpillow', 'i_minelane', 'i_skyisland', 'i_cloudcanyon', 'i_cloudfloor', 'i_cloudspit', 'i_minegap', 'i_cloudcascade', 'i_hangrock', 'i_rainchimney', 'i_cloudhalo', 'i_cloudsplit', 'i_minepillar', 'i_cloudtiers', 'i_skyarch', 'i_cloudwell', 'i_drifters', 'i_rockshelfmine', 'i_cloudspiral', 'i_minefork', 'i_cloudbelt', 'i_skyledges', 'i_rainbridge', 'i_minecorner', 'i_cloudhook'] },
   { from: 900, name: '風の回廊', pieces: ['j_gust', 'j_gustclouds', 'j_gustladder', 'j_gustzig', 'j_gustmines', 'j_bendL', 'j_bendJ', 'j_bendwide', 'j_bendU', 'j_bendS', 'j_bendclouds', 'j_bendgust', 'j_bendcave', 'j_bendmines', 'j_gustcross', 'j_gustrocks', 'j_bendpair', 'j_gustfunnel', 'j_raingust', 'j_rainbend', 'j_chimgust', 'j_chimbend', 'j_doggust', 'j_dogbend', 'j_pinchgust', 'j_pinchbend', 'j_bounce', 'j_bouncepads', 'j_bouncegust', 'j_gustledge', 'j_bendhook', 'j_gustshelter', 'j_bendcloud', 'j_gustperch', 'j_bendcorner', 'j_gustwell', 'j_bendsweep', 'j_gustbridge', 'j_bendshaft', 'j_gustslot', 'j_gustcliffs', 'j_bendhanging', 'j_guststeps', 'j_bendcliff', 'j_gustvent', 'j_bendwave', 'j_gustoverhang', 'j_bendmine', 'j_gustmeet', 'j_bendrail'] },
   { from: 1000, name: '雷の通り道', pieces: ['k_bolt', 'k_boltpair', 'k_boltclouds', 'k_boltladder', 'k_boltsides', 'k_boltmines', 'k_boltbend', 'k_boltgust', 'k_boltcave', 'k_boltrocks', 'k_boltfunnel', 'k_boltshelves', 'k_triplebolt', 'k_boltgust2', 'k_boltmill', 'k_boltmines2', 'k_boltclouds2', 'k_boltblock', 'k_rainbolt', 'k_rainclouds', 'k_chimbolt', 'k_chimboltmines', 'k_dogbolt', 'k_dogmines', 'k_pinchbolt', 'k_pinchmines', 'k_hbolt', 'k_hboltpair', 'k_hboltshaft', 'k_hboltcave', 'k_bouncebolt', 'k_boltcage', 'k_boltledge', 'k_hboltstairs', 'k_boltisland', 'k_boltcorner', 'k_boltwell', 'k_boltdrift', 'k_boltfence', 'k_hboltroof', 'k_boltzig', 'k_boltblocks', 'k_boltwall', 'k_boltrain', 'k_boltgustwall', 'k_boltcloudstair', 'k_boltstep', 'k_boltcliff', 'k_boltT', 'k_boltisles'] },
-  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_cavemines', 'l_rockmines', 'l_shelfmines', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millgust2', 'l_millmines2', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmines', 'l_chimstorm', 'l_dogmines', 'l_dogstorm', 'l_pinchmines2', 'l_pinchstorm', 'l_bouncemill', 'l_bounceshaft', 'l_millisland', 'l_millbetween', 'l_millgustrow', 'l_rainrocks', 'l_ledgebolt', 'l_skyscatter', 'l_millwell', 'l_bendstorm2', 'l_bounceisle', 'l_rainledges', 'l_boltperch', 'l_guststub'] },
+  { from: 1100, name: '嵐の前', pieces: ['l_mill', 'l_millpair', 'l_millclouds', 'l_millladder', 'l_millgust', 'l_millbolt', 'l_millmines', 'l_millbend', 'l_cavemines', 'l_rockmines', 'l_shelfmines', 'l_stormgust', 'l_stormbolt', 'l_stormbend', 'l_millgust2', 'l_millmines2', 'l_rainmill', 'l_rainstorm', 'l_rainbolts', 'l_summit', 'l_chimmines', 'l_chimstorm', 'l_dogmines', 'l_dogstorm', 'l_pinchmines2', 'l_pinchstorm', 'l_bouncemill', 'l_bounceshaft', 'l_millisland', 'l_millbetween', 'l_millgustrow', 'l_rainrocks', 'l_ledgebolt', 'l_skyscatter', 'l_millwell', 'l_bendstorm2', 'l_bounceisle', 'l_rainledges', 'l_boltperch', 'l_guststub', 'l_millshelf', 'l_minecurtain', 'l_boltduo', 'l_bounceledge', 'l_stormgap'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
