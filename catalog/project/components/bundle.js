@@ -992,11 +992,23 @@ window.Kabe = (function () {
      結晶＝ゾーンの glow の光の粒（形のない光なので縁取らない）。
      水晶＝触れて何か起きるもの（装備するもの）なので ink で縁取る。色はレア度（gem-mint / gem-blue / gem-gold）で、どのゾーンでも同じ。
      先は短く丸めて、トゲ（危険）と区別する。真ん中に効き目の印（光る線）。 */
+  // fuda：操作の札（同じ札の水晶は同時に1つまで。なしは何個でも）
   var GEM_KINDS = {
-    greed: { name: '欲ばり', star: 1 }, hover: { name: 'ホバリング', star: 1 }, slide: { name: 'かべすべり', star: 1 },
-    triple: { name: '3段ジャンプ', star: 2 }, predict: { name: '予測線', star: 2 }, turn: { name: '振り向き', star: 3 }
+    greed: { name: '欲ばり', star: 1 }, hover: { name: 'ホバリング', star: 1, fuda: '長押し' }, slide: { name: 'かべすべり', star: 1 },
+    bigjump: { name: '大ジャンプ', star: 1 }, fastkick: { name: '速蹴り', star: 1 }, highair: { name: '高い2段ジャンプ', star: 1 },
+    dive: { name: '急降下', star: 1, fuda: '下スワイプ' }, grip: { name: 'ねばり', star: 1 }, longinv: { name: 'ながい無敵', star: 1 }, magnet: { name: '磁石', star: 1 },
+    triple: { name: '3段ジャンプ', star: 2 }, predict: { name: '予測線', star: 2 }, charge: { name: '溜め蹴り', star: 2, fuda: '長押し' },
+    landjump: { name: '着地ジャンプ', star: 2 }, dash: { name: '横っ飛び', star: 2, fuda: '横スワイプ' }, interest: { name: '利子', star: 2 },
+    turn: { name: '振り向き', star: 3, fuda: '左右' }, brake: { name: 'ブレーキ', star: 3 }
   };
-  var GEM_ORDER = ['greed', 'hover', 'slide', 'triple', 'predict', 'turn'];
+  var GEM_ORDER = ['greed', 'magnet', 'interest', 'hover', 'slide', 'grip', 'bigjump', 'fastkick', 'highair', 'dive', 'longinv', 'triple', 'predict', 'charge', 'landjump', 'dash', 'turn', 'brake'];
+  // 操作の札：色（レア度のミント・青・金、赤とはかぶらない）と印
+  var FUDA = {
+    'なし': { color: '#a99fb0', mark: '・', how: '操作しない（いつも効く）' }, '長押し': { color: '#f39bc8', mark: '長', how: '押し続ける' },
+    '下スワイプ': { color: '#f5a56b', mark: '↓', how: '空中で下へはらう' }, '横スワイプ': { color: '#c29bf5', mark: '↔', how: '空中で左右へはらう' },
+    '2本指': { color: '#c9e36a', mark: '2', how: '2本の指で押す' }, '左右': { color: '#d9b48c', mark: '◐', how: '画面の左右を押す' }
+  };
+  function fudaOf(kind) { return (GEM_KINDS[kind] && GEM_KINDS[kind].fuda) || 'なし'; }
   function gemTone(P, star) { return star >= 3 ? [P.gemGold, P.gemGoldShade] : star === 2 ? [P.gemBlue, P.gemBlueShade] : [P.gemMint, P.gemMintShade]; }
 
   // 結晶：ぼんやりした光＋十字のきらめき＋白い芯。s が 1 以上なら、まわりを小さな粒が回る
@@ -1052,6 +1064,18 @@ window.Kabe = (function () {
     greed: function (g) { [[-2.2, 2.6], [2.2, 2.6], [0, -1.2]].forEach(function (p) { g.beginPath(); g.arc(p[0], p[1], 1.7, 0, Math.PI * 2); g.stroke(); }); },
     hover: function (g) { g.beginPath(); g.moveTo(-3.6, 0.6); g.quadraticCurveTo(-3.4, -3.4, 0, -3.4); g.quadraticCurveTo(3.4, -3.4, 3.6, 0.6); g.quadraticCurveTo(1.8, -0.4, 0, 0.6); g.quadraticCurveTo(-1.8, -0.4, -3.6, 0.6); g.moveTo(0, 0.6); g.lineTo(0, 4.4); g.quadraticCurveTo(0, 5.4, -1, 5); g.stroke(); },
     slide: function (g) { g.beginPath(); g.moveTo(-3, -3.6); g.lineTo(-3, 5); g.moveTo(1, -2.6); g.lineTo(1, 3); g.moveTo(-1.2, 1.4); g.lineTo(1, 3.6); g.lineTo(3.2, 1.4); g.stroke(); },
+    bigjump: function (g) { g.beginPath(); g.moveTo(0, 5); g.lineTo(0, -4.4); g.moveTo(-3.4, -1); g.lineTo(0, -4.6); g.lineTo(3.4, -1); g.stroke(); g.beginPath(); g.moveTo(-3.6, 5); g.lineTo(3.6, 5); g.stroke(); },
+    fastkick: function (g) { [-2.6, 1.4].forEach(function (dx) { g.beginPath(); g.moveTo(dx, -3); g.lineTo(dx + 2.8, 0.6); g.lineTo(dx, 4.2); g.stroke(); }); },
+    highair: function (g) { g.beginPath(); g.moveTo(-3, -0.6); g.lineTo(0, -3.8); g.lineTo(3, -0.6); g.stroke(); g.beginPath(); g.moveTo(-3.6, 4.4); g.quadraticCurveTo(-3.6, 2, -1.4, 2.4); g.quadraticCurveTo(0, 0.8, 1.6, 2.4); g.quadraticCurveTo(3.8, 2.2, 3.6, 4.4); g.stroke(); },
+    dive: function (g) { g.beginPath(); g.moveTo(0, -4.4); g.lineTo(0, 4.4); g.moveTo(-3.4, 1); g.lineTo(0, 4.6); g.lineTo(3.4, 1); g.stroke(); },
+    grip: function (g) { g.beginPath(); g.moveTo(-3.4, -4.4); g.lineTo(-3.4, 5); g.stroke(); g.beginPath(); g.arc(-1.2, 0.4, 3.4, -Math.PI / 2, Math.PI / 2); g.stroke(); },
+    longinv: function (g) { g.beginPath(); g.moveTo(0, -4.4); g.lineTo(3.6, -2.8); g.quadraticCurveTo(3.6, 3, 0, 5); g.quadraticCurveTo(-3.6, 3, -3.6, -2.8); g.closePath(); g.stroke(); },
+    magnet: function (g) { g.beginPath(); g.moveTo(-3.2, -4); g.lineTo(-3.2, 1); g.arc(0, 1, 3.2, Math.PI, 0, true); g.lineTo(3.2, -4); g.stroke(); g.beginPath(); g.moveTo(-4.6, -2.2); g.lineTo(-1.8, -2.2); g.moveTo(1.8, -2.2); g.lineTo(4.6, -2.2); g.stroke(); },
+    charge: function (g) { g.beginPath(); g.moveTo(-2.6, 5); g.lineTo(2.6, 3.6); g.lineTo(-2.6, 2.2); g.lineTo(2.6, 0.8); g.stroke(); g.beginPath(); g.moveTo(0, 0.6); g.lineTo(0, -4.4); g.moveTo(-2.6, -2); g.lineTo(0, -4.6); g.lineTo(2.6, -2); g.stroke(); },
+    landjump: function (g) { g.beginPath(); g.moveTo(-4, 4.8); g.lineTo(4, 4.8); g.stroke(); g.beginPath(); g.moveTo(-3, 1.2); g.lineTo(0, -1.8); g.lineTo(3, 1.2); g.moveTo(-3, -1.8); g.lineTo(0, -4.8); g.lineTo(3, -1.8); g.stroke(); },
+    dash: function (g) { g.beginPath(); g.moveTo(-1.6, 0.6); g.lineTo(4.4, 0.6); g.moveTo(1.4, -2.4); g.lineTo(4.6, 0.6); g.lineTo(1.4, 3.6); g.moveTo(-4.4, -2); g.lineTo(-2.4, -2); g.moveTo(-4.4, 3.2); g.lineTo(-2.4, 3.2); g.stroke(); },
+    interest: function (g) { g.beginPath(); g.arc(-0.8, 1.2, 3.4, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.moveTo(2.6, -4.6); g.lineTo(2.6, -1.4); g.moveTo(1, -3); g.lineTo(4.2, -3); g.stroke(); },
+    brake: function (g) { g.beginPath(); g.moveTo(-4.2, 4.4); g.quadraticCurveTo(-2.1, 2.6, 0, 4.4); g.quadraticCurveTo(2.1, 6.2, 4.2, 4.4); g.stroke(); g.beginPath(); g.moveTo(-1.6, -4); g.lineTo(-1.6, 1); g.moveTo(1.6, -4); g.lineTo(1.6, 1); g.stroke(); },
     triple: function (g) { [-3, 0, 3].forEach(function (dy) { g.beginPath(); g.moveTo(-2.8, dy + 1.8); g.lineTo(0, dy - 0.6); g.lineTo(2.8, dy + 1.8); g.stroke(); }); },
     predict: function (g) { g.fillStyle = g.strokeStyle; [[-3.4, 4.2], [-2.6, 0.8], [-0.9, -1.6]].forEach(function (p) { g.beginPath(); g.arc(p[0], p[1], 0.95, 0, Math.PI * 2); g.fill(); }); g.beginPath(); g.arc(2.4, -1.2, 1.9, 0, Math.PI * 2); g.stroke(); },
     turn: function (g) { g.beginPath(); g.moveTo(-3.6, 0.8); g.lineTo(3.6, 0.8); g.moveTo(-1.6, -1.4); g.lineTo(-3.8, 0.8); g.lineTo(-1.6, 3); g.moveTo(1.6, -1.4); g.lineTo(3.8, 0.8); g.lineTo(1.6, 3); g.stroke(); }
@@ -1100,6 +1124,12 @@ window.Kabe = (function () {
     }
     var lv = opt.lv || 1;
     for (i = 0; i < 3; i++) { g.fillStyle = i < lv ? tone[0] : alpha(P.uiInk, 0.25); ell(g, x - 4.5 + i * 4.5, y + r + 3.2, 1.5, 1.5); g.fill(); }
+    var fu = fudaOf(kind);
+    if (fu !== 'なし' && opt.fuda !== false) {   // 操作の札：右上に札の色の丸と印
+      var fx = x + r * 0.74, fy = y - r * 0.74;
+      g.fillStyle = FUDA[fu].color; ell(g, fx, fy, 4.6, 4.6); g.fill(); g.strokeStyle = alpha(P.uiPanel, 0.9); g.lineWidth = 1; g.stroke();
+      g.fillStyle = '#2b2235'; g.font = '800 6.4px ' + (P.font || 'system-ui, sans-serif'); g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(FUDA[fu].mark, fx, fy + 0.3);
+    }
   }
 
   function glowAt(g, P, x, y, r, a, color) { var gl = g.createRadialGradient(x, y, 1, x, y, r); gl.addColorStop(0, alpha(color || P.glow, a)); gl.addColorStop(1, alpha(color || P.glow, 0)); g.fillStyle = gl; ell(g, x, y, r, r); g.fill(); }
@@ -1243,7 +1273,7 @@ window.Kabe = (function () {
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
