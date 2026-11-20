@@ -649,19 +649,19 @@ piece('z2_shelfspikes', { diff: 3 }, String.raw`
 `);
 
 // ===== 200〜300m のプール「古い機械の縦穴」（上下ブロック Y・回る棒 T の入門） =====
-piece('c_spin', { diff: 1 }, String.raw`
+piece('c_pend', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##.......T........##
+##.......O........##
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##..........T.....##
+##..........O.....##
 ##................##
 ##................##
 ##................##
@@ -686,19 +686,19 @@ piece('c_lift', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinpair', { diff: 2 }, String.raw`
+piece('c_pendpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##....T......T....##
+##....O......O....##
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##....T......T....##
+##....O......O....##
 ##................##
 ##................##
 ##................##
@@ -738,12 +738,12 @@ piece('c_twinlift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinfunnel', { diff: 2 }, String.raw`
+piece('c_pendfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##.......T........##
+##.......O........##
 ##................##
 ##................##
 ##................##
@@ -761,17 +761,17 @@ piece('c_spinfunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinpops', { diff: 3 }, String.raw`
+piece('c_pendpops', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##p...............##
-##p.......T.......##
+##p.......O.......##
 ##p...............##
 ##...............q##
 ##...............q##
 ##...............q##
-##.......T........##
+##.......O........##
 ##p...............##
 ##p...............##
 ##p...............##
@@ -789,7 +789,7 @@ piece('d_crossfan', { diff: 2 }, String.raw`
 ##>...............##
 ##................##
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 ##...............<##
@@ -887,24 +887,24 @@ piece('d_chimney', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_spinzig', { diff: 3 }, String.raw`
+piece('d_pendzig', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 #####\............##
-######.....T......##
+######.....O......##
 #####/............##
 ##................##
 ##................##
 ##................##
 ##............/#####
-##......T.....######
+##......O.....######
 ##............\#####
 ##................##
 ##................##
 ##................##
 #####\............##
-######.....T......##
+######.....O......##
 #####/............##
 ##................##
 ##................##
@@ -915,11 +915,11 @@ piece('d_gauntlet', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##^...............##
-##^......T........##
+##^......O........##
 ##...............^##
 ##...............^##
 ##....Y...........##
-##....Y.....T.....##
+##....Y.....O.....##
 ##....Y...........##
 ##....Y..........^##
 ##^...Y..........^##
@@ -1273,14 +1273,14 @@ piece('c_liftzig', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinshelves', { diff: 2 }, String.raw`
+piece('c_pendshelves', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##.............#####
 ##................##
 ##................##
-##.......T........##
+##.......O........##
 ##................##
 ##................##
 #####.............##
@@ -1305,14 +1305,14 @@ piece('c_liftstagger', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinsteps', { diff: 2 }, String.raw`
+piece('c_pendsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##..............####
 ##................##
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 ####..............##
@@ -1324,19 +1324,19 @@ piece('c_spinsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spintrio', { diff: 3 }, String.raw`
+piece('c_pendtrio', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 ##................##
-##......T.........##
+##......O.........##
 ##................##
 ##................##
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 ##................##
@@ -1359,7 +1359,7 @@ piece('c_liftspikewall', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinwedge', { diff: 2 }, String.raw`
+piece('c_pendwedge', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1367,7 +1367,7 @@ piece('c_spinwedge', { diff: 2 }, String.raw`
 ##..............####
 ##..............\###
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 #####\............##
@@ -1394,17 +1394,17 @@ piece('c_liftshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('c_spinpopsR', { diff: 3 }, String.raw`
+piece('c_pendpopsR', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##...............q##
-##.......T.......q##
+##.......O.......q##
 ##...............q##
 ##p...............##
 ##p...............##
 ##p...............##
-##..........T.....##
+##..........O.....##
 ##...............q##
 ##...............q##
 ##...............q##
@@ -1430,12 +1430,12 @@ piece('d_fanlift', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_shutterspin', { diff: 2 }, String.raw`
+piece('d_shutterpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##.........T......##
+##.........O......##
 ##................##
 ##................##
 ##................##
@@ -1443,7 +1443,7 @@ piece('d_shutterspin', { diff: 2 }, String.raw`
 ##================##
 ##................##
 ##................##
-##.......T........##
+##.......O........##
 ##................##
 ##................##
 ##................##
@@ -1482,20 +1482,20 @@ piece('d_popzig', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_spinledges', { diff: 3 }, String.raw`
+piece('d_pendledges', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##.............#####
 ##.............^^^##
 ##................##
-##.......T........##
+##.......O........##
 ##................##
 ##................##
 #####.............##
 ##^^^.............##
 ##................##
-##..........T.....##
+##......O.........##
 ##................##
 ##................##
 ##.............#####
@@ -1555,12 +1555,12 @@ piece('d_boxshutter', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('d_liftspin', { diff: 3 }, String.raw`
+piece('d_liftpend', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##...Y............##
-##...Y.......T....##
+##...Y.......O....##
 ##...Y............##
 ##...Y............##
 ##...Y............##
@@ -1597,18 +1597,18 @@ piece('d_spikewedges', { diff: 3 }, String.raw`
 `);
 
 // ===== 400〜500m のプール「草の崖」（振り子 O・跳ね橋 B・崩れる足場 % の入門） =====
-piece('e_pend', { diff: 1 }, String.raw`
+piece('e_spin', { diff: 1 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##.......O........##
+##.......T........##
 ##................##
 ##................##
 ##................##
 ##................##
 ##................##
-##..........O.....##
+##..........T.....##
 ##................##
 ##................##
 ##................##
@@ -1667,13 +1667,13 @@ piece('e_cliff', { diff: 1 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_pendshaft', { diff: 2 }, String.raw`
+piece('e_spinshaft', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##\............../##
 ###\............/###
 ####............####
-####......O.....####
+####......T.....####
 ####............####
 ####............####
 ####............####
@@ -1721,7 +1721,7 @@ piece('e_crumblesteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_pendbridge', { diff: 3 }, String.raw`
+piece('e_spinbridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -1729,7 +1729,7 @@ piece('e_pendbridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
-##..........O.....##
+##..........T.....##
 ##................##
 ##................##
 ##................##
@@ -1855,14 +1855,14 @@ piece('f_bridgecannon', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_stakepend', { diff: 3 }, String.raw`
+piece('f_stakespin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##ZZZZZ...........##
 ##................##
 ##................##
-##.........O......##
+##.........T......##
 ##................##
 ##................##
 ##................##
@@ -2032,12 +2032,12 @@ piece('g_springcannon', { diff: 2 }, String.raw`
 `);
 
 // ===== 700〜800m のプール「夕焼けの峰」（これまでの仕掛けの組み合わせ） =====
-piece('h_springpend', { diff: 2 }, String.raw`
+piece('h_springspin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##..........O.....##
+##..........T.....##
 ##................##
 ##................##
 ##................##
@@ -2052,14 +2052,14 @@ piece('h_springpend', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_pendcannon', { diff: 3 }, String.raw`
+piece('h_spincannon', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 #K................##
 ##................##
 ##................##
-##.........O......##
+##.........T......##
 ##................##
 ##................##
 ##................##
@@ -2106,14 +2106,14 @@ piece('h_stakebridge', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_crumblepend', { diff: 2 }, String.raw`
+piece('h_crumblespin', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##..........%%%%..##
 ##................##
 ##................##
-##.....O..........##
+##.....T..........##
 ##................##
 ##................##
 ##................##
@@ -2132,7 +2132,7 @@ piece('h_gauntlet', { diff: 3 }, String.raw`
 ##................##
 ##...........%%%%%##
 ##................##
-##.......O........##
+##.......T........##
 ##................##
 ##................##
 ##................##
@@ -2205,12 +2205,12 @@ piece('h_crumblespring', { diff: 3 }, String.raw`
 `);
 
 // ===== 400〜800m 追加（プールを目標の数へ） =====
-piece('e_pendpair', { diff: 2 }, String.raw`
+piece('e_spinpair', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##.....O....O.....##
+##.....T....T.....##
 ##................##
 ##................##
 ##................##
@@ -2260,7 +2260,7 @@ piece('e_bridgefunnel', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_pendslope', { diff: 2 }, String.raw`
+piece('e_spinslope', { diff: 2 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2268,7 +2268,7 @@ piece('e_pendslope', { diff: 2 }, String.raw`
 ##..............####
 ##..............\###
 ##................##
-##.......O........##
+##.......T........##
 ##................##
 ##................##
 ##................##
@@ -2312,12 +2312,12 @@ piece('e_bridgeshelf', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('e_pendspikes', { diff: 3 }, String.raw`
+piece('e_spinspikes', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##^...............##
-##^......O........##
+##^......T........##
 ##...............^##
 ##...............^##
 ##................##
@@ -2405,14 +2405,14 @@ piece('f_stakecrumble', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_cannonpend', { diff: 3 }, String.raw`
+piece('f_cannonspin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 #K................##
 ##................##
 ##................##
-##......O.........##
+##......T.........##
 ##................##
 ##................##
 ##................##
@@ -2461,7 +2461,7 @@ piece('f_cannonsteps', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('f_bridgepend', { diff: 3 }, String.raw`
+piece('f_bridgespin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
@@ -2469,7 +2469,7 @@ piece('f_bridgepend', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
-##..........O.....##
+##..........T.....##
 ##................##
 ##................##
 ##................##
@@ -2538,12 +2538,12 @@ piece('g_springledges', { diff: 2 }, String.raw`
 ##................##
 ##................##
 `);
-piece('g_springpend', { diff: 3 }, String.raw`
+piece('g_springspin', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##................##
-##.....O....O.....##
+##.....T....T.....##
 ##................##
 ##................##
 ##................##
@@ -2665,14 +2665,14 @@ piece('g_springpops', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_pendstake', { diff: 3 }, String.raw`
+piece('h_spinstake', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##..........ZZZZZZ##
 ##................##
 ##................##
-##......O.........##
+##......T.........##
 ##................##
 ##................##
 ##................##
@@ -2743,14 +2743,14 @@ piece('h_springchimney', { diff: 3 }, String.raw`
 ##................##
 ##................##
 `);
-piece('h_pendcrumble', { diff: 3 }, String.raw`
+piece('h_spincrumble', { diff: 3 }, String.raw`
 ##................##
 ##................##
 ##................##
 ##...%%%%.........##
 ##................##
 ##................##
-##.........O......##
+##.........T......##
 ##................##
 ##................##
 ##................##
@@ -2827,7 +2827,7 @@ piece('h_mixfunnel', { diff: 3 }, String.raw`
 ##\............../##
 ###\............/###
 ####............####
-####......O.....####
+####......T.....####
 ####............####
 ####............####
 ####............####
@@ -2848,7 +2848,7 @@ piece('h_finale', { diff: 3 }, String.raw`
 #K................##
 ##..........%%%%..##
 ##................##
-##.....O..........##
+##.....T..........##
 ##................##
 ##................##
 ##................##
@@ -2868,19 +2868,19 @@ const POOLS = [
     'z1_steps', 'z1_wedges', 'z1_rightside', 'z1_crumbs', 'z1_hourglass', 'z1_offset', 'z1_spikecorners', 'z1_chute', 'z1_nubs'] },
   { from: 100, name: '根っこの坑道', pieces: ['b_fans', 'b_pops', 'b_shutter', 'b_boxlane', 'b_popfunnel', 'b_fanshelf', 'b_shutterpop', 'z2_narrow', 'z1_longwall', 'z1_pillar',
     'b_fanzig', 'b_popshelves', 'b_twoshutters', 'b_boxwide', 'b_fanfunnel', 'b_poppillar', 'b_shutterledge', 'b_boxsteps', 'z1_hourglass', 'z1_chute'] },
-  { from: 200, name: '古い機械の縦穴', pieces: ['c_spin', 'c_lift', 'c_spinpair', 'c_liftspikes', 'c_twinlift', 'c_spinfunnel', 'c_spinpops', 'z2_dense', 'z2_pillarspikes', 'b_boxlane', 'b_shutterpop',
-    'c_liftzig', 'c_spinshelves', 'c_liftstagger', 'c_spinsteps', 'c_spintrio', 'c_liftspikewall', 'c_spinwedge', 'c_liftshelf', 'c_spinpopsR', 'b_poppillar', 'b_fanzig'] },
-  { from: 300, name: '地上へのさけ目', pieces: ['d_crossfan', 'd_liftshutter', 'd_boxspikes', 'd_sidepops', 'd_chimney', 'd_spinzig', 'd_gauntlet', 'z2_shelfspikes', 'z2_pillarspikes', 'c_spinpops', 'z2_narrow', 'c_spinpair',
-    'd_fanlift', 'd_shutterspin', 'd_boxfan', 'd_popzig', 'd_spinledges', 'd_liftnarrow', 'd_fanpops', 'd_boxshutter', 'd_liftspin', 'd_spikewedges', 'c_liftspikewall', 'b_boxsteps'] },
+  { from: 200, name: '古い機械の縦穴', pieces: ['c_pend', 'c_lift', 'c_pendpair', 'c_liftspikes', 'c_twinlift', 'c_pendfunnel', 'c_pendpops', 'z2_dense', 'z2_pillarspikes', 'b_boxlane', 'b_shutterpop',
+    'c_liftzig', 'c_pendshelves', 'c_liftstagger', 'c_pendsteps', 'c_pendtrio', 'c_liftspikewall', 'c_pendwedge', 'c_liftshelf', 'c_pendpopsR', 'b_poppillar', 'b_fanzig'] },
+  { from: 300, name: '地上へのさけ目', pieces: ['d_crossfan', 'd_liftshutter', 'd_boxspikes', 'd_sidepops', 'd_chimney', 'd_pendzig', 'd_gauntlet', 'z2_shelfspikes', 'z2_pillarspikes', 'c_pendpops', 'z2_narrow', 'c_pendpair',
+    'd_fanlift', 'd_shutterpend', 'd_boxfan', 'd_popzig', 'd_pendledges', 'd_liftnarrow', 'd_fanpops', 'd_boxshutter', 'd_liftpend', 'd_spikewedges', 'c_liftspikewall', 'b_boxsteps'] },
   // 400m〜 地上：仕掛けを少しずつ足す
-  { from: 400, name: '草の崖', pieces: ['e_pend', 'e_bridge', 'e_crumble', 'e_cliff', 'e_pendshaft', 'e_bridgepair', 'e_crumblesteps', 'e_pendbridge', 'z2_shelfspikes',
-    'e_pendpair', 'e_crumblezig', 'e_bridgefunnel', 'e_pendslope', 'e_crumblefloor', 'e_bridgeshelf', 'e_pendspikes', 'e_crumblepillar', 'z1_offset'] },
-  { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_stake', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'f_stakepend', 'e_pendshaft', 'e_crumblesteps', 'd_crossfan',
-    'f_cannoncross', 'f_stakeshaft', 'f_stakecrumble', 'f_cannonpend', 'f_stakewedge', 'f_cannonsteps', 'f_bridgepend', 'f_stakepops', 'e_crumblezig', 'z2_pillarspikes'] },
+  { from: 400, name: '草の崖', pieces: ['e_spin', 'e_bridge', 'e_crumble', 'e_cliff', 'e_spinshaft', 'e_bridgepair', 'e_crumblesteps', 'e_spinbridge', 'z2_shelfspikes',
+    'e_spinpair', 'e_crumblezig', 'e_bridgefunnel', 'e_spinslope', 'e_crumblefloor', 'e_bridgeshelf', 'e_spinspikes', 'e_crumblepillar', 'z1_offset'] },
+  { from: 500, name: '風の岩場', pieces: ['f_cannon', 'f_stake', 'f_cannonwedge', 'f_stakezig', 'f_cannonledge', 'f_bridgecannon', 'f_stakespin', 'e_spinshaft', 'e_crumblesteps', 'd_crossfan',
+    'f_cannoncross', 'f_stakeshaft', 'f_stakecrumble', 'f_cannonspin', 'f_stakewedge', 'f_cannonsteps', 'f_bridgespin', 'f_stakepops', 'e_crumblezig', 'z2_pillarspikes'] },
   { from: 600, name: '古い水路', pieces: ['g_springpair', 'g_spring', 'g_springzig', 'g_springshelf', 'g_springbridge', 'g_springcrumble', 'g_springstake', 'g_springcannon', 'f_cannonwedge', 'f_stakezig', 'e_bridgepair',
-    'g_springtower', 'g_springledges', 'g_springpend', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'f_cannonsteps', 'e_pendspikes'] },
-  { from: 700, name: '夕焼けの峰', pieces: ['h_springpend', 'h_pendcannon', 'h_crumblecannon', 'h_stakebridge', 'h_crumblepend', 'h_gauntlet', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'g_springshelf', 'f_stakepend', 'g_springstake',
-    'h_pendstake', 'h_cannonbridge', 'h_crumblestake', 'h_springchimney', 'h_pendcrumble', 'h_cannonspring', 'h_stakegauntlet', 'h_bridgezig', 'h_mixfunnel', 'h_finale', 'g_springtower', 'f_stakeshaft'] },
+    'g_springtower', 'g_springledges', 'g_springspin', 'g_springfloor', 'g_springfunnel', 'g_springcross', 'g_springbridges', 'g_springsteps', 'g_springpops', 'f_cannonsteps', 'e_spinspikes'] },
+  { from: 700, name: '夕焼けの峰', pieces: ['h_springspin', 'h_spincannon', 'h_crumblecannon', 'h_stakebridge', 'h_crumblespin', 'h_gauntlet', 'h_chimney', 'h_bridgecrumble', 'h_crumblespring', 'g_springshelf', 'f_stakespin', 'g_springstake',
+    'h_spinstake', 'h_cannonbridge', 'h_crumblestake', 'h_springchimney', 'h_spincrumble', 'h_cannonspring', 'h_stakegauntlet', 'h_bridgezig', 'h_mixfunnel', 'h_finale', 'g_springtower', 'f_stakeshaft'] },
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
