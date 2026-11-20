@@ -1,4 +1,5 @@
 // ボットが本物の動き（動く物も時間どおり）でパーツを遊んで、クリアできるか・どれくらい難しいかを出す。中身は tools/bot_core.js
+// index.html?bot で開くと、ボットが中で動く。pools.html の「ボット ▶」（index.html?bot=<id>）で本物の画面で再生できる
 // 使い方: node tools/bot.js <パーツid | プール番号 | プール名 | all> [-n 回数=12] [-j 並べる数=4]
 //   ずれ0  : ずれなしで 左右の壁 × 3つの時刻 = 6回。ノーダメで1回も抜けられないと NG（上手な人でも無理）。一部だけなら ▲
 //   上手/ふつう/初心者 : 押す時間に ±15/40/80ms のずれ。始める時刻と左右はばらばらに n 回。ノーダメで抜けた割合
@@ -15,8 +16,8 @@ const target = args[0];
 if (!target) { console.log('使い方: node tools/bot.js <パーツid | プール番号 | プール名 | all> [-n 12] [-j 4]'); process.exit(1); }
 const bits = (k, n) => -Math.log2((k + 0.5) / (n + 1));
 (async () => {
-  const sv = await core.serve(), b = await chromium.launch(), errs = [];
-  const open = async () => { const pg = await b.newPage(); pg.on('pageerror', e => errs.push(e.message)); await pg.goto(sv.url); await pg.waitForTimeout(300); await diff.inject(pg); return pg; };
+  const url = 'file://' + path.resolve(__dirname, '../index.html') + '?bot', b = await chromium.launch(), errs = [];
+  const open = async () => { const pg = await b.newPage(); pg.on('pageerror', e => errs.push(e.message)); await pg.goto(url); await pg.waitForTimeout(300); await diff.inject(pg); return pg; };
   const pages = [await open()];
   const info = await pages[0].evaluate(() => ({ pools: window.__kabe.PIECES && window.KABE_DATA.POOLS.map(p => ({ name: p.name, from: p.from, pieces: p.pieces })), ids: Object.keys(window.__kabe.PIECES) }));
   let ids, pool = null;
@@ -61,5 +62,5 @@ const bits = (k, n) => -Math.log2((k + 0.5) / (n + 1));
   const out = path.join(os.tmpdir(), 'kabe-bot.json'); fs.writeFileSync(out, JSON.stringify(res, null, 1));
   console.log(`${Math.round((Date.now() - t0) / 1000)}秒  結果: ${out}`);
   if (errs.length) console.log(errs.slice(0, 5).join('\n'));
-  await b.close(); sv.close(); process.exit(ng.length ? 1 : 0);
+  await b.close(); process.exit(ng.length ? 1 : 0);
 })();

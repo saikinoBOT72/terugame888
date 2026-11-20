@@ -42,6 +42,7 @@
   .tags { display: flex; flex-wrap: wrap; gap: 4px; }
   .tags span { font-size: 10.5px; border-radius: 999px; padding: 1px 7px; background: rgba(255,255,255,.08); color: var(--ui-muted); }
   .tags span.pool { color: var(--glow); }
+  .tags a.bot { font-size: 10.5px; font-weight: 800; border-radius: 999px; padding: 1px 8px; margin-left: auto; text-decoration: none; color: var(--ink, #2b2235); background: var(--glow); }
 </style>
 </head>
 <body>
@@ -187,6 +188,7 @@ function card(id, pools, noStar) {
   d.kinds.forEach(k => tg(k));
   if (pc.rain) tg('雨');
   if (pools) pools.forEach(n => tg(n, 'pool'));
+  const bot = document.createElement('a'); bot.className = 'bot'; bot.href = `index.html?bot=${id}&lv=${encodeURIComponent('ふつう')}`; bot.textContent = 'ボット ▶'; bot.title = 'ボットがこのパーツを遊ぶのを見る（tools/bot_core.js）'; tags.append(bot);
   el.append(cv.c, name, tags);
   cards.push({ cv, d, m: card.m || 0 });
   return el;

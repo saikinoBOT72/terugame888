@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.28">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.29">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -481,12 +481,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.28"></script>
-<script src="data/pieces.js?v=2026.12.28"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.29"></script>
+<script src="data/pieces.js?v=2026.12.29"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.12.29"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.28';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.29';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4405,6 +4406,7 @@ if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS
 if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
 if (VERSUS) versusInit();
+if (window.__botCore) { eval('(' + window.__botCore.src + ')')(window.__botCore.BOT); const q = new URLSearchParams(location.search).get('bot'); if (q) window.__bot.view(q); }   // ?bot：ボットを中で動かす（tools/bot.js・?bot=<id> で再生）
 window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
 </script>

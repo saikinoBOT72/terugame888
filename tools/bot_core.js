@@ -1,5 +1,6 @@
 // 自動プレイヤー（ボット）：本物の update() でパーツ1つを遊ぶ。tools/bot.js と pools.html の再生が使う。
-// index.html は全体が (() => {…})() で包まれているので、配るときに中（window.__kabe の手前）へ差し込んで window.__bot として動かす（serve）。
+// index.html?bot で読み込まれ、index.html の中（全体を包む (() => {…})() の内側）で eval されて window.__bot になる（中の let・関数をそのまま名前で使う）。
+// index.html?bot=<パーツid> なら、ボットの遊びを本物の画面で再生する（view）。
 //  - 張り付く／床に立つたびに「何秒待って蹴るか × 2段ジャンプをいつ押すか」を、いまの状態を保存して本物で試す（2手先まで）。
 //    2手先の着地点の良し悪しは、到達チェックと同じ「動く物なし」の地図で「ゴールまであと何手か」を見る。
 //  - 当たったら失敗（ダメージは1回もだめ）。水晶なし・アドバンス・溶岩なし。
@@ -17,7 +18,11 @@ const BOT = {
 function botInPage(BOT) {
   let ROWS = null, goalY = 0, mapNodes = null;
   ensureAhead = function () {};   // パーツ1つの世界から先を作らない
-  for (const k in sfx) if (typeof sfx[k] === 'function') sfx[k] = () => {};   // 音を止める（試すたびに音のノードがたまってメモリが尽きる）
+  const SFX0 = Object.assign({}, sfx), mute = on => { for (const k in SFX0) if (typeof SFX0[k] === 'function') sfx[k] = on ? () => {} : SFX0[k]; };
+  mute(true);   // 試すあいだは音を止める（試すたびに音のノードがたまってメモリが尽きる）
+  let REC = null;   // 本当に進めた分の記録（押した・離したのが何回目の update か）。先読みのあいだは null
+  const tick = () => { update(DT); if (REC) REC.n++; };
+  const push = () => { if (REC) REC.ev.push([REC.n, 1]); press(); }, lift = () => { if (REC) REC.ev.push([REC.n, 0]); release(); };
   function rowsOf(id) { const pc = PIECES[id], b = pc.rows[0], t = pc.rows[pc.rows.length - 1], r = []; for (let i = 0; i < CHECK.padBelow; i++) r.push(b); for (const x of pc.rows) r.push(x); for (let i = 0; i < CHECK.padAbove; i++) r.push(t); return r; }
   // 動く物なしの地図（到達チェックと同じ総当たり）：着地点ごとに「ゴールまであと何手か」
   function buildMap(id) {
@@ -67,17 +72,17 @@ function botInPage(BOT) {
     const hp0 = G.hp; let t = 0, pressed = false, rel = false, djDone = a.d == null, air = false, landT = -1;
     if (a.hold) {   // 押さずに待つ：待ったあと、離れて落ちていたら着くまで進める
       while (t < a.w + BOT.maxT) {
-        update(DT); t += DT;
+        tick(); t += DT;
         if (G.hp < hp0 || state !== 'play') return { r: 'hurt', t, dj: true };
         if (t >= a.w && canAct(P)) return { r: 'land', t, dj: true };
       }
       return { r: 'none', t, dj: true };
     }
     while (t < a.w + BOT.maxT) {
-      if (!pressed && t >= a.w - 1e-9) { press(); pressed = true; rel = true; }
-      else if (rel) { release(); rel = false; }
-      if (pressed && !djDone && t >= a.w + a.d - 1e-9 && !canAct(P)) { press(); release(); djDone = true; }
-      update(DT); t += DT;
+      if (!pressed && t >= a.w - 1e-9) { push(); pressed = true; rel = true; }
+      else if (rel) { lift(); rel = false; }
+      if (pressed && !djDone && t >= a.w + a.d - 1e-9 && !canAct(P)) { push(); lift(); djDone = true; }
+      tick(); t += DT;
       if (G.hp < hp0 || state !== 'play') return { r: 'hurt', t, dj: djDone };
       if (P.y < goalY) return { r: 'goal', t, dj: djDone };
       if (pressed) {
@@ -106,6 +111,7 @@ function botInPage(BOT) {
   }
   // 2手先まで読んで、いちばん良い押し方を選ぶ
   function plan() {
+    const rec = REC; REC = null;
     const s0 = snap(), first = tryAll(s0, true), grid = new Map(first.map(o => [o.a.wi + ',' + o.a.di, o]));
     const cands = first.filter(o => o.r === 'land' && !o.dup).sort((p, q) => q.v - p.v), seen = new Set(), deep = [];
     for (const o of cands) { const k = Math.round(o.s.P.x / 6) + ',' + Math.round(o.s.P.y / 6) + ',' + (o.s.P.side || 0); if (seen.has(k)) continue; seen.add(k); deep.push(o); if (deep.length >= BOT.top) break; }
@@ -126,23 +132,27 @@ function botInPage(BOT) {
     }
     let best = null, bs = -Infinity;
     for (const [sc, o] of scored) if (sc > bs) { bs = sc; best = o; }
-    load(s0);
+    load(s0); REC = rec;
     return best && { w: best.a.w, d: best.a.d, hold: !!best.a.hold, score: bs, kind: best.r };
   }
   const gauss = () => { let u = 0; while (!u) u = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * Math.random()); };
   // 1回挑戦する。side: -1 左の壁から／1 右の壁から、t0: 始める時刻（動く物の位相）、sigma: 押す時間のずれ（秒）
-  function run(id, { side = -1, t0 = 0, sigma = 0, trace = false } = {}) {
+  function setup(id, side, t0) {
     MODE = 'advance'; newGame();
-    ROWS = rowsOf(id); world = newWorld(); appendRows(world, ROWS);
+    ROWS = rowsOf(id); world = newWorld(); appendRows(world, ROWS); appendRows(world, Array(40).fill(ROWS[ROWS.length - 1]));   // 上は画面の外まで足しておく（世界の端を描かない）
     goalY = -(CHECK.padBelow + PIECES[id].rows.length + 1) * CELL;
     const bottom = ROWS[0], cl = bottom.indexOf('.'), cr = bottom.lastIndexOf('.');
     P = side < 0 ? newBody(cl * CELL + HB, -3 * CELL - HB, -1) : newBody((cr + 1) * CELL - HB, -3 * CELL - HB, 1);
-    Object.assign(G, { time: t0, hp: 99, lavaY: 1e9, lavaDelay: 1e9, gems: {}, equip: [] }); world.time = t0;
+    P.squash = 0;
+    Object.assign(G, { time: t0, hp: MAX_HP, lavaY: 1e9, lavaDelay: 1e9, gems: {}, equip: [] }); world.time = t0;
     state = 'play'; particles = [];
+  }
+  function run(id, { side = -1, t0 = 0, sigma = 0, trace = false, rec = false } = {}) {
+    setup(id, side, t0); REC = rec ? { n: 0, ev: [] } : null;
     const T0 = performance.now(), path = trace ? [{ x: P.x, y: P.y, t: 0 }] : null, moves = [];
     let res = 'time', settleN = 0;
     for (let m = 0; m < BOT.maxMoves && G.time - t0 < BOT.runT; m++) {
-      if (!canAct(P)) { update(DT); if (++settleN > 600) break; m--; continue; }   // 空中（はじかれた等）：降りるまで進める
+      if (!canAct(P)) { tick(); if (++settleN > 600) break; m--; continue; }   // 空中（はじかれた等）：降りるまで進める
       const p = plan();
       if (!p) { res = 'stuck'; break; }
       const a = p.hold ? p : { w: Math.max(0, p.w + sigma * gauss()), d: p.d == null ? null : Math.max(1 / 60, p.d + sigma * gauss()) };
@@ -153,23 +163,51 @@ function botInPage(BOT) {
     }
     const out = { id, side, t0: +t0.toFixed(2), sigma, res, time: +(G.time - t0).toFixed(2), moves: moves.length, ms: Math.round(performance.now() - T0), row: Math.floor(-P.y / CELL) - CHECK.padBelow };   // row：最後にいた行（パーツの下から 0、マイナスは下の足し分）
     if (trace) { out.path = path; out.plan = moves; }
+    if (REC) { out.ev = REC.ev; out.steps = REC.n; out.end = [P.x, P.y]; REC = null; }
     state = 'title';
     return out;
   }
+  // 再生：先に1回ぜんぶ遊んで記録し（先読みは止まって見えるので先にすます）、同じ始まりから記録どおりに押して本物の画面で見せる
+  const LV = [['ずれ0', 0], ['上手', 0.015], ['ふつう', 0.04], ['初心者', 0.08]];
+  function view(id) {
+    const q = new URLSearchParams(location.search); let lv = Math.max(0, LV.findIndex(l => l[0] === q.get('lv'))), n = 0, wins = 0, timer = 0;
+    const box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:8px;right:8px;top:8px;z-index:99;font:600 13px/1.5 system-ui,sans-serif;color:#fff;background:rgba(20,16,30,.82);border-radius:10px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center';
+    const msg = document.createElement('span'); msg.style.cssText = 'flex:1 1 100%';
+    const btn = (t, f) => { const b = document.createElement('button'); b.textContent = t; b.style.cssText = 'font:inherit;padding:3px 9px;border-radius:7px;border:0;background:#fff3;color:#fff;cursor:pointer'; b.onclick = f; box.append(b); return b; };
+    const head = document.createElement('b'); head.textContent = 'ボット：' + id; box.append(head);
+    const lvb = LV.map(([nm, sg], i) => btn(nm + (sg ? ' ±' + Math.round(sg * 1000) + 'ms' : ''), () => { lv = i; n = wins = 0; mark(); go(); }));
+    btn('次 ▶', () => go());
+    const back = document.createElement('a'); back.href = 'pools.html'; back.textContent = '一覧へ'; back.style.cssText = 'color:#fff;margin-left:auto'; box.append(back, msg);
+    document.body.append(box);
+    const mark = () => lvb.forEach((b, i) => b.style.background = i === lv ? '#fff8' : '#fff3');
+    mark(); showOnly(null); const hud = document.getElementById('hud'); if (hud) hud.style.visibility = 'hidden';   // 溶岩なしなので HUD は出さない
+    if (!PIECES[id]) { msg.textContent = 'パーツが見つからない'; return; }
+    mapNodes = buildMap(id);
+    function go() {
+      clearTimeout(timer); msg.textContent = '考え中…';
+      timer = setTimeout(() => {
+        const side = Math.random() < 0.5 ? -1 : 1, t0 = lv ? Math.random() * 8 : [0, 1.7, 3.4][n % 3], sigma = LV[lv][1];
+        mute(true); const r = run(id, { side, t0, sigma, rec: true });
+        setup(id, side, t0); mute(false); acc = 0; last = performance.now();
+        const u0 = update; let k = 0, i = 0;
+        update = dt => {
+          while (i < r.ev.length && r.ev[i][0] <= k) { r.ev[i][1] ? press() : release(); i++; }
+          u0(dt); k++;
+          if (k >= r.steps) {
+            update = u0; G.stop = 1e9; n++; if (r.res === 'goal') wins++;
+            const off = Math.hypot(P.x - r.end[0], P.y - r.end[1]) > 1 ? '　※記録とずれた' : '';
+            msg.textContent = `${n}回目：${{ goal: 'ゴール', hurt: `当たった（${r.row}行目）`, time: '時間切れ', stuck: '手がない' }[r.res]}　${r.time}秒・${r.moves}手　（ここまで ${wins}/${n} 抜けた）${off}`;
+            timer = setTimeout(go, 1600);
+          }
+        };
+        msg.textContent = `${n + 1}回目：${side < 0 ? '左' : '右'}の壁から・時刻 ${t0.toFixed(1)}秒`;
+      }, 30);
+    }
+    go();
+  }
   function stepTrace(a, path) { const u = update; let n = 0; update = dt => { u(dt); if (++n % 3 === 0) path.push({ x: +P.x.toFixed(1), y: +P.y.toFixed(1), t: +G.time.toFixed(3) }); }; try { return step(a); } finally { update = u; } }
-  window.__bot = { BOT, run, snapSize: () => { const o = snap(); const r = {}; for (const k in o) r[k] = JSON.stringify(o[k]).length; for (const k in o.w) r['w.' + k] = JSON.stringify(o.w[k]).length; return r; }, setMap: id => { mapNodes = buildMap(id); return mapNodes.length; } };
+  window.__bot = { BOT, run, view, setMap: id => { mapNodes = buildMap(id); return mapNodes.length; } };
 }
-// リポジトリを http で配る小さなサーバー。index.html だけ、ボットを差し込んだものを返す
-function serve() {
-  const http = require('http'), fs = require('fs'), path = require('path'), root = path.resolve(__dirname, '..');
-  const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
-  const html = () => { const s = fs.readFileSync(path.join(root, 'index.html'), 'utf8'), at = s.lastIndexOf('window.__kabe = {'); return s.slice(0, at) + `(${botInPage.toString()})(${JSON.stringify(BOT)});\n` + s.slice(at); };
-  const srv = http.createServer((req, res) => {
-    const u = decodeURIComponent(req.url.split('?')[0]), f = path.join(root, u === '/' ? 'index.html' : u);
-    if (!f.startsWith(root)) { res.writeHead(403); return res.end(); }
-    if (f === path.join(root, 'index.html')) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(html()); }
-    fs.readFile(f, (e, d) => { if (e) { res.writeHead(404); return res.end(); } res.writeHead(200, { 'content-type': TYPES[path.extname(f)] || 'application/octet-stream' }); res.end(d); });
-  });
-  return new Promise(ok => srv.listen(0, '127.0.0.1', () => ok({ url: `http://127.0.0.1:${srv.address().port}/index.html`, close: () => srv.close() })));
-}
-module.exports = { BOT, serve };
+if (typeof module !== 'undefined') module.exports = { BOT };
+else window.__botCore = { BOT, src: botInPage.toString() };
