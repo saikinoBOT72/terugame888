@@ -821,7 +821,7 @@ window.Kabe = (function () {
   var POSE_MORE = ['kick', 'fall', 'land', 'wobble', 'slide', 'hover', 'sleep', 'cheer',
     'kick2', 'grab', 'clingUp', 'apex', 'flip', 'twirl', 'panic', 'landHeavy', 'dizzy', 'stretch', 'wave', 'lookUp', 'fist'];
   // マフラーの決まり（chara.html でいじって決める）。はじめの値がいまの見た目
-  var SCARF_DEF = { wrapY: 1.6, wrapW: 19, wrapH: 3.2, sag: 1.8, knotX: -7.8, knotY: 0.6, knotR: 2.3,
+  var SCARF_DEF = { wrapY: 0.8, wrapW: 21, wrapH: 3.6, sag: 2.2, wrapStripes: 5, stripeW: 0.9, knotX: -7.6, knotY: 1.1, knotR: 2.4,
     tailX: -4, tailY: -1, len: 0.62, tailW: 3.4, taper: 0.2, back: 0.75, notch: 1.6, stripes: 2, front: 0 };
   var SCARF = {}; for (var sk in SCARF_DEF) SCARF[sk] = SCARF_DEF[sk];
   // マフラーのはし：平たい布を2本（後ろの短い1本は影の色）。ポーズの点より短く縮めて描き、はしは内側へ切れ込む
@@ -852,15 +852,53 @@ window.Kabe = (function () {
     g.strokeStyle = P.scarfStripe; g.lineWidth = 0.8;
     [0.62, 0.78].slice(0, SCARF.stripes).forEach(function (q) { var k2 = Math.round(q * (n - 1)); g.beginPath(); g.moveTo(L[k2][0], L[k2][1]); g.lineTo(R[k2][0], R[k2][1]); g.stroke(); });
   }
-  // 首に巻いた帯：体の丸みに沿って真ん中が少し下がる（まっすぐな帯にしない）
+  // 首に巻いた帯：体を輪切りにした丸い筒に巻きつける（少し上から見た形）。
+  // 前ほど下がり、両はしは体の線より少し外へふくらんで後ろへ回りこむ。縦じまは筒の丸みで、はしほど間がつまって細くなる
   function scarfWrap(g, P, cx, cy, w, h) {
     var S = SCARF; cy = cy == null ? S.wrapY : cy; w = w || S.wrapW; h = h || S.wrapH;
-    var x0 = cx - w / 2 + 0.5, x1 = cx + w / 2 - 0.5, sag = S.sag;
-    var band = function () { g.beginPath(); g.moveTo(x0, cy - h / 2); g.quadraticCurveTo(cx, cy - h / 2 + sag * 2, x1, cy - h / 2 - 0.6);
-      g.quadraticCurveTo(x1 + 1.2, cy, x1, cy + h / 2 - 0.4); g.quadraticCurveTo(cx, cy + h / 2 + sag * 2, x0, cy + h / 2); g.quadraticCurveTo(x0 - 1.2, cy, x0, cy - h / 2); g.closePath(); };
+    var R = w / 2, sag = S.sag, N = 14, top = [], bot = [], i, th;
+    var yc = function (t) { return cy + sag * Math.cos(t); };                       // 帯の真ん中の高さ（前ほど下）
+    var hh = function (t) { return h / 2 * (0.82 + 0.18 * Math.cos(t)); };        // 前は少しふっくら、横はうすい
+    for (i = 0; i <= N; i++) { th = -Math.PI / 2 + Math.PI * i / N; top.push([cx + R * Math.sin(th), yc(th) - hh(th)]); bot.push([cx + R * Math.sin(th), yc(th) + hh(th) + Math.sin(th * 7) * 0.12]); }
+    var band = function () {
+      g.beginPath(); g.moveTo(top[0][0], top[0][1]);
+      for (var j = 1; j <= N; j++) g.lineTo(top[j][0], top[j][1]);
+      g.quadraticCurveTo(cx + R + 1.3, cy, bot[N][0], bot[N][1]);                  // 右はし：後ろへ回りこむ丸み
+      for (j = N - 1; j >= 0; j--) g.lineTo(bot[j][0], bot[j][1]);
+      g.quadraticCurveTo(cx - R - 1.3, cy, top[0][0], top[0][1]); g.closePath();
+    };
     solid(g, band, P.scarf, P.scarfShade, P.playerLine, 0.9, 1.0);
-    g.strokeStyle = P.scarfStripe; g.lineWidth = 0.7; g.beginPath(); g.moveTo(x0 + 2.5, cy + 0.6); g.quadraticCurveTo(cx, cy + sag * 2 + 0.2, x1 - 2.5, cy + 0.2); g.stroke();
-    if (S.knotR > 0) solid(g, function () { ell(g, S.knotX, cy + S.knotY, S.knotR, S.knotR * 2.1 / 2.3); }, P.scarf, P.scarfShade, P.playerLine, 0.7, 1.0);
+    g.save(); band(); g.clip();
+    // 横へ回りこむほど暗く
+    var gr = g.createLinearGradient(cx - R - 1.3, 0, cx + R + 1.3, 0);
+    gr.addColorStop(0, alpha(P.scarfShade, 0.85)); gr.addColorStop(0.3, alpha(P.scarfShade, 0)); gr.addColorStop(0.7, alpha(P.scarfShade, 0)); gr.addColorStop(1, alpha(P.scarfShade, 0.95));
+    g.fillStyle = gr; g.fillRect(cx - R - 2, cy - h - 2, w + 4, h * 2 + sag + 4);
+    // 縦じま：角度で等しく並べる（はしほど間がつまる）
+    var n = Math.round(S.wrapStripes);
+    g.strokeStyle = P.scarfStripe; g.lineCap = 'butt';
+    for (i = 0; i < n; i++) {
+      th = -Math.PI / 2 + Math.PI * (i + 0.5) / n; var c = Math.cos(th), x = cx + R * Math.sin(th);
+      g.globalAlpha = 0.55 + 0.45 * c; g.lineWidth = S.stripeW * (0.25 + 0.75 * c);
+      g.beginPath(); g.moveTo(x, yc(th) - hh(th) - 0.5); g.lineTo(x, yc(th) + hh(th) + 0.5); g.stroke();
+    }
+    g.globalAlpha = 1;
+    // 上のふちの光：前だけ細く光る（丸く見せる）
+    g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = 0.7; g.lineCap = 'round'; g.beginPath();
+    for (i = 4; i <= N - 4; i++) { th = -Math.PI / 2 + Math.PI * i / N; var tx = cx + R * Math.sin(th), ty = yc(th) - hh(th) + 0.7; if (i === 4) g.moveTo(tx, ty); else g.lineTo(tx, ty); }
+    g.stroke(); g.restore();
+    // 結び目：帯の上にひと巻きかぶさる。ここにも縦じまを1本、しわを1本
+    if (S.knotR > 0) {
+      var kx = S.knotX, ky = cy + S.knotY, kr = S.knotR;
+      var knot = function () { g.beginPath(); g.moveTo(kx - kr, ky - kr * 0.55); g.quadraticCurveTo(kx, ky - kr * 1.25, kx + kr, ky - kr * 0.6);
+        g.quadraticCurveTo(kx + kr * 1.25, ky + kr * 0.2, kx + kr * 0.7, ky + kr * 0.95); g.quadraticCurveTo(kx - kr * 0.2, ky + kr * 1.2, kx - kr * 0.9, ky + kr * 0.7);
+        g.quadraticCurveTo(kx - kr * 1.3, ky, kx - kr, ky - kr * 0.55); g.closePath(); };
+      solid(g, knot, P.scarf, P.scarfShade, P.playerLine, 0.7, 1.0);
+      g.save(); knot(); g.clip();
+      if (n > 0) { g.strokeStyle = P.scarfStripe; g.lineWidth = S.stripeW * 0.8; g.beginPath(); g.moveTo(kx + kr * 0.15, ky - kr * 1.3); g.lineTo(kx - kr * 0.05, ky + kr * 1.3); g.stroke(); }
+      g.restore();
+      g.strokeStyle = P.scarfShade; g.lineWidth = 0.6; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(kx - kr * 0.55, ky + kr * 0.15); g.quadraticCurveTo(kx - kr * 0.1, ky + kr * 0.55, kx + kr * 0.5, ky + kr * 0.4); g.stroke();
+    }
   }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
   function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
