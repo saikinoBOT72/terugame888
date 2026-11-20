@@ -1266,7 +1266,7 @@ window.Kabe = (function () {
       g.save(); g.translate(x, y); g.scale(s, s);
       try {
         if (id === 'wand') { g.scale(1.1, 1.1); g.translate(-3, 5.5); PROPS.wand(g, P, { hands: [[0, 0], [0, 0]] }, t, [0, 0]); }
-        else { g.scale(1.25, 1.25); var oc = { lolly: [9.4, 2.4], cane: [9.4, 1.4], rose: [9.0, 0.4] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
+        else { g.scale(1.25, 1.25); var oc = { lolly: [9.4, 2.4], cane: [7.4, 2.2], rose: [9.0, 0.4] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
       } finally { g.restore(); OUTFIT.propColor = keepP; }
       return;
     }
@@ -1475,17 +1475,17 @@ window.Kabe = (function () {
     g.stroke(); g.restore();
     shine(g, cx - 1.0, cy - 1.1, 0.75, 0.45, 0.85);
   }
-  // クリスマスキャンディ（まっすぐ出て、先が上へ半周曲がる、しまの杖）
+  // クリスマスキャンディ：曲がった方を口に引っかけて、まっすぐな方が前下へたれる（しまの杖）
+  // 口の点から：上へ半周まわって前へ、そこから まっすぐ前下へ（口から見て u が前、n が下）
   function propCane(g, P, Q, t) {
-    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.2, pts = [MOUTH.slice()], i;
-    for (i = 1; i <= 10; i++) pts.push(at(k, [i * 0.9, b * i / 10]));
-    var e = pts[pts.length - 1], R = 2.5, c = [e[0] - k.n[0] * R, e[1] - k.n[1] * R], th0 = Math.atan2(e[1] - c[1], e[0] - c[0]);
-    for (i = 1; i <= 10; i++) { var th = th0 - i / 10 * Math.PI; pts.push([c[0] + Math.cos(th) * R, c[1] + Math.sin(th) * R]); }
-    mouthDot(g, P);
+    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.25, rx = 2.3, ry = 1.5, pts = [], i;   // 曲がりは横長（目にかからない）
+    for (i = 0; i <= 10; i++) { var th = Math.PI + i / 10 * Math.PI; pts.push(at(k, [rx + Math.cos(th) * rx, Math.sin(th) * ry])); }   // 曲がり（口 → 上 → 前）
+    for (i = 1; i <= 9; i++) pts.push(at(k, [2 * rx + i * 0.3 + b * i / 18, i * 0.9]));   // まっすぐ前下へ
     rod(g, P, pts, 2.2, STICK.base);
     g.save(); g.setLineDash([1.3, 1.5]); g.lineCap = 'butt';
-    g.beginPath(); g.moveTo(pts[1][0], pts[1][1]); for (i = 2; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.strokeStyle = C.prop; g.lineWidth = 2.2; g.stroke(); g.restore();
-    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 0.55; g.lineCap = 'round'; g.beginPath(); var h1 = at(k, [2.5, -0.6]), h2 = at(k, [8, -0.6]); g.moveTo(h1[0], h1[1]); g.lineTo(h2[0], h2[1]); g.stroke();
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); for (i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.strokeStyle = C.prop; g.lineWidth = 2.2; g.stroke(); g.restore();
+    g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = 0.55; g.lineCap = 'round'; g.beginPath(); g.moveTo(pts[3][0] - 0.3, pts[3][1] - 0.5); g.quadraticCurveTo(pts[5][0], pts[5][1] - 0.7, pts[7][0] + 0.3, pts[7][1] - 0.5); g.stroke();   // 曲がりの上の光
+    mouthDot(g, P);
   }
   // バラ（くきを口で横にくわえて、花は向きの先。葉が1枚）
   function propRose(g, P, Q, t) {
