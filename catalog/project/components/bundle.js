@@ -928,14 +928,15 @@ window.Kabe = (function () {
       var x = e[0] + look[0] * 0.6, y = e[1] + look[1] * 0.6;
       g.lineWidth = 1.25; g.beginPath();
       if (blink) { g.moveTo(x - 1.2, y + 0.4); g.lineTo(x + 1.2, y + 0.4); }
-      else if (expr === 'hurt') { var s = i ? -1 : 1; g.moveTo(x - 1.2 * s, y - 1.5); g.lineTo(x + 1 * s, y); g.lineTo(x - 1.2 * s, y + 1.5); }
+      else if (expr === 'hurt' || expr === 'worried') {   // 困り顔も「いたい」と同じ ＞＜ の目
+        var s = i ? -1 : 1; g.moveTo(x - 1.2 * s, y - 1.5); g.lineTo(x + 1 * s, y); g.lineTo(x - 1.2 * s, y + 1.5); }
       else if (expr === 'happy') { g.moveTo(x - 1.4, y + 0.8); g.lineTo(x, y - 0.8); g.lineTo(x + 1.4, y + 0.8); }
       else if (expr === 'surprised') { g.arc(x, y, 1.25, 0, Math.PI * 2); }
       else if (expr === 'sleep') { g.moveTo(x - 1.5, y - 0.2); g.quadraticCurveTo(x, y + 1.4, x + 1.5, y - 0.2); }
       else if (expr === 'squint') { g.moveTo(x - 1.4, y); g.lineTo(x + 1.4, y); }
       else if (expr === 'calm') { g.moveTo(x - 1.4, y - 0.2); g.quadraticCurveTo(x, y - 1.2, x + 1.4, y - 0.2); }
       else if (expr === 'dizzy') { g.lineWidth = 0.9; for (var sa = 0; sa <= 1.001; sa += 0.1) { var ang = sa * Math.PI * 2.6 + t * 8 * (i ? -1 : 1), rad = 0.2 + sa * 1.55; if (sa === 0) g.moveTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); else g.lineTo(x + Math.cos(ang) * rad, y + Math.sin(ang) * rad); } }
-      else if (expr === 'worried') { var d = i ? 1 : -1; g.moveTo(x - 1.5 * d, y - 0.6); g.quadraticCurveTo(x + 0.1 * d, y - 1.1, x + 1.5 * d, y + 0.9); }   // 困り顔：眉なし。目をつぶり、外側が少し下がる（悲しそう）
+      
       else if (expr === 'brave') { g.moveTo(x - 0.4, y - 1.8); g.lineTo(x + 0.4, y + 1.6); }
       else { g.moveTo(x, y - 1.7); g.lineTo(x, y + 1.7); }
       g.stroke();
