@@ -194,8 +194,18 @@ const anyPressed = p => p.buttons.some(b => b && b.pressed);
 const padName = p => (p.id || '').replace(/\s*\(.*$/, '').replace(/^[0-9a-f]{4}-[0-9a-f]{4}-/i, '').slice(0, 22) || 'コントローラー';
 $('btnReset').onclick = () => { slot[0] = slot[1] = null; prev[0] = {}; prev[1] = {}; toast('ボタンを押した順に 1P・2P になる'); };
 let listText = '';
+// 1秒に何回コントローラーの状態が新しくなったか（スティックを回し続けて見る）。2台目だけ少なければ iPad・Bluetooth 側の遅れ
+const rate = new Map();
+function countRate(pads) {
+  const now = performance.now();
+  for (const [idx, p] of pads) {
+    let r = rate.get(idx); if (!r) rate.set(idx, r = { ts: p.timestamp, n: 0, t0: now, hz: 0 });
+    if (p.timestamp !== r.ts) { r.ts = p.timestamp; r.n++; }
+    if (now - r.t0 >= 1000) { r.hz = Math.round(r.n * 1000 / (now - r.t0)); r.n = 0; r.t0 = now; }
+  }
+}
 function pollPads() {
-  const pads = allPads();
+  const pads = allPads(); countRate(pads);
   for (const i of [0, 1]) if (slot[i] != null && !pads.has(slot[i])) { slot[i] = null; prev[i] = {}; }   // 外れた
   for (const [idx, p] of pads) {
     if (slot.includes(idx) || !anyPressed(p)) continue;
@@ -219,7 +229,7 @@ function pollPads() {
     if ($('pk' + i).textContent !== t) $('pk' + i).textContent = t;
   }
   const list = [...pads.values()].map(p => { const on = p.buttons.map((x, i) => x && x.pressed ? i : -1).filter(i => i >= 0);
-    return `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}${p.mapping === 'standard' ? '' : '［標準でない］'}${on.length ? ' 押す:' + on.join(',') : ''}`; });
+    return `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}${p.mapping === 'standard' ? '' : '［標準でない］'}${on.length ? ' 押す:' + on.join(',') : ''}${rate.get(p.index) && rate.get(p.index).hz ? ` 更新${rate.get(p.index).hz}回/秒` : ''}`; });
   const t = list.length ? '見つかったコントローラー ' + list.join(' ・ ') : 'コントローラーはまだ見つかってない（つないだら、どれかボタンを押してね）';
   if (t !== listText) $('padList').textContent = listText = t;
 }
