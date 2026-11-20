@@ -8,7 +8,7 @@ s = open(src, encoding='utf-8').read().split('<!--BODY-START-->\n', 1)[1]
 for t in ['</head>\n', '<body>\n', '</body>\n', '</html>\n']:
     s = s.replace(t, '')
 local = lambda h: not re.match(r'^(https?:)?//', h)
-read = lambda h: open(os.path.join(base, h), encoding='utf-8').read()
+read = lambda h: open(os.path.join(base, h.split('?')[0]), encoding='utf-8').read()   # ?v=…（版の番号）は外して読む
 s = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: '<style>\n' + read(m[1]) + '</style>' if local(m[1]) else m[0], s)
 s = re.sub(r'<script src="([^"]+)"></script>', lambda m: '<script>\n' + read(m[1]) + '</script>' if local(m[1]) else m[0], s)
 open(dst, 'w', encoding='utf-8').write(s)

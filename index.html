@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.30d">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -261,12 +261,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js"></script>
-<script src="data/pieces.js"></script>
+<script src="catalog/project/components/bundle.js?v=2026.11.30d"></script>
+<script src="data/pieces.js?v=2026.11.30d"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.30c';
+const VERSION = '2026.11.30d';
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 
 /* =====================================================================
@@ -336,7 +336,8 @@ Object.assign(GEMS, {
   interest: { name: '利子', star: 2, lv: [{ p: 0.1, max: 4 }, { p: 0.15, max: 6 }, { p: 0.25, max: 10 }], desc: v => `ガチャ所に着くたび、持っている結晶が${Math.round(v.p * 100)}%増える（1回に${v.max}個まで）` },
   brake: { name: 'ブレーキ', star: 3, lv: [{ k: 0.8 }, { k: 0.65 }, { k: 0.5 }], desc: v => `${riseName()}が3m以内まで来ると${v.k}倍の速さになる（欲ばりで増えた分には効かない）` },
 });
-const fudaOf = id => Kabe.fudaOf(id);   // 操作の札（同じ札の水晶は同時に1つまで）
+const FUDA = Kabe.FUDA || { 'なし': { color: '#a99fb0', mark: '・', how: '' } };
+const fudaOf = id => (Kabe.fudaOf ? Kabe.fudaOf(id) : 'なし');   // 操作の札（同じ札の水晶は同時に1つまで）。古い描画ライブラリが残っていても止まらない
 const FUDA_HOW = { hover: '空中で押し続ける', charge: '壁・床で押し続けて離す', dash: '空中で左右へはらう', dive: '空中で下へはらう', turn: '画面の左右を押す' };
 const KICK_CAP = { up: 1.6, side: 1.4 };   // 水晶を掛け合わせても、蹴りの強さは 上×1.6・横×1.4 まで
 const holdT = () => gemVal('grip') ? gemVal('grip').t : CLING.hold;   // グラグラするまで
@@ -2945,8 +2946,8 @@ function leaveGacha() { if (show.active) return; showOnly(null); state = 'play';
 // 操作の札の1行（色の丸と「操作：…」）
 function fudaLine(id) {
   const fu = fudaOf(id), el = document.createElement('span'); el.className = 'fudaLine';
-  const c = document.createElement('i'); c.className = 'fuda'; c.style.setProperty('--fc', Kabe.FUDA[fu].color); c.textContent = Kabe.FUDA[fu].mark;
-  el.append(c, fu === 'なし' ? '操作なし（いつも効く）' : `${fu}：${FUDA_HOW[id] || Kabe.FUDA[fu].how}（${fu}の水晶は1つまで）`);
+  const c = document.createElement('i'); c.className = 'fuda'; c.style.setProperty('--fc', FUDA[fu].color); c.textContent = FUDA[fu].mark;
+  el.append(c, fu === 'なし' ? '操作なし（いつも効く）' : `${fu}：${FUDA_HOW[id] || FUDA[fu].how}（${fu}の水晶は1つまで）`);
   return el;
 }
 function setResult(text, id, tag) {
@@ -2979,7 +2980,7 @@ function renderGacha() {
     const el = document.createElement('button'); el.type = 'button'; el.className = 'gtile' + (on ? ' on' : ''); el.disabled = spinning;
     el.style.setProperty('--tone', toneOf(id)); el.setAttribute('aria-pressed', on); el.setAttribute('aria-label', `${GEMS[id].name} レベル${lvl}${on ? ' 装備中' : ''}`);
     const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = GEMS[id].name;
-    const fu = fudaOf(id); if (fu !== 'なし') { const fc = document.createElement('span'); fc.className = 'fuda'; fc.style.setProperty('--fc', Kabe.FUDA[fu].color); fc.textContent = Kabe.FUDA[fu].mark; fc.title = fu; el.append(fc); }   // 操作の札
+    const fu = fudaOf(id); if (fu !== 'なし') { const fc = document.createElement('span'); fc.className = 'fuda'; fc.style.setProperty('--fc', FUDA[fu].color); fc.textContent = FUDA[fu].mark; fc.title = fu; el.append(fc); }   // 操作の札
     const pips = document.createElement('span'); pips.className = 'lv'; for (let i = 0; i < 3; i++) { const d = document.createElement('i'); if (i < lvl) d.className = 'f'; pips.append(d); }
     el.append(gemIcon(id, 40), nm, pips);
     el.onclick = () => {

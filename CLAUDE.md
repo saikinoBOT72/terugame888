@@ -21,7 +21,7 @@
 
 ## GitHub Pages（だれでも遊べる）
 - https://saikinobot72.github.io/terugame888/ （本編）、`/pools.html`、`/simulator.html`。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
-- **作業のたびに必ずコミットして push する**（ユーザーの指示）。`index.html` を変えたら先頭の `VERSION` を上げる（タイトルの「アプデ」ボタンが新旧を見分ける）。
+- **作業のたびに必ずコミットして push する**（ユーザーの指示）。`index.html` を変えたら先頭の `VERSION` を上げる（タイトルの「アプデ」ボタンが新旧を見分ける）。読み込む3つ（tokens.css・bundle.js・pieces.js）の `?v=` も同じ番号なので、`sed -i "s/旧番号/新番号/g" index.html` でまとめて上げる（GitHub Pages は10分ほど古いファイルを返すので、新旧が混ざらないように）。
 
 ## 公開ページ（private）
 | ページ | URL | 元ファイル |
