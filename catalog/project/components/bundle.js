@@ -1266,7 +1266,7 @@ window.Kabe = (function () {
       g.save(); g.translate(x, y); g.scale(s, s);
       try {
         if (id === 'wand') { g.scale(1.1, 1.1); g.translate(-3, 5.5); PROPS.wand(g, P, { hands: [[0, 0], [0, 0]] }, t, [0, 0]); }
-        else { g.scale(1.25, 1.25); var oc = { lolly: [9.6, 2.6], cane: [9.4, 1.4], rose: [9.0, 0.4] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
+        else { g.scale(1.25, 1.25); var oc = { lolly: [9.4, 2.4], cane: [9.4, 1.4], rose: [9.0, 0.4] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
       } finally { g.restore(); OUTFIT.propColor = keepP; }
       return;
     }
@@ -1465,16 +1465,15 @@ window.Kabe = (function () {
   var MOUTH_AIM = { ang: 0.64 };
   function aim() { var a = MOUTH_AIM.ang; return { u: [Math.cos(a), Math.sin(a)], n: [-Math.sin(a), Math.cos(a)] }; }
   function at(k, m) { return [MOUTH[0] + k.u[0] * m[0] + k.n[0] * (m[1] || 0), MOUTH[1] + k.u[1] * m[0] + k.n[1] * (m[1] || 0)]; }   // 口から u に m[0]、n に m[1]
-  // 飴（ぐるぐるの棒つきキャンディ）
+  // 飴（ぐるぐるの棒つきキャンディ）：食べる方（飴の玉）を口にくわえて、棒が向きの先へ出る
   function propLolly(g, P, Q, t) {
-    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.25, c = at(k, [10.2, b]), cx = c[0], cy = c[1];
-    mouthDot(g, P);
-    rod(g, P, [MOUTH, at(k, [7.6, b * 0.7])], 1.1, STICK.base);
-    solid(g, function () { ell(g, cx, cy, 3.5, 3.5); }, C.prop, C.propShade, P.playerLine, 0.9, 1.0);
-    g.save(); ell(g, cx, cy, 3.5, 3.5); g.clip(); g.strokeStyle = C.propAccent; g.lineWidth = 0.9; g.lineCap = 'round'; g.beginPath();   // うずまき
-    for (var a = 0; a <= Math.PI * 4.2; a += 0.2) { var r = 0.3 + a * 0.24, x = cx + Math.cos(a + t * 0.6) * r, y = cy + Math.sin(a + t * 0.6) * r; if (a === 0) g.moveTo(x, y); else g.lineTo(x, y); }
+    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.2, c = at(k, [1.5, 0.6]), cx = c[0], cy = c[1], R = 2.8;
+    rod(g, P, [at(k, [3.4, 0.6]), at(k, [11.4, 0.6 + b])], 1.1, STICK.base);
+    solid(g, function () { ell(g, cx, cy, R, R); }, C.prop, C.propShade, P.playerLine, 0.8, 1.0);
+    g.save(); ell(g, cx, cy, R, R); g.clip(); g.strokeStyle = C.propAccent; g.lineWidth = 0.8; g.lineCap = 'round'; g.beginPath();   // うずまき
+    for (var a = 0; a <= Math.PI * 3.6; a += 0.2) { var r = 0.25 + a * 0.22, x = cx + Math.cos(a + t * 0.6) * r, y = cy + Math.sin(a + t * 0.6) * r; if (a === 0) g.moveTo(x, y); else g.lineTo(x, y); }
     g.stroke(); g.restore();
-    shine(g, cx - 1.3, cy - 1.4, 0.9, 0.55, 0.85);
+    shine(g, cx - 1.0, cy - 1.1, 0.75, 0.45, 0.85);
   }
   // クリスマスキャンディ（まっすぐ出て、先が上へ半周曲がる、しまの杖）
   function propCane(g, P, Q, t) {
