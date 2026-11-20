@@ -1266,7 +1266,7 @@ window.Kabe = (function () {
       g.save(); g.translate(x, y); g.scale(s, s);
       try {
         if (id === 'wand') { g.scale(1.1, 1.1); g.translate(-3, 5.5); PROPS.wand(g, P, { hands: [[0, 0], [0, 0]] }, t, [0, 0]); }
-        else { g.scale(1.25, 1.25); var oc = { lolly: [9.4, 3.2], cane: [7.4, 3.0], rose: [9.0, 1.2] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
+        else { g.scale(1.25, 1.25); var oc = { lolly: [9.6, 4.0], cane: [7.4, 3.8], rose: [9.2, 2.0] }[id]; g.translate(-oc[0], -oc[1]); PROPS[id](g, P, { scarf: ICON_REST }, t); }
       } finally { g.restore(); OUTFIT.propColor = keepP; }
       return;
     }
@@ -1445,9 +1445,9 @@ window.Kabe = (function () {
   HAT_TOP.santahat = -21; HAT_TOP.hairbow = -19; HAT_TOP.halo = -24;
 
   /* ---------- 小物：口にくわえる（飴・クリスマスキャンディ・バラ）・手に持つ（星のステッキ） ----------
-     口は両目のまん中の下・頬のあいだ（体の点で [4.4, -1.1]）。口は物のうしろに描く（物を口にくわえて見える）。
-     くわえた物は目にかからない（目のまわりは描かない：propDraw）。ステッキは前の手（Q.hands[1]）で持つ */
-  var MOUTH = [4.4, -1.1], STICK = { base: '#fbf8f2', shade: '#d6cfc2' }, LEAF = { base: '#4f9a58', shade: '#3a7442' };
+     口は両目のまん中より少し前の下・マフラーのすぐ上（体の点で [4.6, -0.3]）。口は物のうしろに描く（物を口にくわえて見える）。
+     止まっているときに目にかからない位置と大きさにしてある（動いている間は少しかかってもよい）。ステッキは前の手（Q.hands[1]）で持つ */
+  var MOUTH = [4.6, -0.3], STICK = { base: '#fbf8f2', shade: '#d6cfc2' }, LEAF = { base: '#4f9a58', shade: '#3a7442' };
   var propPalCache = {};
   function propPal(P) {
     var c = outfitColor(OUTFIT.propColor), key = (P.id || '') + '|' + c.id, Q = propPalCache[key];
@@ -1480,7 +1480,7 @@ window.Kabe = (function () {
   // クリスマスキャンディ：曲がった方を口に引っかけて、まっすぐな方が前下へたれる（しまの杖）
   // 口の点から：上へ半周まわって前へ、そこから まっすぐ前下へ（口から見て u が前、n が下）
   function propCane(g, P, Q, t) {
-    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.25, rx = 2.3, ry = 1.3, pts = [], i;   // 曲がりは横長（目にかからない）
+    var C = propPal(P), k = aim(), b = Math.sin(t * 2.2) * 0.25, rx = 2.0, ry = 1.2, pts = [], i;   // 曲がりは小さく横長（目にかからない）
     mouthDot(g, P);
     for (i = 0; i <= 10; i++) { var th = Math.PI + i / 10 * Math.PI; pts.push(at(k, [rx + Math.cos(th) * rx, Math.sin(th) * ry])); }   // 曲がり（口 → 上 → 前）
     for (i = 1; i <= 9; i++) pts.push(at(k, [2 * rx + i * 0.3 + b * i / 18, i * 0.9]));   // まっすぐ前下へ
@@ -1534,16 +1534,7 @@ window.Kabe = (function () {
   OUTFIT_ITEMS.wear.push({ id: 'poncho', name: 'ポンチョ' }, { id: 'santa', name: 'サンタのふく' }, { id: 'coat', name: 'コート' });
   OUTFIT_ITEMS.hat.push({ id: 'santahat', name: 'サンタぼうし' }, { id: 'hairbow', name: 'リボン' }, { id: 'halo', name: 'てんしのわっか' });
   OUTFIT_ITEMS.prop = [{ id: 'lolly', name: 'あめ' }, { id: 'wand', name: 'ほしのステッキ' }, { id: 'cane', name: 'クリスマスキャンディ' }, { id: 'rose', name: 'バラ' }];
-  // 小物を描く。くわえる物は目のまわり（目＋少しの余白）を描かない：どの向き・どのポーズでも目にかからない
-  function propDraw(g, P, Q, t) {
-    var f = OUTFIT.prop && PROPS[OUTFIT.prop]; if (!f) return;
-    if (OUTFIT.prop === 'wand') { f(g, P, Q, t); return; }
-    var lk = Q.look || [1, 0];
-    g.save(); g.beginPath(); g.rect(-60, -60, 120, 120);
-    SHEET_O.eyes.forEach(function (e) { var x = e[0] + lk[0] * 0.6, y = e[1] + lk[1] * 0.6; g.moveTo(x + 2.2, y); g.ellipse(x, y, 2.2, 2.9, 0, 0, Math.PI * 2); });
-    g.clip('evenodd');
-    try { f(g, P, Q, t); } finally { g.restore(); }
-  }
+  function propDraw(g, P, Q, t) { var f = OUTFIT.prop && PROPS[OUTFIT.prop]; if (f) f(g, P, Q, t); }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
   function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
     var blink = blinkNow != null ? blinkNow && /^(normal|brave|calm|surprised)$/.test(expr) : expr === 'normal' && (t % 3.4) < 0.12;
