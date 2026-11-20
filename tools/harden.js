@@ -1,16 +1,16 @@
 // 易しすぎるパーツにトゲを足す案を探す（data/pieces.js は書き換えない。案を出すだけ）。
 // 壁ぎわ・床の上の空きマスに2マス組のトゲを試し、到達チェックが OK・詰み0のまま、いちばん難しさ D が上がるものを選ぶ。目標に届くまでくり返す。
-// 使い方: node tools/harden.js <id> <目標の D> [ceil]   （ceil をつけると天井のトゲも候補にする）
+// 使い方: node tools/harden.js <id> <目標の D> [ceil] [max=N]   （ceil：天井のトゲも候補にする。max：足すトゲは N マスまで）
 // 出力：足したトゲの位置（上から何行目・左から何列目）と、書き換えた絵
 const { chromium } = require('playwright');
 const path = require('path');
 const { inject } = require('./diff_core');
 (async () => {
-  const [id, target, ceilArg] = process.argv.slice(2);
+  const [id, target, ...opts] = process.argv.slice(2), ceilArg = opts.includes('ceil') ? 'ceil' : '', maxArg = +((opts.find(o => o.startsWith('max=')) || 'max=99').slice(4));
   const b = await chromium.launch(); const pg = await b.newPage();
   await pg.goto('file://' + path.resolve(__dirname, '../index.html')); await pg.waitForTimeout(300);
   await inject(pg);
-  const out = await pg.evaluate(([id, target, ceil]) => {
+  const out = await pg.evaluate(([id, target, ceil, maxAdd]) => {
     const K = window.__kabe, pc = K.PIECES[id], n = pc.rows.length, orig = pc.rows.slice();
     const at = (rows, r, c) => (rows[r] || '')[c] || '#';
     const solid = ch => ch === '#';
@@ -18,7 +18,7 @@ const { inject } = require('./diff_core');
     const ok = rows => { pc.rows = rows; const r = K.checkPiece(id); return r.ok && !r.softlocks; };
     const D = rows => { pc.rows = rows; return window.__diff(id).D; };
     let rows = orig.slice(), cur = D(rows), added = [];
-    for (let step = 0; step < 8 && cur < target; step++) {
+    for (let step = 0; step < 8 && cur < target && added.length + 2 <= maxAdd; step++) {
       // 候補：壁の横に縦2マス、床の上に横2マス（ceil なら天井の下に横2マス）。上下2行（つなぎ目）は使わない
       const cands = [];
       for (let r = 2; r < n - 3; r++) for (let c = 1; c < 19; c++) {
@@ -39,7 +39,7 @@ const { inject } = require('./diff_core');
     }
     pc.rows = orig;
     return { D0: D(orig), D: cur, added: added.map(([r, c]) => [n - 1 - r, c]), art: rows.slice().reverse() };
-  }, [id, +target, ceilArg === 'ceil']);
+  }, [id, +target, ceilArg === 'ceil', maxArg]);
   console.log(JSON.stringify(out));
   await b.close();
 })();
