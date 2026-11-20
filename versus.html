@@ -163,13 +163,11 @@ for (const i of [0, 1]) {
 
 /* ---------- 結果のおばけ（本編と同じ Kabe で、その人のマフラーの色で描く） ---------- */
 const PAL = Kabe.stagePal('underground', 0);
-function drawGhost(cv, scarf, side, pose, t) {
-  const g = cv.getContext('2d'), w = cv.width, h = cv.height, c = Kabe.SCARF.color;
+function drawGhost(cv, look, side, pose, t) {   // look：その人の着せ替え（着る・かぶる・色）
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height;
   g.clearRect(0, 0, w, h);
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, w * 0.2, h * 0.05, 0, 0, Math.PI * 2); g.fill();
-  Kabe.SCARF.color = scarf || 'red';
-  try { Kabe.ghost(g, PAL, 'sheet', pose, w / 2, h * 0.5 + (pose === 'cheer' ? Math.sin(t * 6) * 3 : Math.sin(t * 2.2 + side) * 2), t, side ? -1 : 1, h / 52); }
-  finally { Kabe.SCARF.color = c; }
+  Kabe.withOutfit(look, () => Kabe.ghost(g, PAL, 'sheet', pose, w / 2, h * 0.56 + (pose === 'cheer' ? Math.sin(t * 6) * 3 : Math.sin(t * 2.2 + side) * 2), t, side ? -1 : 1, h / 60));
 }
 
 /* ---------- 画質（2画面ぶん描くので重ければ「かるい」に） ---------- */
@@ -417,7 +415,7 @@ function loop() {
       } else if (out[0] || out[1]) decide(out, g);
     }
   }
-  if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), result.g[i].scarf, i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'dizzy', now / 1000);
+  if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), result.g[i].look, i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'dizzy', now / 1000);
   requestAnimationFrame(loop);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });

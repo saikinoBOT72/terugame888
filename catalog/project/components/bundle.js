@@ -1021,6 +1021,274 @@ window.Kabe = (function () {
       g.beginPath(); g.moveTo(kx - kr * 0.55, ky + kr * 0.15); g.quadraticCurveTo(kx - kr * 0.1, ky + kr * 0.55, kx + kr * 0.5, ky + kr * 0.4); g.stroke();
     }
   }
+  /* ---------- 着せ替え（OUTFIT）：着る（wear：首まわり）とかぶる（hat：頭） ----------
+     着るものの色は SCARF.color（scarfPal で P.scarf・scarfShade に入る）。かぶるものの色は OUTFIT.hatColor（hatPal で P.hat・hatShade・hatAccent）。
+     しましまマフラー以外は赤を使わない（赤はマフラーとハートだけ）。どれもプレイヤーの縁取り（player-line）・2段の影・光は左上・丸い形だけ。
+     動きはマフラーのひもの点（Q.scarf）を使う：体に遅れてついてくる・跳ぶと後ろへ流れる・風に流れる・2段ジャンプを使い切るとしおれる */
+  var OUTFIT = { wear: 'stripe', hat: null, hatColor: 'ao' };
+  var OUTFIT_COLORS = SCARF_COLORS.filter(function (c) { return c.id !== 'red'; }).map(function (c) {
+    return c.id === 'yuki' ? { id: c.id, name: c.name, scarf: c.scarf, shade: c.shade, stripe: '#dfe4ec', star: c.star } : c;   // ゆきの赤いしまは使わない
+  });
+  var OUTFIT_ITEMS = {
+    wear: [{ id: 'stripe', name: 'しましまマフラー' }, { id: 'cape', name: 'マント' }, { id: 'ribbon', name: 'おおきなリボン' }, { id: 'bell', name: 'すずのくびわ' }],
+    hat: [{ id: 'knit', name: 'ニットぼう' }, { id: 'wizard', name: 'まほうのぼうし' }, { id: 'straw', name: 'むぎわらぼうし' }, { id: 'crown', name: 'おうかん' }]
+  };
+  var GOLD = { base: '#f2c94c', shade: '#c39028', light: '#fff2bf' }, STRAW = { base: '#ecd08a', shade: '#c9a256', line: '#ad8642' }, PEARL = { base: '#f7f3ea', shade: '#d6cfc2' };
+  var hatPalCache = {};
+  function outfitColor(id) { for (var i = 0; i < OUTFIT_COLORS.length; i++) if (OUTFIT_COLORS[i].id === id) return OUTFIT_COLORS[i]; return OUTFIT_COLORS[0]; }
+  function hatPal(P) {
+    var c = outfitColor(OUTFIT.hatColor), key = (P.id || '') + '|' + c.id, Q = hatPalCache[key];
+    if (!Q || Q.base !== P) { Q = Object.create(P); Q.hat = c.scarf; Q.hatShade = c.shade; Q.hatAccent = c.stripe; Q.base = P; hatPalCache[key] = Q; }
+    return Q;
+  }
+  // ひもの流れ：立っているとき（ひもが後ろ下へたれる）からのずれ [横, 縦] と、ひもの長さ（しおれると短い）
+  function flowOf(Q) { var p = Q.scarf, a = p[0], b = p[p.length - 1], dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1; return [dx / d + 0.48, dy / d - 0.88, d]; }
+  // 首の細い帯（しましまマフラーの巻き方と同じ筒の形。しまと結び目なし）
+  function neckBand(g, P, h, cy) {
+    var S = SCARF, k0 = S.wrapH, k1 = S.wrapStripes, k2 = S.knotR;
+    S.wrapH = h; S.wrapStripes = 0; S.knotR = 0;
+    try { scarfWrap(g, P, 0, cy); } finally { S.wrapH = k0; S.wrapStripes = k1; S.knotR = k2; }
+  }
+  // 首の帯の前の点（角 th：0 が真ん前、+ が右（顔の側））
+  function bandPoint(th, cy) { var S = SCARF; cy = cy == null ? S.wrapY : cy; return [S.wrapW / 2 * Math.sin(th), cy + S.sag * Math.cos(th)]; }
+  // 平たい布（中心の線にそって幅 w(i) の帯。はしは丸い山）
+  function clothPath(g, s, wOf, scallops) {
+    var n = s.length, L = [], R = [];
+    for (var i = 0; i < n; i++) {
+      var a = s[Math.max(0, i - 1)], b = s[Math.min(n - 1, i + 1)], nx = -(b[1] - a[1]), ny = b[0] - a[0], d = Math.hypot(nx, ny) || 1; nx /= d; ny /= d;
+      var w = wOf(i / (n - 1)); L.push([s[i][0] + nx * w, s[i][1] + ny * w]); R.push([s[i][0] - nx * w, s[i][1] - ny * w]);
+    }
+    var e = s[n - 1], f = s[n - 2], tx = e[0] - f[0], ty = e[1] - f[1], tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    return function () {
+      g.beginPath(); g.moveTo(R[0][0], R[0][1]); g.lineTo(L[0][0], L[0][1]);
+      for (var j = 1; j < n; j++) g.lineTo(L[j][0], L[j][1]);
+      var A = L[n - 1], B = R[n - 1];
+      for (var k = 0; k < scallops; k++) {   // すその丸い山（とがらせない）
+        var p0 = [A[0] + (B[0] - A[0]) * k / scallops, A[1] + (B[1] - A[1]) * k / scallops], p1 = [A[0] + (B[0] - A[0]) * (k + 1) / scallops, A[1] + (B[1] - A[1]) * (k + 1) / scallops], bump = 2.3;
+        g.bezierCurveTo(p0[0] + tx * bump, p0[1] + ty * bump, p1[0] + tx * bump, p1[1] + ty * bump, p1[0], p1[1]);
+      }
+      for (j = n - 2; j >= 0; j--) g.lineTo(R[j][0], R[j][1]);
+      g.closePath();
+    };
+  }
+  // ひもの点を、根元 o から k 倍の長さに写す（布が少しはためく）
+  function ropeFrom(pts, o, k, t, flap) {
+    return pts.map(function (p, i) { return [o[0] + (p[0] - pts[0][0]) * k + Math.sin(t * 3.2 + i * 1.1) * flap * i, o[1] + (p[1] - pts[0][1]) * k + Math.cos(t * 2.7 + i * 1.3) * flap * 0.8 * i]; });
+  }
+
+  /* マント：首の後ろから背中へ。ひもと同じに流れて、すそは丸い山3つ。裏地は1段暗く、前は金の留め具 */
+  function capeBack(g, P, Q, t) {
+    var s = spline(ropeFrom(Q.scarf, [-5.2, -0.6], 0.86, t, 0.22), 5);
+    var lining = clothPath(g, s.map(function (p, i) { return [p[0] + 1.1, p[1] + 1.4 + i * 0.03]; }), function (f) { return 4.0 + 3.0 * f; }, 3);
+    solid(g, lining, mix(P.scarfShade, '#000000', 0.22), mix(P.scarfShade, '#000000', 0.38), P.playerLine, 0.6, 1.0);
+    var cloth = clothPath(g, s, function (f) { return 4.2 + 3.3 * f; }, 3);
+    solid(g, cloth, P.scarf, P.scarfShade, P.playerLine, 1.1, 1.0);
+    g.save(); cloth(); g.clip();   // ひだ1本（内側の細い線）と、上のふちの光
+    g.strokeStyle = alpha(P.scarfShade, 0.9); g.lineWidth = 0.7; g.lineCap = 'round'; g.beginPath();
+    var n = s.length; for (var i = Math.round(n * 0.3); i < Math.round(n * 0.9); i++) { var q = s[i]; if (i === Math.round(n * 0.3)) g.moveTo(q[0], q[1]); else g.lineTo(q[0], q[1]); }
+    g.stroke(); g.restore();
+  }
+  function capeFront(g, P, Q, t) {
+    neckBand(g, P, 2.6);
+    var c = bandPoint(0.62);
+    solid(g, function () { ell(g, c[0], c[1], 1.75, 1.75); }, GOLD.base, GOLD.shade, P.playerLine, 0.5, 1.0);
+    g.strokeStyle = GOLD.shade; g.lineWidth = 0.6; ell(g, c[0] + 0.15, c[1] + 0.15, 0.8, 0.8); g.stroke();
+    shine(g, c[0] - 0.6, c[1] - 0.7, 0.55, 0.35, 0.85);
+  }
+
+  /* おおきなリボン：首の後ろに大きな蝶結び（横から見るので輪が上と下）。はしの2本はひもと同じに流れる */
+  // 蝶結び：ang の向きに輪が2つ。fan だけ輪を開く（横から見るときは後ろへ開いて「＜」の形、正面から見るときは少したれる）
+  function bowShape(g, P, cx, cy, ang, sc, t, fan) {
+    fan = fan == null ? 0.18 : fan;
+    var wob = Math.sin(t * 2.4) * 0.06;
+    [1, -1].forEach(function (sd) {
+      var rot = ang + sd * fan + wob * sd, dx = Math.cos(rot), dy = Math.sin(rot);
+      var lx = cx + dx * 3.1 * sd * sc, ly = cy + dy * 3.1 * sd * sc;
+      var loop = function () { g.beginPath(); g.ellipse(lx, ly, 3.4 * sc, 2.35 * sc, rot, 0, Math.PI * 2); };
+      solid(g, loop, P.scarf, P.scarfShade, P.playerLine, 0.8, 1.0);
+      g.fillStyle = mix(P.scarfShade, '#000000', 0.12);   // 輪の中のくぼみ（結び目の近く）
+      g.beginPath(); g.ellipse(cx + dx * 2.0 * sd * sc, cy + dy * 2.0 * sd * sc, 1.35 * sc, 0.8 * sc, rot, 0, Math.PI * 2); g.fill();
+      shine(g, lx - 0.9 * sc, ly - 0.8 * sc, 0.8 * sc, 0.45 * sc, 0.6);
+    });
+    solid(g, function () { rr(g, cx - 1.55 * sc, cy - 1.75 * sc, 3.1 * sc, 3.5 * sc, 1.3 * sc); }, P.scarf, P.scarfShade, P.playerLine, 0.6, 1.0);
+    g.strokeStyle = alpha(P.scarfShade, 0.9); g.lineWidth = 0.6; g.beginPath(); g.moveTo(cx - 0.9 * sc, cy - 0.6 * sc); g.quadraticCurveTo(cx, cy + 0.2 * sc, cx + 0.9 * sc, cy - 0.5 * sc); g.stroke();
+  }
+  function ribbonTails(g, P, Q, t, o) {
+    o = o || [-9.6, 2.2];
+    var a = ropeFrom(Q.scarf, o, 0.58, t, 0.12), b = ropeFrom(Q.scarf, [o[0] + 0.8, o[1] + 0.6], 0.46, t + 0.7, 0.12).map(function (p, i) { return [p[0] + i * 0.9, p[1] + i * 0.5]; });
+    ribbon(g, P, b, 1.7, P.scarfShade, mix(P.scarfShade, '#000000', 0.18), false);
+    ribbon(g, P, a, 1.9, P.scarf, P.scarfShade, false);
+  }
+  function ribbonBack(g, P, Q, t) { ribbonTails(g, P, Q, t); }
+  function ribbonFront(g, P, Q, t) {
+    neckBand(g, P, 2.2);
+    var fl = flowOf(Q);
+    bowShape(g, P, -10.4, 1.0, Math.PI / 2 + fl[0] * 0.35, 1.25, t, 0.62);   // 大きな輪が後ろへ開く（上と下）。跳ぶと少し後ろへ倒れる
+  }
+
+  /* すずのくびわ：細い首輪と、前にさがる金の鈴。鈴はひもの流れと反対に振れて、少しゆれる */
+  function bellDraw(g, P, x, y, a, t) {
+    g.save(); g.translate(x, y); g.rotate(a);
+    g.strokeStyle = P.playerLine; g.lineWidth = 0.9; ell(g, 0, 0.2, 0.85, 0.85); g.stroke();   // 首輪につなぐ小さな輪
+    var body = function () { g.beginPath(); g.arc(0, 2.9, 2.35, Math.PI * 1.02, Math.PI * 1.98); g.quadraticCurveTo(2.7, 4.9, 1.9, 5.0); g.lineTo(-1.9, 5.0); g.quadraticCurveTo(-2.7, 4.9, -2.3, 2.6); g.closePath(); };
+    solid(g, body, GOLD.base, GOLD.shade, P.playerLine, 0.6, 1.0);
+    g.strokeStyle = GOLD.shade; g.lineWidth = 0.7; g.beginPath(); g.moveTo(-2.2, 3.4); g.quadraticCurveTo(0, 3.9, 2.2, 3.4); g.stroke();   // 帯の線（内側の細い線1本）
+    g.fillStyle = mix(GOLD.shade, '#000000', 0.45); ell(g, 0, 4.55, 0.9, 0.42); g.fill();   // 下のすき間
+    shine(g, -0.9, 1.6, 0.7, 0.45, 0.9);
+    g.restore();
+  }
+  function bellFront(g, P, Q, t) {
+    neckBand(g, P, 2.8);
+    var fl = flowOf(Q), c = bandPoint(0.5), a = Math.max(-0.9, Math.min(0.9, -fl[0] * 1.2 + Math.sin(t * 2.4) * 0.07));
+    bellDraw(g, P, c[0], c[1] + 1.2, a, t);
+  }
+
+  /* ---- かぶるもの（頭のてっぺん：体の点で y = -12.5。目は y = -6〜-2.5 なので、ふちは -7 より上） ---- */
+  // ニットぼう：まるいドームと折り返し（うねの縦じま）、てっぺんのぽんぽんはひもの流れでゆれる
+  function hatKnit(g, P, Q, t) {
+    var H = hatPal(P), fl = flowOf(Q);
+    var px = -2.2 + fl[0] * 3.6 + Math.sin(t * 2.6) * 0.3, py = -17.4 + fl[1] * 1.8 - Math.abs(Math.sin(t * 2.6)) * 0.35;
+    var ball = function () {   // ふわふわ：小さな丸い山を10こつないだ玉
+      g.beginPath();
+      for (var k = 0; k <= 10; k++) { var a0 = k / 10 * Math.PI * 2, a1 = (k + 0.5) / 10 * Math.PI * 2, x0 = px + Math.cos(a0) * 3.0, y0 = py + Math.sin(a0) * 3.0;
+        if (k === 0) g.moveTo(x0, y0); else g.quadraticCurveTo(px + Math.cos(a1 - Math.PI / 10) * 3.7, py + Math.sin(a1 - Math.PI / 10) * 3.7, x0, y0); }
+      g.closePath();
+    };
+    solid(g, ball, H.hatAccent, mix(H.hatAccent, H.hatShade, 0.45), P.playerLine, 0.7, 1.0);
+    var dome = function () { g.beginPath(); g.moveTo(-10.9, -8.3); g.bezierCurveTo(-10.9, -14.1, -5.9, -16.3, 0, -16.3); g.bezierCurveTo(5.9, -16.3, 10.9, -14.1, 10.9, -8.3); g.quadraticCurveTo(0, -7.6, -10.9, -8.3); g.closePath(); };
+    solid(g, dome, H.hat, H.hatShade, P.playerLine, 1.5, 1.15);
+    g.save(); dome(); g.clip(); g.strokeStyle = alpha(H.hatShade, 0.75); g.lineWidth = 0.7; g.lineCap = 'round';   // 編み目のすじ2本
+    [-3.6, 3.4].forEach(function (x) { g.beginPath(); g.moveTo(x * 0.55, -16); g.quadraticCurveTo(x * 1.15, -12.5, x * 1.05, -9.6); g.stroke(); });
+    g.restore();
+    shine(g, -5.2, -13.4, 2.1, 1.1, 0.75);
+    var cuff = function () { g.beginPath(); g.moveTo(-11.4, -10.6); g.quadraticCurveTo(0, -9.7, 11.4, -10.6); g.quadraticCurveTo(11.9, -9.2, 11.3, -7.8); g.quadraticCurveTo(0, -6.8, -11.3, -7.8); g.quadraticCurveTo(-11.9, -9.2, -11.4, -10.6); g.closePath(); };
+    solid(g, cuff, mix(H.hat, '#ffffff', 0.1), H.hatShade, P.playerLine, 0.9, 1.0);
+    g.save(); cuff(); g.clip(); g.strokeStyle = H.hatShade; g.lineCap = 'butt';   // うね：角度で並べる（はしほど細く）
+    for (var i = 0; i < 7; i++) { var th = -Math.PI / 2 + Math.PI * (i + 0.5) / 7, c = Math.cos(th), x = 11.3 * Math.sin(th); g.globalAlpha = 0.45 + 0.4 * c; g.lineWidth = 0.4 + 0.5 * c; g.beginPath(); g.moveTo(x, -11); g.lineTo(x, -6.5); g.stroke(); }
+    g.globalAlpha = 1; g.restore();
+  }
+  // まほうのぼうし：広いつばと、やわらかく後ろへ曲がる三角（先は丸い玉）。先はひもの流れでゆれる
+  function hatWizard(g, P, Q, t) {
+    var H = hatPal(P), fl = flowOf(Q);
+    var brim = function () { g.beginPath(); g.ellipse(0, -9.1, 13.4, 2.8, 0, 0, Math.PI * 2); };
+    solid(g, brim, H.hat, H.hatShade, P.playerLine, 0.9, 1.15);
+    var tx = -6.2 + fl[0] * 5 + Math.sin(t * 2.1) * 0.6, ty = -25.2 + fl[1] * 2.4 + Math.cos(t * 2.1) * 0.3;
+    var cone = function () {
+      g.beginPath(); g.moveTo(-7.4, -9.6);
+      g.bezierCurveTo(-6.6, -15, -4.5, -19.5, tx - 1.2, ty + 1.2);
+      g.quadraticCurveTo(tx, ty - 0.6, tx + 1.3, ty + 0.9);
+      g.bezierCurveTo(0.6, -19.4, 6.4, -15.5, 7.4, -9.6);
+      g.quadraticCurveTo(0, -8.4, -7.4, -9.6); g.closePath();
+    };
+    solid(g, cone, H.hat, H.hatShade, P.playerLine, 1.4, 1.15);
+    g.save(); cone(); g.clip();
+    g.fillStyle = mix(H.hatShade, '#000000', 0.2); g.beginPath(); g.moveTo(-8, -12.6); g.quadraticCurveTo(0, -11.6, 8, -12.6); g.lineTo(8, -9); g.lineTo(-8, -9); g.closePath(); g.fill();   // 帯
+    shine(g, -3.8, -14.8, 1.1, 2.4, 0.6, -0.25);
+    g.restore();
+    solid(g, function () { rr(g, 0.8, -12.4, 3.2, 2.9, 0.9); }, GOLD.base, GOLD.shade, P.playerLine, 0.4, 1.0);   // 金の留め具
+    solid(g, function () { ell(g, tx, ty, 1.8, 1.8); }, GOLD.light, GOLD.base, P.playerLine, 0.5, 1.0);   // 先の丸い玉
+  }
+  // むぎわらぼうし：麦わら色のつばと山、色のリボン（後ろに短いはし2本がなびく）
+  function hatStraw(g, P, Q, t) {
+    var H = hatPal(P), fl = flowOf(Q);
+    var o = [-6.4, -10.6], a = ropeFrom(Q.scarf, o, 0.32, t, 0.08), b = ropeFrom(Q.scarf, [o[0] + 0.5, o[1] + 0.4], 0.26, t + 0.6, 0.08).map(function (p, i) { return [p[0] + i * 0.6, p[1] + i * 0.3]; });
+    var Hp = Object.create(P); Hp.scarf = H.hat; Hp.scarfShade = H.hatShade;
+    ribbon(g, Hp, b, 1.15, H.hatShade, mix(H.hatShade, '#000000', 0.2), false);
+    ribbon(g, Hp, a, 1.3, H.hat, H.hatShade, false);
+    var brim = function () { g.beginPath(); g.ellipse(0, -9.1, 14.6, 3.2, 0, 0, Math.PI * 2); };
+    solid(g, brim, STRAW.base, STRAW.shade, P.playerLine, 1.0, 1.15);
+    g.strokeStyle = alpha(STRAW.line, 0.7); g.lineWidth = 0.7; g.beginPath(); g.ellipse(0, -8.9, 11.6, 2.35, 0, 0.15, Math.PI - 0.15); g.stroke();   // 編み目の線1本
+    var crown = function () { g.beginPath(); g.moveTo(-7.3, -9.4); g.bezierCurveTo(-7.6, -15.2, -3.6, -15.9, 0, -15.9); g.bezierCurveTo(3.6, -15.9, 7.6, -15.2, 7.3, -9.4); g.quadraticCurveTo(0, -8.3, -7.3, -9.4); g.closePath(); };
+    solid(g, crown, STRAW.base, STRAW.shade, P.playerLine, 1.3, 1.15);
+    g.save(); crown(); g.clip();
+    g.fillStyle = H.hat; g.beginPath(); g.moveTo(-8, -12.3); g.quadraticCurveTo(0, -11.3, 8, -12.3); g.lineTo(8, -9); g.lineTo(-8, -9); g.closePath(); g.fill();   // リボン
+    g.fillStyle = H.hatShade; g.beginPath(); g.moveTo(-8, -10.2); g.quadraticCurveTo(0, -9.2, 8, -10.2); g.lineTo(8, -8.6); g.lineTo(-8, -8.6); g.closePath(); g.fill();
+    g.strokeStyle = alpha(STRAW.line, 0.7); g.lineWidth = 0.7; g.beginPath(); g.moveTo(-5.6, -13.8); g.quadraticCurveTo(0, -12.9, 5.6, -13.8); g.stroke();   // 編み目の線1本
+    g.restore();
+    shine(g, -3.6, -14.3, 1.8, 0.8, 0.7);
+  }
+  // おうかん：金の冠。3つの山の先は丸い真珠、前に色の宝石。少し傾けてのせる
+  function hatCrown(g, P, Q, t) {
+    var H = hatPal(P), fl = flowOf(Q);
+    g.save(); g.translate(-0.6, -11.4); g.rotate(-0.12 - fl[0] * 0.08); g.translate(0, 11.4);
+    var pts = [[-6.9, -9.9], [-7.4, -15.4], [-3.4, -12.6], [0, -16.7], [3.4, -12.6], [7.4, -15.4], [6.9, -9.9]];
+    var body = function () {   // 角を丸めた形（山の先も谷も丸い）
+      g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length - 1; i++) { var m = [(pts[i][0] + pts[i + 1][0]) / 2, (pts[i][1] + pts[i + 1][1]) / 2]; g.quadraticCurveTo(pts[i][0], pts[i][1], m[0], m[1]); }
+      g.lineTo(pts[6][0], pts[6][1]); g.quadraticCurveTo(0, -9.1, pts[0][0], pts[0][1]); g.closePath();
+    };
+    solid(g, body, GOLD.base, GOLD.shade, P.playerLine, 1.1, 1.15);
+    g.strokeStyle = GOLD.shade; g.lineWidth = 0.7; g.beginPath(); g.moveTo(-6.9, -11.6); g.quadraticCurveTo(0, -10.7, 6.9, -11.6); g.stroke();   // 帯の線1本
+    [[-7.2, -15.6], [0, -17.0], [7.2, -15.6]].forEach(function (q) { solid(g, function () { ell(g, q[0], q[1], 1.25, 1.25); }, PEARL.base, PEARL.shade, P.playerLine, 0.4, 1.0); });
+    solid(g, function () { ell(g, 0.4, -12.9, 1.85, 1.5); }, H.hat, H.hatShade, P.playerLine, 0.5, 1.0);   // 宝石
+    shine(g, -0.2, -13.4, 0.6, 0.35, 0.9);
+    shine(g, -4.6, -13.6, 0.7, 1.4, 0.55, -0.2);
+    g.restore();
+  }
+  var HATS = { knit: hatKnit, wizard: hatWizard, straw: hatStraw, crown: hatCrown };
+  var HAT_TOP = { knit: -21, wizard: -28, straw: -16.5, crown: -18.5 };   // いちばん上（絵の大きさを決めるとき用）
+
+  // ghost から呼ぶ：体の後ろ（しっぽ・マントなど）・体の前（首の帯など）・頭
+  function wearBack(g, P, Q, t) {
+    var w = OUTFIT.wear;
+    if (w === 'stripe') { if (!SCARF.front) scarfTail(g, P, Q.scarf, t); }
+    else if (w === 'cape') capeBack(g, P, Q, t);
+    else if (w === 'ribbon') ribbonBack(g, P, Q, t);
+  }
+  function wearFront(g, P, Q, t) {
+    var w = OUTFIT.wear;
+    if (w === 'stripe') { scarfWrap(g, P, 0); if (SCARF.front) scarfTail(g, P, Q.scarf, t); }
+    else if (w === 'cape') capeFront(g, P, Q, t);
+    else if (w === 'ribbon') ribbonFront(g, P, Q, t);
+    else if (w === 'bell') bellFront(g, P, Q, t);
+  }
+  function hatDraw(g, P, Q, t) { var f = OUTFIT.hat && HATS[OUTFIT.hat]; if (f) f(g, P, Q, t); }
+
+  // 着せ替えの品物アイコン（着せ替えの一覧・ろうそくガチャ）。x, y が絵のまん中。体が無いので、首の輪は後ろ側も描く
+  var ICON_REST = [[-4, -1], [-5, 5], [-5.5, 11], [-5, 17], [-4, 23]];   // しっぽは下へたれる
+  function iconRing(g, Q, cy) {
+    g.lineCap = 'round';
+    g.strokeStyle = Q.playerLine; g.lineWidth = SCARF.wrapH + 2; g.beginPath(); g.ellipse(0, cy, SCARF.wrapW / 2, SCARF.sag, 0, Math.PI, Math.PI * 2); g.stroke();
+    g.strokeStyle = Q.scarfShade; g.lineWidth = SCARF.wrapH; g.beginPath(); g.ellipse(0, cy, SCARF.wrapW / 2, SCARF.sag, 0, Math.PI, Math.PI * 2); g.stroke();
+  }
+  function outfitIcon(g, P, id, x, y, s, t, colorId) {
+    if (id === 'stripe') { scarfItem(g, P, x, y - 6 * s, s, t, colorId); return; }
+    var hat = !!HATS[id], keepC = SCARF.color, keepH = OUTFIT.hatColor, sag0 = SCARF.sag, wh0 = SCARF.wrapH;
+    if (colorId) { if (hat) OUTFIT.hatColor = colorId; else SCARF.color = colorId; }
+    var Q = { scarf: ICON_REST, hem: 0 };
+    g.save(); g.translate(x, y);
+    try {
+      if (hat) {
+        var k = { knit: 1.12, wizard: 0.82, straw: 0.98, crown: 1.45 }[id], cy = { knit: -12.4, wizard: -17, straw: -11.6, crown: -13.4 }[id];
+        g.scale(s * k, s * k); g.translate(0, -cy); HATS[id](g, P, Q, t);
+      } else {
+        var C = scarfPal(P); g.scale(s, s); SCARF.sag = 3.6;
+        if (id === 'cape') {
+          g.translate(0, -4); SCARF.wrapH = 2.6; iconRing(g, C, -6.4); SCARF.wrapH = wh0;
+          g.save(); g.translate(5.2, -6.6); capeBack(g, C, { scarf: [[-4, -1], [-4.3, 4], [-4.5, 9], [-4.4, 14], [-4.1, 19]] }, t); g.restore();
+          neckBand(g, C, 2.6, -6.4);
+          var c = bandPoint(0.0, -6.4); solid(g, function () { ell(g, c[0], c[1], 1.75, 1.75); }, GOLD.base, GOLD.shade, C.playerLine, 0.5, 1.0); shine(g, c[0] - 0.6, c[1] - 0.7, 0.55, 0.35, 0.85);
+        } else if (id === 'ribbon') {
+          g.translate(0, -3); SCARF.wrapH = 2.2; iconRing(g, C, -4.5); SCARF.wrapH = wh0;
+          ribbonTails(g, C, { scarf: ICON_REST }, t, [0.2, -1.2]);
+          neckBand(g, C, 2.2, -4.5);
+          bowShape(g, C, 0, -1.6, 0, 1.05, t);
+        } else if (id === 'bell') {
+          g.translate(0, -2.5); SCARF.wrapH = 2.8; iconRing(g, C, -3); SCARF.wrapH = wh0;
+          neckBand(g, C, 2.8, -3);
+          bellDraw(g, C, 0, -3 + SCARF.sag + 1.2, Math.sin(t * 2.4) * 0.12, t);
+        }
+      }
+    } finally { g.restore(); SCARF.color = keepC; OUTFIT.hatColor = keepH; SCARF.sag = sag0; SCARF.wrapH = wh0; }
+  }
+  // 着ているもの（色も）をまとめて取り出す・入れる（2人対戦の相手を描くとき、結果の絵など）
+  function outfitGet() { return { wear: OUTFIT.wear, color: SCARF.color, hat: OUTFIT.hat, hatColor: OUTFIT.hatColor }; }
+  function withOutfit(look, fn) {
+    if (!look) return fn();
+    var keep = outfitGet();
+    OUTFIT.wear = look.wear || 'stripe'; SCARF.color = look.color || 'red'; OUTFIT.hat = look.hat || null; OUTFIT.hatColor = look.hatColor || 'ao';
+    try { return fn(); } finally { OUTFIT.wear = keep.wear; SCARF.color = keep.color; OUTFIT.hat = keep.hat; OUTFIT.hatColor = keep.hatColor; }
+  }
   // 線の目（ふつう＝縦の短い線、喜び＝∧、ダメージ＝＞＜、まばたき＝横線、やる気＝少し傾いた線）
   function lineEyes(g, P, eyes, expr, look, t, blinkNow) {
     var blink = blinkNow != null ? blinkNow && /^(normal|brave|calm|surprised)$/.test(expr) : expr === 'normal' && (t % 3.4) < 0.12;
@@ -1111,13 +1379,13 @@ window.Kabe = (function () {
       }
       if (Q.dizzy) {   // くらくら：頭の上を小さな星が3つ回る（player の色と線だけ）
         for (var di = 0; di < 3; di++) {
-          var da = t * 5 + di * 2.09, dx = Math.cos(da) * 9, dy = o.top - 3 + Math.sin(da) * 2.6, ds = 1.9 + Math.sin(da) * 0.5;
+          var da = t * 5 + di * 2.09, dx = Math.cos(da) * 9, dy = o.top - 3 - (OUTFIT.hat ? 6 : 0) + Math.sin(da) * 2.6, ds = 1.9 + Math.sin(da) * 0.5;
           if (Math.sin(da) < -0.2) continue;   // 頭の向こう側は隠れる
           solid(g, function () { g.beginPath(); for (var k = 0; k < 10; k++) { var r5 = k % 2 ? ds * 0.45 : ds, a5 = -Math.PI / 2 + k * Math.PI / 5; g.lineTo(dx + Math.cos(a5) * r5, dy + Math.sin(a5) * r5); } g.closePath(); }, '#ffffff', P.playerShade, P.playerLine, 0.3, 0.7);
         }
       }
-      scarfWrap(g, P, 0);
-      if (SCARF.front) scarfTail(g, P, Q.scarf, t);   // しっぽを体の前に出す
+      wearFront(g, P, Q, t);   // 首まわり（しましまマフラーは帯と結び目。SCARF.front ならしっぽも前）
+      hatDraw(g, P, Q, t);     // 頭
       if (o.sleeves) sleeve(g, P, shoulder(Q.hands[1][0]), 0.5, Q.hands[1][0], Q.hands[1][1], 2.1);
       else ghostLimb(g, P, Q.hands[1][0], Q.hands[1][1], o.hand);
     };
@@ -1132,7 +1400,7 @@ window.Kabe = (function () {
     P = scarfPal(P);
     g.save(); g.translate(x, y); g.scale(face * scale, scale);
     g.rotate(Q.tilt + (poseId === 'air' ? Math.sin(t * 3) * 0.15 : 0)); g.scale(1 - Q.sq * 0.6, 1 + Q.sq);
-    if (!SCARF.front) scarfTail(g, P, Q.scarf, t);
+    wearBack(g, P, Q, t);   // 体の後ろ（マフラーのしっぽ・マント・リボンのはし）
     G.draw(g, P, Q, t);
     g.restore();
   }
@@ -1516,6 +1784,7 @@ window.Kabe = (function () {
     spinAngle: spinAngle, spinner: spinner, pendAngle: pendAngle, pendulum: pendulum, cannon: cannon, cannonBall: cannonBall, stakeState: stakeState, stake: stake,
     bridgeState: bridgeState, bridge: bridge, spring: spring, crumble: crumble, crumbleCell: crumbleCell, shutterState: shutterState, shutter: shutter, fan: fan, fanStreaks: fanStreaks, fanBody: fanBody, fanBlade: fanBlade, fanBolt: fanBolt, FAN_BAND: FAN_BAND,
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
+    OUTFIT: OUTFIT, OUTFIT_COLORS: OUTFIT_COLORS, OUTFIT_ITEMS: OUTFIT_ITEMS, HAT_TOP: HAT_TOP, hatPal: hatPal, wearBack: wearBack, wearFront: wearFront, hatDraw: hatDraw, outfitIcon: outfitIcon, outfitGet: outfitGet, withOutfit: withOutfit,
     effects: effects, heart: heart, hud: hud,
     GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet

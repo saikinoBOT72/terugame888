@@ -11,7 +11,7 @@
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編・2人対戦・`pools.html` が共通で読む |
 | `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（オフラインは sw.js が前に取ったものを返す。アイコンは `tools/make_icon.js`） |
 
-モードは `MODE`（simple＝シンプルジャンプ／advance＝アドバンス。`MODES`・「モード」の区切り。復活は `respDown`→`respawn`）。タイトル `#ovTitle`：モード選び・プレイ・着せ替え（`WARDROBE`。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`。演出は水晶ガチャと同じ `show`（`kind: 'look'`）と `showFx`）・設定（`#ovSettings`）。ろうそく `kabe_candles` は結果画面で 100m ごとに1本（`META`）。「ひとりで」の横の「ふたりで」は `versus.html` へ。右上「開発」に開発用ページへのリンク。
+モードは `MODE`（simple＝シンプルジャンプ／advance＝アドバンス。`MODES`・「モード」の区切り。復活は `respDown`→`respawn`）。タイトル `#ovTitle`：モード選び・プレイ・着せ替え（`WARDROBE`：着る `scarf`・かぶる `hat`。絵は `Kabe.OUTFIT`・`outfitIcon`。持ち物 `kabe_owned`・着ているもの `kabe_look2`）・ろうそくガチャ（`#ovLook`。演出は水晶ガチャと同じ `show`（`kind: 'look'`）と `showFx`）・設定（`#ovSettings`）。ろうそく `kabe_candles` は結果画面で 100m ごとに1本（`META`）。「ひとりで」の横の「ふたりで」は `versus.html` へ。右上「開発」に開発用ページへのリンク。
 
 **2人対戦**
 | ファイル | 中身 |
