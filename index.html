@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.05">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.06">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -252,7 +252,7 @@
   .grow b { font-size: calc(var(--u) * 12.5px); } .grow b .st { color: var(--tone); margin-right: .3em; }
   .grow span { display: block; color: var(--dim); font-size: calc(var(--u) * 11px); line-height: 1.4; }
   body.vs #pauseBtn, body.vs .dev { display: none !important; }
-  body.vs button:focus { outline: calc(var(--u) * 3px) solid #fff; outline-offset: calc(var(--u) * 2px); }
+  body.vs button.vsSel { outline: calc(var(--u) * 3px) solid #fff; outline-offset: calc(var(--u) * 2px); }
   #pauseBtn {
     position: absolute; right: calc(var(--u) * 8px + env(safe-area-inset-right, 0px)); bottom: calc(var(--u) * 8px + env(safe-area-inset-bottom, 0px));
     width: calc(var(--u) * 32px); height: calc(var(--u) * 32px); font: inherit; font-weight: 800; color: var(--cream);
@@ -409,12 +409,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.05"></script>
-<script src="data/pieces.js?v=2026.12.05"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.06"></script>
+<script src="data/pieces.js?v=2026.12.06"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.05';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.06';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4075,10 +4075,16 @@ function versusInit() {
     if (show.active) { if (k === 'ok') showTap(); return; }
     const box = Object.values(ov).find(o => !o.hidden); if (!box) return;
     const bs = [...box.querySelectorAll('button')].filter(b => !b.disabled && b.offsetParent); if (!bs.length) return;
-    let i = bs.indexOf(document.activeElement);
+    // 本当のフォーカスは動かさず、枠だけ動かす（Safari は入力が向いたページにしかコントローラーを渡さないことがあるため）
+    let i = bs.findIndex(b => b.classList.contains('vsSel'));
     if (k === 'ok') { (bs[i] || bs[0]).click(); return; }
-    bs[i < 0 ? 0 : (i + k + bs.length) % bs.length].focus({ preventScroll: true });
+    for (const b of bs) b.classList.remove('vsSel');
+    bs[i < 0 ? 0 : (i + k + bs.length) % bs.length].classList.add('vsSel');
   };
+  // 本編の focus()（ガチャ所を開いたときなど）も、枠を動かすだけにする
+  HTMLElement.prototype.focus = function () { if (this.tagName !== 'BUTTON') return; for (const b of document.querySelectorAll('.vsSel')) b.classList.remove('vsSel'); this.classList.add('vsSel'); };
+  // 画面をタッチしたあとも、入力は親ページに戻す
+  addEventListener('pointerup', () => { try { parent.focus(); } catch (e) {} });
   window.__vs = {
     start(seed) { VERSUS.seed = seed >>> 0 || 1; VERSUS.ghost = null; startGame(); },
     // k：L 左・R 右・A 蹴る（上）・D 下の水晶

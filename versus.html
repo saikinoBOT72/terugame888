@@ -54,7 +54,8 @@
     </div>
     <p>コントローラー：A で蹴る・十字キー左右で向き・下か B で「下」の水晶。<br>ガチャ所では左右でボタンを選んで A。iPad は左右の画面をタップしても遊べる。</p>
     <button id="btnStart" type="button">はじめる</button>
-    <p id="startHint">A ボタン・Enter でもはじまる</p>
+    <p id="startHint">参加したら A ボタン・Enter でもはじまる</p>
+    <p id="padList" style="font-size:12px"></p>
     <a class="back" href="./">← もどる</a>
   </div>
 </div>
@@ -146,22 +147,44 @@ addEventListener('keydown', e => { if (KEYS[e.key.length === 1 ? e.key.toLowerCa
 addEventListener('keyup', e => onKey(e.key, false, false));
 addEventListener('pointerdown', unlockAudio, true);
 
-// コントローラー：つないだ順に 1P・2P
-const prev = [{}, {}];
+// コントローラー：ボタンを押した順に 1P・2P（参加）。リモコンなどコントローラー扱いの機器が混ざっても、押さなければ入らない
+// Safari は入力が向いているページにしか状態を渡さないことがあるので、親と左右の画面の両方から読んで新しい方を使う
+const slot = [null, null], prev = [{}, {}];
 function padKeys(p) {
   const b = i => p.buttons[i] && p.buttons[i].pressed, x = p.axes[0] || 0, y = p.axes[1] || 0;
   return { L: b(14) || x < -0.5, R: b(15) || x > 0.5, A: b(0) || b(3) || b(12) || y < -0.6, D: b(1) || b(2) || b(13) || y > 0.6 };
 }
+function allPads() {
+  const map = new Map(), navs = [navigator];
+  for (const f of frames) { try { navs.push(f.contentWindow.navigator); } catch (e) {} }
+  for (const n of navs) {
+    let list; try { list = n.getGamepads ? n.getGamepads() : []; } catch (e) { continue; }
+    for (const p of list || []) if (p && p.connected) { const o = map.get(p.index); if (!o || p.timestamp > o.timestamp) map.set(p.index, p); }
+  }
+  return map;
+}
+const anyPressed = p => p.buttons.some(b => b && b.pressed) || p.axes.some(a => Math.abs(a) > 0.6);
+const padName = p => (p.id || '').replace(/\s*\(.*$/, '').slice(0, 24) || 'コントローラー';
 function pollPads() {
-  const pads = [...(navigator.getGamepads ? navigator.getGamepads() : [])].filter(p => p && p.connected).slice(0, 2);
+  const pads = allPads();
+  for (const i of [0, 1]) if (slot[i] != null && !pads.has(slot[i])) { slot[i] = null; prev[i] = {}; }   // 外れた
+  for (const [idx, p] of pads) {
+    if (slot.includes(idx) || !anyPressed(p)) continue;
+    const i = slot.indexOf(null); if (i < 0) break;
+    slot[i] = idx; prev[i] = padKeys(p);   // 参加したボタンは操作にしない
+  }
   for (const i of [0, 1]) {
-    const p = pads[i];
+    const p = slot[i] != null ? pads.get(slot[i]) : null;
     $('pad' + i).classList.toggle('on', !!p);
-    $('pk' + i).textContent = p ? 'コントローラー OK' : i ? 'キーボード ↑ ← ↓ →' : 'キーボード W A S D';
-    const now = p ? padKeys(p) : {};
+    $('pk' + i).textContent = p ? padName(p) : (i ? 'キーボード ↑ ← ↓ →' : 'キーボード W A S D') + '／コントローラーはボタンで参加';
+    if (!p) continue;
+    const now = padKeys(p);
     for (const k of ['L', 'R', 'A', 'D']) if (!!now[k] !== !!prev[i][k]) input(i, k, !!now[k]);
     prev[i] = now;
   }
+  const list = [...pads.values()].map(p => `${p.index}: ${padName(p)}${slot.includes(p.index) ? `（${slot.indexOf(p.index) + 1}P）` : ''}`);
+  const el = $('padList'); const t = list.length ? '見つかったコントローラー ' + list.join(' ・ ') : 'コントローラーが見つからない（つないだらボタンを押してね）';
+  if (el.textContent !== t) el.textContent = t;
 }
 
 // 溶岩：基本の速さ ×（ブレーキ（下にいる人が3m以内で持っていれば）＋ 2人の欲ばりの上乗せ）。どちらかが一時停止中は止める
