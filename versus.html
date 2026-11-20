@@ -209,6 +209,13 @@ for (const i of [0, 1]) {
   const up = e => { if (!fingers[i].delete(e.pointerId)) return; const a = api(i); if (a) a.input('A', false); };
   tl.addEventListener('pointerup', up); tl.addEventListener('pointercancel', up);
 }
+// 拡大を止める：膜の上の指はブラウザの動き（ダブルタップの拡大・ピンチ）をさせない（指の入力は pointer で受けているのでそのまま届く）。
+// 膜の外（左右のあいだ・下の帯など）も、すばやい2回目のタップとピンチでは拡大しない（ボタンは押せる）
+for (const i of [0, 1]) for (const ty of ['touchstart', 'touchend', 'touchmove']) $('tl' + i).addEventListener(ty, e => e.preventDefault(), { passive: false });
+for (const ty of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ty, e => e.preventDefault(), { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => { const now = e.timeStamp; if (now - lastTouchEnd < 350 && !e.target.closest('button')) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 // 膜をつけるのは、その人がプレイ中（やられて復活待ちを含む）のときだけ。外すときは押したままの指をはなす
 function syncLayers(g) {
   for (const i of [0, 1]) {
