@@ -32,19 +32,22 @@
   .res .w0 { color: var(--p1); } .res .w1 { color: var(--p2); }
   .done { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,7,14,.5); font-weight: 800; font-size: 26px; z-index: 3; pointer-events: none; }
   .done[hidden] { display: none; }
+  .warn { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); padding: 4px 14px; border-radius: 999px; background: rgba(20,15,28,.85); font-weight: 800; font-size: 16px; z-index: 2; pointer-events: none; white-space: nowrap; }
+  .warn.near { background: #c94a2a; }
+  .warn[hidden] { display: none; }
 </style>
 </head>
 <body>
 <div id="wrap">
-  <div class="side" id="s0"><span class="tag" id="t0">1P</span><div class="done" id="d0" hidden></div></div>
+  <div class="side" id="s0"><span class="tag" id="t0">1P</span><span class="warn" id="w0" hidden></span><div class="done" id="d0" hidden></div></div>
   <div id="mid"></div>
-  <div class="side" id="s1"><span class="tag" id="t1">2P</span><div class="done" id="d1" hidden></div></div>
+  <div class="side" id="s1"><span class="tag" id="t1">2P</span><span class="warn" id="w1" hidden></span><div class="done" id="d1" hidden></div></div>
 </div>
 
 <div class="ov" id="ovStart">
   <div class="card">
     <h1>2人対戦</h1>
-    <p>同じ縦穴を、左右に分かれて登る。<br>2人とも落ちたら終わり。高く登った方の勝ち。</p>
+    <p>同じ縦穴を、左右に分かれて登る。溶岩は2人で1つ（ガチャ所でも止まらない）。<br>先に落ちた方の負け。</p>
     <div class="pads">
       <div class="pad" id="pad0">1P（左）<small id="pk0">キーボード W A S D</small></div>
       <div class="pad" id="pad1">2P（右）<small id="pk1">キーボード ↑ ← ↓ →</small></div>
@@ -70,8 +73,9 @@
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-const ready = [false, false], score = [null, null], frames = [];
-let phase = 'start', seed = 0, actx = null;
+const ready = [false, false], frames = [];
+let phase = 'start', seed = 0, actx = null, endAt = 0;
+const lava = { y: 200, delay: 3 };   // 2人で1つの溶岩（ゲームの座標。上がマイナス）
 
 // 音：親ページで1つ作り、2つの画面が使う（iPad はタップした所でしか音を出せないため）
 function unlockAudio() {
@@ -80,11 +84,9 @@ function unlockAudio() {
 }
 window.__vsAudio = () => { unlockAudio(); return actx; };
 window.__vsReady = side => { ready[side] = true; };
-window.__vsEnd = (side, m) => {
-  score[side] = m;
-  const d = $('d' + side); d.textContent = m + 'm'; d.hidden = false;
-  if (score[0] != null && score[1] != null) setTimeout(showResult, 900);
-};
+window.__vsEnd = () => {};   // 勝ち負けは毎フレームの loop で見る（先に落ちた方の負け）
+// ガチャ所の「溶岩を近づける」：2人の溶岩が上がる（相手の 2m 下までは本編側で止めてある）
+window.__vsLava = y => { lava.y = Math.min(lava.y, y); lava.delay = 0; };
 
 // 2つの画面（本編を ?vs=0|1 で開く）
 for (const i of [0, 1]) {
@@ -99,7 +101,7 @@ function start() {
   if (!ready[0] || !ready[1] || !api(0) || !api(1)) { $('startHint').textContent = 'よみこみ中…もう少し待ってね'; return; }
   unlockAudio();
   phase = 'count'; $('ovStart').hidden = $('ovEnd').hidden = true; $('ovCount').hidden = false;
-  score[0] = score[1] = null; $('d0').hidden = $('d1').hidden = true;
+  $('d0').hidden = $('d1').hidden = true;
   seed = (Math.random() * 4294967295) >>> 0 || 1;
   let n = 3; $('count').textContent = n;
   const tick = () => {
@@ -107,22 +109,31 @@ function start() {
     if (n > 0) { $('count').textContent = n; setTimeout(tick, 700); return; }
     $('ovCount').hidden = true; phase = 'play';
     api(0).start(seed); api(1).start(seed);
+    const g = api(0).get(); lava.y = g.lavaY; lava.delay = g.delay; lastT = performance.now();
   };
   setTimeout(tick, 700);
 }
-function showResult() {
-  phase = 'end';
-  const [a, b] = score;
-  $('resTitle').innerHTML = a === b ? '引き分け！' : `<span class="w${a > b ? 0 : 1}">${a > b ? '1P' : '2P'} の勝ち！</span>`;
-  $('resSub').textContent = `1P ${a}m ・ 2P ${b}m`;
-  $('ovEnd').hidden = false;
+const CAUSE = { lava: '呑まれた', spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた' };
+// 勝負がついた：out[i] が true の人が落ちた（2人同時なら高い方の勝ち）
+function decide(out, g) {
+  phase = 'over';
+  for (const i of [0, 1]) { if (!out[i]) api(i).halt(); $('w' + i).hidden = true; }
+  let win = out[0] && out[1] ? (g[0].m === g[1].m ? -1 : g[0].m > g[1].m ? 0 : 1) : out[0] ? 1 : 0;
+  for (const i of [0, 1]) if (out[i]) { const d = $('d' + i); d.textContent = '×'; d.hidden = false; }
+  setTimeout(() => {
+    phase = 'end';
+    $('resTitle').innerHTML = win < 0 ? '引き分け！' : `<span class="w${win}">${win ? '2P' : '1P'} の勝ち！</span>`;
+    const lose = g.map((x, i) => out[i] ? `${i ? '2P' : '1P'} は${x.cause === 'lava' ? x.rise + 'に' : ''}${CAUSE[x.cause] || '落ちた'}` : '').filter(Boolean).join('・');
+    $('resSub').textContent = `${lose}（1P ${g[0].m}m ・ 2P ${g[1].m}m）`;
+    $('ovEnd').hidden = false; endAt = performance.now();
+  }, 1200);
 }
 $('btnStart').onclick = start; $('btnAgain').onclick = start;
 
 // 入力：k は L 左・R 右・A 蹴る・D 下
 function input(side, k, down) {
   if (phase === 'play') { const a = api(side); if (a) a.input(k, down); return; }
-  if (down && k === 'A') { unlockAudio(); start(); }
+  if (down && k === 'A' && performance.now() - endAt > 1500) { unlockAudio(); start(); }   // 結果が出てすぐの連打では始めない
 }
 const KEYS = { a: [0, 'L'], d: [0, 'R'], w: [0, 'A'], s: [0, 'D'], ' ': [0, 'A'],
   ArrowLeft: [1, 'L'], ArrowRight: [1, 'R'], ArrowUp: [1, 'A'], ArrowDown: [1, 'D'], Enter: [1, 'A'] };
@@ -153,15 +164,30 @@ function pollPads() {
   }
 }
 
-// 毎フレーム：コントローラーを読んで、相手の位置を渡す
+// 溶岩：基本の速さ ×（ブレーキ（下にいる人が3m以内で持っていれば）＋ 2人の欲ばりの上乗せ）。どちらかが一時停止中は止める
+let lastT = performance.now();
+function lavaStep(g) {
+  const now = performance.now(), dt = Math.min(0.05, (now - lastT) / 1000); lastT = now;
+  if (phase !== 'play' || g.some(x => x.st === 'pause')) return;
+  if (lava.delay > 0) { lava.delay -= dt; return; }
+  lava.y -= g[0].speed * (Math.min(g[0].brake, g[1].brake) + g[0].greed + g[1].greed) * dt;
+}
+// 毎フレーム：コントローラーを読んで、溶岩を動かし、相手の位置と溶岩を渡す
 function loop() {
   pollPads();
-  const a0 = api(0), a1 = api(1);
-  if (a0 && a1) {
-    const g0 = a0.get(), g1 = a1.get();
-    a0.put(g1); a1.put(g0);
+  const a0 = api(0), a1 = api(1), g = a0 && a1 ? [a0.get(), a1.get()] : null;
+  if (g && g[0] && g[1]) {
+    lavaStep(g);
+    a0.put(g[1], lava); a1.put(g[0], lava);
     if (phase === 'play') {
-      $('t0').textContent = `1P ${g0 ? g0.m : 0}m`; $('t1').textContent = `2P ${g1 ? g1.m : 0}m`;
+      for (const i of [0, 1]) {
+        $('t' + i).textContent = `${i ? '2P' : '1P'} ${g[i].m}m`;
+        // ガチャ所の中は本編の「溶岩まで」が出ないので、ここで出す
+        const w = $('w' + i); w.hidden = g[i].st !== 'gacha' || lava.delay > 0;
+        if (!w.hidden) { w.textContent = `▼ ${g[i].rise}まで ${Math.max(0, g[i].dist).toFixed(1)}m`; w.classList.toggle('near', g[i].dist < 3); }
+      }
+      const out = g.map(x => x.st === 'dying' || x.st === 'end' || x.sunk);
+      if (out[0] || out[1]) decide(out, g);
     }
   }
   requestAnimationFrame(loop);

@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.04">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.05">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はマフラーとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -409,12 +409,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.04"></script>
-<script src="data/pieces.js?v=2026.12.04"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.05"></script>
+<script src="data/pieces.js?v=2026.12.05"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.04';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.05';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1180,7 +1180,8 @@ function update(dt) {
   else obstacleHit();
   if (state !== 'play') return;
 
-  if (G.lavaDelay > 0) G.lavaDelay -= dt;
+  if (VERSUS) {}   // 2人対戦：溶岩は2人で1つ（親ページが動かして put で渡す）
+  else if (G.lavaDelay > 0) G.lavaDelay -= dt;
   else {
     const gr = gemVal('greed') ? gemVal('greed').lava : 1, bk = gemVal('brake'), near = (G.lavaY - P.y) / PX_PER_M < 3;
     G.lavaY -= LAVA.speed * (bk && near ? bk.k + (gr - 1) : gr) * dt;   // ブレーキは欲ばりで増えた分には効かない
@@ -3689,7 +3690,9 @@ $('btnRoll').onclick = () => startShow(1);
 $('btnRoll3').onclick = () => startShow(3);
 // 溶岩を近づけて結晶にかえる：いまの溶岩までの距離から lavaTo m を引いた分
 const lavaDist = () => (G.lavaY - P.y) / PX_PER_M;
-const lavaGain = () => Math.max(0, Math.floor((lavaDist() - GACHA.lavaTo) * GACHA.lavaRate + 1e-9));
+// 2人対戦では溶岩が相手にも届くので、相手の VERSUS_CAP m 下までしか上げられない
+const lavaTarget = () => { const t = P.y + GACHA.lavaTo * PX_PER_M, o = VERSUS && VERSUS.ghost; return o && (o.st === 'play' || o.st === 'gacha') ? Math.max(t, o.y + VERSUS_CAP * PX_PER_M) : t; };
+const lavaGain = () => Math.max(0, Math.floor((G.lavaY - lavaTarget()) / PX_PER_M * GACHA.lavaRate + 1e-9));
 // HP回復：1回目は結晶10、2回目20、3回目30…（そのプレイの中で回復した回数で上がる）
 const healCost = () => GACHA.healCost * (G.heals + 1);
 $('btnHeal').onclick = () => {
@@ -3699,8 +3702,9 @@ $('btnHeal').onclick = () => {
 };
 $('btnLava').onclick = () => {
   const gain = lavaGain(); if (gain <= 0 || show.active) return;
-  G.lavaY = P.y + GACHA.lavaTo * PX_PER_M; G.lavaDelay = 0; G.crystals += gain;
-  setResult(`${riseName()}が ${GACHA.lavaTo}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); shake(6); renderGacha();
+  G.lavaY = lavaTarget(); G.lavaDelay = 0; G.crystals += gain;
+  if (VERSUS && parent.__vsLava) parent.__vsLava(G.lavaY);
+  setResult(`${riseName()}が ${((G.lavaY - P.y) / PX_PER_M).toFixed(0)}m 下まで上がってきた。結晶 +${gain}`); sfx.lava(); shake(6); renderGacha();
 };
 $('btnGachaGo').onclick = leaveGacha;
 // 演出ひかえめ：画面の揺れ・白い光・残像を止め、火の粉を減らす（酔いやすい人向け）
@@ -4055,7 +4059,7 @@ const VERSUS = (() => { const q = new URLSearchParams(location.search); return q
 const seeded = a => () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 let trnd = Math.random;   // 地形を決める乱数（対戦のときだけ種つき）
 
-const VERSUS_ALPHA = 0.4;
+const VERSUS_ALPHA = 0.4, VERSUS_CAP = 2;   // 相手のうすさ・溶岩を近づけても相手の何 m 下まで
 // 対戦の相手（見えているときだけ）。ポーズは止まった絵を使い回す
 function vsRival() {
   const o = VERSUS && VERSUS.ghost; if (!o || (o.st !== 'play' && o.st !== 'gacha')) return null;
@@ -4085,9 +4089,16 @@ function versusInit() {
     get() {
       if (!P || !G) return null;
       const pose = P.side ? 'cling' : P.ground ? 'stand' : P.vy < 0 ? 'jump' : 'fall';
-      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best) };
+      const gr = gemVal('greed'), bk = gemVal('brake'), near = (G.lavaY - P.y) / PX_PER_M < 3;
+      return { x: P.x, y: P.y, face: P.side ? -P.side : P.face || 1, pose, st: state, m: Math.floor(G.best), cause: G.cause,
+        // 溶岩：速さ・欲ばりの上乗せ・ブレーキ（自分の3m以内のときだけ）・ガチャ中に呑まれたか
+        speed: LAVA.speed, lavaY: G.lavaY, delay: G.lavaDelay, greed: gr ? gr.lava - 1 : 0, brake: bk && near ? bk.k : 1,
+        sunk: P.y + HB * 0.4 > G.lavaY, dist: (G.lavaY - P.y) / PX_PER_M, rise: riseName() };
     },
-    put(o) { VERSUS.ghost = o; },
+    // o：相手、lava：2人で1つの溶岩 { y, delay }
+    put(o, lava) { VERSUS.ghost = o; if (lava && G && state !== 'title') { G.lavaY = lava.y; G.lavaDelay = lava.delay; } },
+    // 勝負がついた：その場で止める（結果は親ページが出す）
+    halt() { if (state === 'gacha' || state === 'pause') showOnly(null); state = 'end'; holding = false; },
   };
   if (parent.__vsReady) parent.__vsReady(VERSUS.side);
 }
