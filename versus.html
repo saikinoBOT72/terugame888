@@ -40,6 +40,10 @@
   .logo .l2 { font-weight: 800; font-size: clamp(34px, 7vmin, 52px); letter-spacing: .04em; paint-order: stroke fill; -webkit-text-stroke: 6px rgba(20,15,28,.92); text-shadow: 0 4px 0 rgba(0,0,0,.35); }
   .rules { margin: 0; color: var(--dim); font-size: clamp(12px, 2.1vmin, 14px); }
   .rules b { color: var(--cream); }
+  /* ルールの切り替え（ふつう／デスマッチ） */
+  .rule { display: inline-flex; background: rgba(0,0,0,.3); border-radius: 999px; padding: 4px; gap: 4px; }
+  .rbtn { font: inherit; font-weight: 800; font-size: 15px; color: var(--dim); background: transparent; border: 0; border-radius: 999px; padding: 6px 20px; cursor: pointer; }
+  .rbtn.on { color: var(--ui-panel, #1b1426); background: var(--glow); }
 
   /* 1P・2P の札 */
   .players { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
@@ -98,7 +102,11 @@
 <section class="ov" id="ovStart">
   <div class="card">
     <div class="logo"><span class="l1">おばけじゃんぴんぐ</span><span class="l2">ふたりで</span></div>
-    <p class="rules">同じ縦穴を左右に分かれて登る。<b>先に落ちた方の負け</b><br><b>溶岩は2人で1つ</b>（ガチャ所の中でも止まらない）</p>
+    <div class="rule" role="radiogroup" aria-label="ルール">
+      <button class="rbtn" id="rNormal" type="button" role="radio" data-nav>ふつう</button>
+      <button class="rbtn" id="rDeath" type="button" role="radio" data-nav>デスマッチ</button>
+    </div>
+    <p class="rules" id="ruleText"></p>
     <div class="players">
       <div class="pl" id="pl0"><span class="tag">1P</span><canvas id="cv0" width="240" height="192"></canvas><span class="who" id="who0"></span><span class="keys">キーボード W A S D ／ 左の画面をタッチ</span></div>
       <div class="pl p2" id="pl1"><span class="tag">2P</span><canvas id="cv1" width="240" height="192"></canvas><span class="who" id="who1"></span><span class="keys">キーボード ↑ ← ↓ → ／ 右の画面をタッチ</span></div>
@@ -146,7 +154,7 @@
 const $ = id => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
 const ready = [false, false], frames = [], scarf = ['red', 'karashi'];
-let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false;
+let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false, rule = store.get('kabe_vs_rule', 'normal');
 const lava = { y: 200, delay: 3 };   // 2人で1つの溶岩（ゲームの座標。上がマイナス）
 const NAME = ['1P', '2P'];
 
@@ -205,6 +213,22 @@ function watchFps(g, dt) {
   if (perf.t > 8 && perf.sum / perf.n < 42) setFx(false, true);
 }
 
+/* ---------- ルール ----------
+   ふつう：結晶・ガチャ所・水晶・HP あり。どんな理由でも先に落ちた方の負け
+   デスマッチ：結晶・ガチャ所・HP なし（1回当たるとやられる）。溶岩以外なら5秒後に2m以上下から復活。溶岩に呑まれたら負け */
+const RULES = {
+  normal: '同じ縦穴を左右に分かれて登る。<b>先に落ちた方の負け</b><br><b>溶岩は2人で1つ</b>（ガチャ所の中でも止まらない）。結晶・水晶・HP あり',
+  death: '<b>アイテムなし・HP なし</b>。当たったら5秒後に少し下から復活<br><b>溶岩に呑まれたら負け</b>（溶岩は2人で1つ）',
+};
+function setRule(r) {
+  rule = r; store.set('kabe_vs_rule', r);
+  $('rNormal').classList.toggle('on', r === 'normal'); $('rDeath').classList.toggle('on', r === 'death');
+  $('rNormal').setAttribute('aria-checked', r === 'normal'); $('rDeath').setAttribute('aria-checked', r === 'death');
+  $('ruleText').innerHTML = RULES[r];
+}
+$('rNormal').onclick = () => setRule('normal'); $('rDeath').onclick = () => setRule('death');
+setRule(RULES[rule] ? rule : 'normal');
+
 /* ---------- 板とメニュー（コントローラーは左右で選んで A） ---------- */
 const OVS = ['ovStart', 'ovCount', 'ovPause', 'ovEnd'];
 const nav = { box: null, i: 0 };
@@ -229,7 +253,7 @@ function start() {
   unlockAudio();
   phase = 'count'; show('ovCount'); countDrawn = false; for (const i of [0, 1]) $('d' + i).hidden = true;
   seed = (Math.random() * 4294967295) >>> 0 || 1;
-  api(0).start(seed); api(1).start(seed);   // 先に作って見せておき、数え終わるまで動かさない
+  api(0).start(seed, rule); api(1).start(seed, rule);   // 先に作って見せておき、数え終わるまで動かさない
   const g = api(0).get(); lava.y = g.lavaY; lava.delay = g.delay;
   const steps = ['3', '2', '1', 'スタート！'];
   const tick = i => {
@@ -263,7 +287,8 @@ function decide(out, g) {
     for (const i of [0, 1]) {
       $('rc' + i).classList.toggle('won', i === win);
       $('rm' + i).textContent = g[i].m + 'm';
-      $('rw' + i).textContent = out[i] ? (g[i].cause === 'lava' ? g[i].rise + 'に' : '') + (CAUSE[g[i].cause] || '落ちた') : `結晶 ${g[i].got}個`;
+      const why = out[i] ? (g[i].cause === 'lava' || g[i].sunk ? g[i].rise + 'に呑まれた' : CAUSE[g[i].cause] || '落ちた') : '';
+      $('rw' + i).textContent = rule === 'death' ? [why, `やられた ${g[i].downs}回`].filter(Boolean).join('・') : why || `結晶 ${g[i].got}個`;
     }
     show('ovEnd'); endAt = performance.now();
   }, 1400);
@@ -374,7 +399,7 @@ function loop() {
     else if (phase === 'count' && !countDrawn) { a0.frame(); a1.frame(); countDrawn = true; }
     if (phase === 'play') {
       watchFps(g, dt);
-      const out = g.map(x => x.st === 'dying' || x.st === 'end' || x.sunk);
+      const out = g.map(x => x.sunk || ((x.st === 'dying' || x.st === 'end') && !x.down));   // デスマッチの復活待ち（down）は負けにしない
       if (out[0] || out[1]) decide(out, g);
     }
   }

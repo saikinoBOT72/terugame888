@@ -17,7 +17,7 @@
 | ファイル | 中身 |
 |---|---|
 | `versus.html` | 親ページ。本編を `index.html?vs=0`・`?vs=1` で左右に2つ並べ、入力（コントローラー2台・WASD/矢印）・音（`__vsAudio`）・相手の位置・勝ち負けを受け持つ |
-| `index.html` の「2人対戦」の区切り | `VERSUS` があるときだけ動く。地形の乱数 `trnd` を種つきにする・親とのやりとり `window.__vs`（start・input・get・put・frame・fx・halt）・相手をうすく描く `vsRival`。ループは親が `frame` で回す |
+| `index.html` の「2人対戦」の区切り | `VERSUS` があるときだけ動く。地形の乱数 `trnd` を種つきにする・親とのやりとり `window.__vs`（start・input・get・put・frame・fx・halt）・相手をうすく描く `vsRival`。ループは親が `frame` で回す。ルール「デスマッチ」は `vsDeath`（結晶・ガチャ所・HP なし、`vsDown`→`vsRespawn` で復活） |
 
 本編を変えるときは2人対戦でも動くかを気にする（`state`・`press`・`end` まわり）。
 
