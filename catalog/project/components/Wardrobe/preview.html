@@ -1,4 +1,4 @@
-<!-- @dsCard group="キャラ" height=560 width=760 subtitle="着せ替え：着る4つ・かぶる4つ・ろうそく・石灯籠" -->
+<!-- @dsCard group="キャラ" height=760 width=760 subtitle="着せ替え：着る7つ・かぶる7つ・小物4つ・ろうそく・石灯籠" -->
 <style>
 .wd-row { display: grid; grid-template-columns: 110px 150px minmax(0, 1fr); gap: 10px; padding: 10px; align-items: center; }
 .wd-cols { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
@@ -11,6 +11,8 @@
 <div class="wd-items" id="wear"></div>
 <div class="wd-h">かぶる（なしでもよい）</div>
 <div class="wd-items" id="hat"></div>
+<div class="wd-h">小物（口にくわえる・手に持つ。なしでもよい）</div>
+<div class="wd-items" id="prop"></div>
 <script>
 (function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap';document.head.appendChild(l);})();
 var root = document.getElementById('root');
@@ -26,13 +28,14 @@ Kabe.SCARF_COLORS.forEach(function (c) { cols.appendChild(fig(44, 40, 1.6, c.nam
 var POSE = ['stand', 'jump', 'cling', 'fall'];
 function item(box, kind, it) {
   box.appendChild(fig(96, 56, 1.5, it.name, function (g, P, t) {
-    var cs = it.id === 'stripe' ? Kabe.SCARF_COLORS : Kabe.OUTFIT_COLORS, c = cs[Math.floor(t / 1.6) % cs.length].id;
+    var cs = Kabe.OUTFIT_COLORS, c = cs[Math.floor(t / 1.6) % cs.length].id;
     g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(4, 10, 36, 36);
     Kabe.outfitIcon(g, P, it.id, 22, 28, 1.15, t, c);
-    var look = kind === 'wear' ? { wear: it.id, color: c } : { wear: 'stripe', color: 'red', hat: it.id, hatColor: c };
+    var look = kind === 'wear' ? { wear: it.id, color: c } : kind === 'hat' ? { wear: 'stripe', color: 'red', hat: it.id, hatColor: c } : { wear: 'stripe', color: 'ao', prop: it.id, propColor: c };
     Kabe.withOutfit(look, function () { Kabe.ghost(g, P, 'sheet', POSE[Math.floor(t / 1.2) % POSE.length], 70, 34, t, 1, 1); });
   }));
 }
 Kabe.OUTFIT_ITEMS.wear.forEach(function (it) { item(document.getElementById('wear'), 'wear', it); });
 Kabe.OUTFIT_ITEMS.hat.forEach(function (it) { item(document.getElementById('hat'), 'hat', it); });
+Kabe.OUTFIT_ITEMS.prop.forEach(function (it) { item(document.getElementById('prop'), 'prop', it); });
 </script>

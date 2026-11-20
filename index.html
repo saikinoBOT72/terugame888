@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.21">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.12.22">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -480,12 +480,12 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.12.21"></script>
-<script src="data/pieces.js?v=2026.12.21"></script>
+<script src="catalog/project/components/bundle.js?v=2026.12.22"></script>
+<script src="data/pieces.js?v=2026.12.22"></script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.12.21';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.12.22';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -2295,6 +2295,7 @@ function ghostBB(Q, face, outer) {
   for (const p of Q.scarf) { x0 = Math.min(x0, p[0] - pad); x1 = Math.max(x1, p[0] + pad); y0 = Math.min(y0, p[1] - pad); y1 = Math.max(y1, p[1] + pad); }
   for (const p of Q.hands.concat(Q.feet || [])) { x0 = Math.min(x0, p[0] - 5); x1 = Math.max(x1, p[0] + 5); y0 = Math.min(y0, p[1] - 5); y1 = Math.max(y1, p[1] + 5); }
   if (Kabe.OUTFIT.hat) { y0 = Math.min(y0, Kabe.HAT_TOP[Kabe.OUTFIT.hat] - 6); x0 = Math.min(x0, -20); x1 = Math.max(x1, 20); }   // 帽子（つばと先のゆれの分も）
+  if (Kabe.OUTFIT.prop) { x1 = Math.max(x1, 22); y1 = Math.max(y1, 16); for (const h of Q.hands) y0 = Math.min(y0, h[1] - 22); }   // 小物（口の前・ステッキの星）
   if (Q.zzz) y0 = Math.min(y0, -34);
   if (Q.dizzy) y0 = Math.min(y0, -22);
   const ct = Math.cos(Q.tilt), st = Math.sin(Q.tilt), sx = 1 - Q.sq * 0.6, sy = 1 + Q.sq;
@@ -3850,18 +3851,33 @@ const wearItem = (id, name, colors) => ({ id, name, colors, wear: c => { Kabe.OU
   icon: (g, w, h, t, c) => Kabe.outfitIcon(g, PAL, id, w / 2 + 1, h / 2 + 2, w / 30, t, c) });
 const hatItem = (id, name) => ({ id, name, colors: Kabe.OUTFIT_COLORS, wear: c => { Kabe.OUTFIT.hat = id; Kabe.OUTFIT.hatColor = c; },
   icon: (g, w, h, t, c) => Kabe.outfitIcon(g, PAL, id, w / 2 + 1, h / 2 + 2, w / 30, t, c) });
+const propItem = (id, name) => ({ id, name, colors: Kabe.OUTFIT_COLORS, wear: c => { Kabe.OUTFIT.prop = id; Kabe.OUTFIT.propColor = c; },
+  icon: (g, w, h, t, c) => Kabe.outfitIcon(g, PAL, id, w / 2 + 1, h / 2 + 2, w / 30, t, c) });
 const WARDROBE = [
   { id: 'scarf', name: '着る', items: [
     wearItem('stripe', 'しましまマフラー', Kabe.SCARF_COLORS),
     wearItem('cape', 'マント', Kabe.OUTFIT_COLORS),
     wearItem('ribbon', 'おおきなリボン', Kabe.OUTFIT_COLORS),
     wearItem('bell', 'すずのくびわ', Kabe.OUTFIT_COLORS),
+    wearItem('poncho', 'ポンチョ', Kabe.OUTFIT_COLORS),
+    wearItem('santa', 'サンタのふく', Kabe.OUTFIT_COLORS),
+    wearItem('coat', 'コート', Kabe.OUTFIT_COLORS),
   ] },
   { id: 'hat', name: 'かぶる', optional: true, off: () => { Kabe.OUTFIT.hat = null; }, items: [
     hatItem('knit', 'ニットぼう'),
     hatItem('wizard', 'まほうのぼうし'),
     hatItem('straw', 'むぎわらぼうし'),
     hatItem('crown', 'おうかん'),
+    hatItem('santahat', 'サンタぼうし'),
+    hatItem('hairbow', 'リボン'),
+    hatItem('halo', 'てんしのわっか'),
+  ] },
+  // 小物：口にくわえる（あめ・クリスマスキャンディ・バラ）・手に持つ（ほしのステッキ）。なしでもよい
+  { id: 'prop', name: '小物', optional: true, off: () => { Kabe.OUTFIT.prop = null; }, items: [
+    propItem('lolly', 'あめ'),
+    propItem('wand', 'ほしのステッキ'),
+    propItem('cane', 'クリスマスキャンディ'),
+    propItem('rose', 'バラ'),
   ] },
 ];
 // 2人対戦では着せ替えは全部使える。着ているものは 1P・2P それぞれ別に覚える（ソロの着せ替えは変えない）。2P のはじめはからし色
