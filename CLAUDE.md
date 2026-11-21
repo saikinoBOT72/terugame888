@@ -50,7 +50,7 @@
 - カタログ：変えたファイルだけを `root: catalog`、`file_path` は `design-system.json` の絶対パス、`url` 付きで1回の publish。直前に `project/design-system.json` を `read` して `lastChange` だけ書き換える。`index.d.ts` は `{"from": ..., "contentType": "text/plain"}`。`tokens.css` はカタログのページが作るので送らない（手元の `tokens.css` は本編用に自分で作り直す）。送る前に `list`（scope files）の sha256 と手元を比べて、違うファイルを全部送る。見本は `<!-- @dsCard group=… height=… -->` で始める。
 
 ## 確かめ方（自分でテスト用スクリプトを書かない）
-- 難しさ：`node tools/difficulty.js`（プールごとの中央値と目標、外れたものに▲▽。1つなら id を渡す）。計算は `tools/diff_core.js`（目標 `TARGET` もここ）。易しすぎるパーツには `node tools/harden.js <id> <目標> [ceil]` がトゲを足す案を、難しすぎるパーツには `node tools/ease.js <id> <目標>` がトゲを外す案を、仕掛けが多くて難しすぎるパーツには `node tools/lighten.js <id> <目標>` が仕掛けを1つずつ外す案を出す（どれも書き換えない）。新しいパーツはプールの目標の幅に入れる。目標は 0〜1600m でゆっくり上がる（前の 0〜800m の流れを引きのばした）
+- 難しさ：`node tools/difficulty.js`（プールごとの中央値と目標、外れたものに▲▽。1つなら id を渡す）。計算は `tools/diff_core.js`（目標 `TARGET` もここ）。易しすぎるパーツには `node tools/harden.js <id> <目標> [ceil]` がトゲを足す案を、難しすぎるパーツには `node tools/ease.js <id> <目標>` がトゲを外す案を、仕掛けが多くて難しすぎるパーツには `node tools/lighten.js <id> <目標>` が仕掛けを1つずつ外す案を出す（どれも書き換えない）。新しいパーツはプールの目標の幅に入れる。目標は 700m の 2.4 まで上がり、上空（800m〜）はほぼ平ら（1100m で 2.5）
 - パーツ・動き・当たり判定：`node tools/check.js`（1つなら `node tools/check.js z1_funnel`）。全部 OK・詰み0が必須。回る棒・箱・シャッターはチェックでは「無い」扱いなので、壁の張り付き位置に届かないかは自分で確かめる。
 - 本物の動きで遊ばせる：`node tools/bot.js <id | プール番号 | all> [-n 12] [-j 4]`（ボットが本物の `update()` で動く物ごと遊ぶ。2手先まで試して選び、押す時間に人っぽいずれ ±15/40/80ms。ずれ0 でノーダメで抜けられないと NG。成功率から「ボD」。中身は `tools/bot_core.js`。`index.html?bot` のときだけ読み込まれ、index.html の中で eval される。`?bot=<id>` は本物の画面で再生（`pools.html` の「ボット ▶」）。1パーツ10〜60秒）
 - 本編の見た目や処理：`node tools/smoke.js 20`（ガチャ所は自動で閉じる）。
