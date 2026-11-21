@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.1">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.2">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -519,13 +519,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.21.1"></script>
-<script src="data/pieces.js?v=2026.11.21.1"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.1"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.21.2"></script>
+<script src="data/pieces.js?v=2026.11.21.2"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.2"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.21.1';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.21.2';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4277,6 +4277,20 @@ $('btnUpdate').onclick = async () => {
   } catch (e) {}
   location.replace(location.pathname + '?v=' + Date.now());
 };
+// 起動したとき・アプリに戻ったときに新しい版を確かめる。タイトルにいれば読み直す（同じ版へは1回だけ。2人対戦の中では親ページにまかせる）
+async function autoUpdate() {
+  if (VERSUS || location.protocol !== 'https:') return;
+  try {
+    const r = await fetch(location.pathname + '?t=' + Date.now(), { cache: 'no-store' });
+    const m = r.ok && (await r.text()).match(/VERSION = '(\d[^']*)'/);
+    if (!m || m[1] === VERSION) return;
+    const tried = sessionStorage.getItem('kabe_upd');
+    if (state === 'title' && tried !== m[1]) { sessionStorage.setItem('kabe_upd', m[1]); location.replace(location.pathname + '?v=' + Date.now()); }
+    else $('btnUpdate').textContent = '新しい版あり';
+  } catch (e) {}
+}
+setTimeout(autoUpdate, 1500);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) autoUpdate(); });
 $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard').onclick = shareCard;
 const toTitle = () => { TITLE.t = 0; state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
 $('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ

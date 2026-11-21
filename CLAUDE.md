@@ -9,7 +9,7 @@
 |---|---|
 | `index.html` | 本編。`bundle.js`（`Kabe`）・`catalog/project/tokens.css`・`data/pieces.js` を読み込む |
 | `data/pieces.js` | パーツ `piece(...)` とプール `POOLS`（`KABE_DATA`）。本編・2人対戦・`pools.html` が共通で読む |
-| `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（オフラインは sw.js が前に取ったものを返す。アイコンは `tools/make_icon.js`） |
+| `manifest.webmanifest`・`sw.js`・`icons/` | ホーム画面アプリ用（sw.js は毎回サーバーに確かめ、取れないときだけ前に取ったものを返す。控えは `?v=` ごと。起動時と戻ったときに `autoUpdate` が新しい版を見て、タイトルなら読み直す。アイコンは `tools/make_icon.js`） |
 
 モードは `MODE`（simple＝シンプルジャンプ／advance＝アドバンス。`MODES`・「モード」の区切り。復活は `respDown`→`respawn`）。タイトル `#ovTitle`：モード選び・プレイ・着せ替え（`WARDROBE`：着る `scarf`・かぶる `hat`・小物 `prop`。絵は `Kabe.OUTFIT`・`outfitIcon`。最初から全部選べる。着ているもの `kabe_look2`）・設定（`#ovSettings`。タブ：音・画面・その他）。ろうそく・ろうそくガチャはやめた（絵の `Kabe.candle`・`gachaLantern` はカタログに残す）。UI は文の長さ・タブ・モードを変えてもボタンが動かないように、枠の高さを決めておく（モードの枠 `.modeBox`、設定の `.setList`、着せ替えの色 `.swatches`）。「ひとりで」の横の「ふたりで」は `versus.html` へ。右上「開発」に開発用ページへのリンク。
 
