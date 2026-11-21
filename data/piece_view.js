@@ -8,50 +8,56 @@ const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['und
 const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Math.floor(m / 100)))]; return K.stagePal(L[0], L[1]); };
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
   O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '-': '雷の柱（横）', E: '雷の装置', H: 'ぽよんブロック', '{': '突風', '}': '突風', W: '風車' };
+const SKY = { bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5 };   // 本編の SKY と同じ（曲がるトゲブロック）
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 
 // パーツ1つを描く。rows は上の行から
-function prepare(pc) {
-  const rows = pc.rows.slice().reverse(), h = rows.length, at = (c, r) => (rows[r] || '')[c] || '.';
+// タイミング（ずらし）は本編の addObstacles と同じ式。本編の行は下から数えたステージ全体の行なので、
+// パーツのいちばん下を行 r0（ふつう 0）に置いたものとして数える（機雷・雷は置く高さで変わるので、r0 を変えると別の出方になる）
+function prepare(pc, r0 = 0) {
+  const rows = pc.rows.slice().reverse(), h = rows.length, at = (c, r) => (rows[r] || '')[c] || '.', R = r => r0 + h - 1 - r;
   const map = rows.map(r => r.replace(/[Kk]/g, '#').replace(/[^#.^/\\]/g, '.'));
   const grid = K.grid(map, '.'), obs = [], seen = new Set();
   // 曲がるトゲブロックの道すじ：同じ文字のつながりを端からたどって、角の点だけ残す
-  const railOf = (c0, r0, ch) => {
-    const cells = [], q = [[c0, r0]]; seen.add(c0 + ',' + r0);
-    while (q.length) { const [c, r] = q.pop(); cells.push([c, r]); for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (c + dc) + ',' + (r + dr); if (at(c + dc, r + dr) === ch && !seen.has(k)) { seen.add(k); q.push([c + dc, r + dr]); } } }
+  // 曲がるトゲブロック：本編の railObstacle と同じ（行は下から数える。下の行・左の列から見つけ、同じ順にたどり、角と端で止まる）
+  const B = (c, rb) => rb >= 0 && rb < h ? at(c, h - 1 - rb) : '.';
+  const railOf = (c0, rb0, ch) => {
+    const cells = [], q = [[c0, rb0]]; seen.add(c0 + ',' + rb0);
+    while (q.length) { const [c, r] = q.pop(); cells.push([c, r]); for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (c + dc) + ',' + (r + dr); if (B(c + dc, r + dr) === ch && !seen.has(k)) { seen.add(k); q.push([c + dc, r + dr]); } } }
     const nb = ([c, r]) => cells.filter(([a, b]) => Math.abs(a - c) + Math.abs(b - r) === 1);
     let cur = cells.find(p => nb(p).length <= 1) || cells[0]; const order = [cur], used = new Set([cur.join()]);
     for (;;) { const nx = nb(cur).find(p => !used.has(p.join())); if (!nx) break; order.push(nx); used.add(nx.join()); cur = nx; }
-    const pts = []; order.forEach((p, i) => { const a = order[i - 1], b = order[i + 1]; if (!a || !b || p[0] - a[0] !== b[0] - p[0] || p[1] - a[1] !== b[1] - p[1]) pts.push([(p[0] + 0.5) * CELL, (p[1] + 0.5) * CELL]); });
-    let len = 0; for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
-    return { k: 'rail', pts, len, w: ch === 'J' ? 18 : 36, h: ch === 'J' ? 36 : 18 };
+    const pts = []; order.forEach((p, i) => { const a = order[i - 1], b = order[i + 1]; if (!a || !b || p[0] - a[0] !== b[0] - p[0] || p[1] - a[1] !== b[1] - p[1]) pts.push([(p[0] + 0.5) * CELL, (h - p[1] - 0.5) * CELL]); });
+    const plan = [], go = list => { for (let i = 0; i < list.length - 1; i++) { const a = list[i], b = list[i + 1]; plan.push({ a, b, d: Math.hypot(b[0] - a[0], b[1] - a[1]) / SKY.bendSpeed }); plan.push({ a: b, b, d: i === list.length - 2 ? SKY.bendEnd : SKY.bendCorner }); } };
+    go(pts); go(pts.slice().reverse());
+    return { k: 'rail', pts, plan, period: plan.reduce((s2, p) => s2 + p.d, 0), off: c0 * 0.41 + (r0 + rb0) * 0.23, w: ch === 'J' ? 18 : 36, h: ch === 'J' ? 36 : 18 };
   };
   rows.forEach((row, r) => [...row].forEach((ch, c) => {
     const x = c * CELL, y = r * CELL;
     if (ch === 'p' || ch === 'q') obs.push({ k: 'pop', x, y, q: ch === 'q', dir: at(c - 1, r) === '#' ? 'L' : at(c + 1, r) === '#' ? 'R' : at(c, r + 1) === '#' ? 'B' : 'T' });
     if (ch === '>' || ch === '<') { const d = ch === '>' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'fan', x: fx, y: y + CELL / 2, dir: d > 0 ? 'R' : 'L', reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx) }); }
-    if (ch === 'X' && at(c - 1, r) !== 'X') { let e = c; while (at(e + 1, r) === 'X') e++; obs.push({ k: 'x', x0: (c + 0.5) * CELL, x1: (e + 0.5) * CELL, y: y + CELL / 2, period: (e - c) * CELL / 45 + 1, off: c * 0.7 + r * 0.3 }); }
-    if (ch === 'Y' && at(c, r - 1) !== 'Y') { let e = r; while (at(c, e + 1) === 'Y') e++; obs.push({ k: 'y', x: (c + 0.5) * CELL, y0: (e + 0.5) * CELL, y1: (r + 0.5) * CELL, period: (e - r) * CELL / 45 + 1, off: c * 0.5 + r * 0.3 }); }
+    if (ch === 'X' && at(c - 1, r) !== 'X') { let e = c; while (at(e + 1, r) === 'X') e++; obs.push({ k: 'x', x0: (c + 0.5) * CELL, x1: (e + 0.5) * CELL, y: y + CELL / 2, period: (e - c) * CELL / 45 + 1, off: c * 0.7 + R(r) * 0.3 }); }
+    if (ch === 'Y' && at(c, r - 1) !== 'Y') { let e = r; while (at(c, e + 1) === 'Y') e++; obs.push({ k: 'y', x: (c + 0.5) * CELL, y0: (e + 0.5) * CELL, y1: (r + 0.5) * CELL, period: (e - r) * CELL / 45 + 1, off: c * 0.5 + R(e) * 0.3 }); }
     if (ch === 'T') obs.push({ k: 'spin', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 1.5 : -1.5 });
-    if (ch === '=' && at(c - 1, r) !== '=') { let e = c; while (at(e + 1, r) === '=') e++; obs.push({ k: 'shut', x0: x, x1: (e + 1) * CELL, y: y + CELL / 2, off: r * 0.7 }); }
+    if (ch === '=' && at(c - 1, r) !== '=') { let e = c; while (at(e + 1, r) === '=') e++; obs.push({ k: 'shut', x0: x, x1: (e + 1) * CELL, y: y + CELL / 2, off: R(r) * 0.7 }); }
     const wall = cc => '#Kk'.includes(at(cc, r));
-    if (ch === 'O') obs.push({ k: 'pend', x: x + CELL / 2, y, off: c * 0.31 + r * 0.53 });
-    if (ch === 'K' || ch === 'k') { const d = ch === 'K' ? 1 : -1; let k = c + d; while (k >= 0 && k < 20 && !wall(k)) k += d; const fx = d > 0 ? x + CELL : x; obs.push({ k: 'can', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? k * CELL : (k + 1) * CELL) - fx), off: c * 0.9 + r * 0.41 }); }
-    if ((ch === 'Z' || ch === 'B') && at(c - 1, r) !== ch) { let e = c; while (at(e + 1, r) === ch) e++; const d = wall(c - 1) ? 1 : -1; obs.push({ k: ch === 'Z' ? 'stake' : 'bridge', x0: d > 0 ? x : (e + 1) * CELL, y: y + CELL / 2, dir: d, len: (e - c + 1) * CELL, off: c * 0.4 + r * 0.37 }); }
+    if (ch === 'O') obs.push({ k: 'pend', x: x + CELL / 2, y, off: c * 0.31 + R(r) * 0.53 });
+    if (ch === 'K' || ch === 'k') { const d = ch === 'K' ? 1 : -1; let k = c + d; while (k >= 0 && k < 20 && !wall(k)) k += d; const fx = d > 0 ? x + CELL : x; obs.push({ k: 'can', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? k * CELL : (k + 1) * CELL) - fx), off: c * 0.9 + R(r) * 0.41 }); }
+    if ((ch === 'Z' || ch === 'B') && at(c - 1, r) !== ch) { let e = c; while (at(e + 1, r) === ch) e++; const d = wall(c - 1) ? 1 : -1; obs.push({ k: ch === 'Z' ? 'stake' : 'bridge', x0: d > 0 ? x : (e + 1) * CELL, y: y + CELL / 2, dir: d, len: (e - c + 1) * CELL, off: c * 0.4 + R(r) * 0.37 }); }
     if (ch === 'S') obs.push({ k: 'spring', x, y });
     if (ch === '%' && at(c - 1, r) !== '%') { let e = c; while (at(e + 1, r) === '%') e++; obs.push({ k: 'crumble', x, y, n: e - c + 1 }); }
     // 上空の仕掛け
     if (ch === '~' && at(c - 1, r) !== '~') { let e = c; while (at(e + 1, r) === '~') e++; obs.push({ k: 'cloud', x, y, w: (e - c + 1) * CELL }); }
-    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, r, 13) * 4, per: 2.8 * (0.85 + K.hash(c, r, 15) * 0.3), amp: 12 * (0.75 + K.hash(c, r, 14) * 0.5) });   // 本編と同じずらし方
+    if (ch === 'M') obs.push({ k: 'mine', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 13) * 4, per: 2.8 * (0.85 + K.hash(c, R(r), 15) * 0.3), amp: 12 * (0.75 + K.hash(c, R(r), 14) * 0.5) });   // 本編と同じずらし方
     if (ch === 'W') obs.push({ k: 'mill', x: x + CELL / 2, y: y + CELL / 2, speed: c < 10 ? 0.9 : -0.9 });
     if (ch === 'E') {   // 雷の装置：下へ | が続いて E があれば縦、右へ - が続いて E があれば横
-      if (at(c, r + 1) === '|') { let e = r + 1; while (at(c, e) === '|') e++; if (at(c, e) === 'E') obs.push({ k: 'bolt', v: true, x: x + CELL / 2, a: (r + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'down'], [x + CELL / 2, (e + 0.5) * CELL, 'up']], off: K.hash(c, r, 21) * 2.8 }); }
-      if (at(c + 1, r) === '-') { let e = c + 1; while (at(e, r) === '-') e++; if (at(e, r) === 'E') obs.push({ k: 'bolt', v: false, y: y + CELL / 2, a: (c + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'right'], [(e + 0.5) * CELL, y + CELL / 2, 'left']], off: K.hash(c, r, 22) * 2.8 }); }
+      if (at(c, r + 1) === '|') { let e = r + 1; while (at(c, e) === '|') e++; if (at(c, e) === 'E') obs.push({ k: 'bolt', v: true, x: x + CELL / 2, a: (r + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'down'], [x + CELL / 2, (e + 0.5) * CELL, 'up']], off: K.hash(c, R(r), 21) * 2.8 }); }
+      if (at(c + 1, r) === '-') { let e = c + 1; while (at(e, r) === '-') e++; if (at(e, r) === 'E') obs.push({ k: 'bolt', v: false, y: y + CELL / 2, a: (c + 1) * CELL, b: e * CELL, ends: [[x + CELL / 2, y + CELL / 2, 'right'], [(e + 0.5) * CELL, y + CELL / 2, 'left']], off: K.hash(c, R(r), 22) * 2.8 }); }
     }
     if (ch === 'H') obs.push({ k: 'jelly', x, y });
-    if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: r * 0.47 }); }
-    if ((ch === 'J' || ch === 'L') && !seen.has(c + ',' + r)) obs.push(railOf(c, r, ch));
+    if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: R(r) * 0.47 }); }
   }));
+  for (let rb = 0; rb < h; rb++) for (let c = 0; c < 20; c++) { const ch = B(c, rb); if ((ch === 'J' || ch === 'L') && !seen.has(c + ',' + rb)) obs.push(railOf(c, rb, ch)); }
   if (pc.station) obs.push({ k: 'house', x: (pc.station.c + 0.5) * CELL, y: (pc.rows.length - pc.station.r) * CELL });   // G のマスに家
   const kinds = [...new Set(rows.join('').split('').filter(ch => NAMES[ch]).map(ch => NAMES[ch]))];
   return { w: 20 * CELL, h: h * CELL, grid, obs, kinds };
@@ -87,9 +93,9 @@ function draw(g, P, d, t) {
     }
     else if (o.k === 'jelly') K.jellyBlock(g, P, o.x, o.y, 0);
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
-    else if (o.k === 'rail') {   // 道すじを一定の速さで往復（本編は角で少し止まる）
-      K.railPath(g, P, o.pts); let u = (t * 50) % (o.len * 2); if (u > o.len) u = o.len * 2 - u;
-      let x = o.pts[0][0], y = o.pts[0][1]; for (let i = 1; i < o.pts.length; i++) { const a = o.pts[i - 1], b = o.pts[i], d = Math.hypot(b[0] - a[0], b[1] - a[1]); if (u <= d) { x = a[0] + (b[0] - a[0]) * u / d; y = a[1] + (b[1] - a[1]) * u / d; break; } u -= d; x = b[0]; y = b[1]; }
+    else if (o.k === 'rail') {   // 本編の railPos と同じ（角と端で止まり、なめらかに動き出す）
+      K.railPath(g, P, o.pts); let u = ((t + o.off) % o.period + o.period) % o.period, x = o.pts[0][0], y = o.pts[0][1];
+      for (const p of o.plan) { if (u <= p.d) { const k = p.d ? u / p.d : 1, e = k * k * (3 - 2 * k); x = p.a[0] + (p.b[0] - p.a[0]) * e; y = p.a[1] + (p.b[1] - p.a[1]) * e; break; } u -= p.d; }
       K.spikeBlock(g, P, x - o.w / 2, y - o.h / 2, o.w, o.h);
     }
   }
