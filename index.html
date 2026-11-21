@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.2">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.3">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -334,8 +334,9 @@
   @keyframes pop { 0% { transform: translateY(calc(var(--u) * 2px)) scale(.93); } 55% { transform: scale(1.06); } 100% { transform: none; } }
   .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
   .ov.leave { background: transparent; pointer-events: none; }
-  .endPath { position: absolute; left: 0; top: 0; pointer-events: none; }
   #ovEnd > .card { position: relative; }
+  #ovCard { z-index: 5; }   /* 結果の画像：共有・保存の前に見せる */
+  #cardImg { width: 100%; max-width: calc(var(--u) * 300px); aspect-ratio: 1; border-radius: calc(var(--u) * 10px); display: block; box-shadow: 0 calc(var(--u) * 3px) 0 rgba(0,0,0,.25); }
   .endHero { margin: calc(var(--u) * -8px) 0 calc(var(--u) * -10px); }
   .endWhy { display: flex; align-items: center; gap: calc(var(--u) * 6px); margin-top: calc(var(--u) * -6px); color: var(--dim); font-weight: 800; font-size: calc(var(--u) * 12px); }
   #edgeFlash { position: absolute; inset: 0; pointer-events: none; z-index: 3; opacity: 0; border-radius: inherit; box-shadow: inset 0 0 calc(var(--u) * 46px) calc(var(--u) * 6px) rgba(242,211,107,.85); }
@@ -505,7 +506,6 @@
     <div id="edgeFlash" aria-hidden="true"></div>
     <canvas class="uic gshow" id="gShow" data-w="360" data-h="640" role="img" aria-label="ガチャの演出（タップで先へ）" hidden></canvas>
     <section id="ovEnd" class="ov" hidden>
-      <canvas class="uic endPath" id="endPath" data-w="360" data-h="640" aria-hidden="true"></canvas>
       <div class="card">
         <canvas class="uic endHero" id="endHero" data-w="200" data-h="96" aria-hidden="true" hidden></canvas>
         <h2 id="endTitle">溶岩に呑まれた</h2>
@@ -516,16 +516,23 @@
         <div class="row"><button class="sub" id="btnCard" type="button">結果を画像にする</button><button class="sub" id="btnToTitle" type="button">タイトルへ</button></div>
       </div>
     </section>
+    <section id="ovCard" class="ov" hidden>
+      <div class="card">
+        <img id="cardImg" alt="結果の画像">
+        <button class="btn" id="btnCardGo" type="button">共有する</button>
+        <div class="row"><button class="sub" id="btnCardBack" type="button">もどる</button></div>
+      </div>
+    </section>
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.21.2"></script>
-<script src="data/pieces.js?v=2026.11.21.2"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.2"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.21.3"></script>
+<script src="data/pieces.js?v=2026.11.21.3"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.3"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.21.2';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.21.3';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1127,7 +1134,7 @@ function newGame() {
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, pressAt: -9, landAt: -9, dashCd: 0, diveCd: 0, dashT: 0, dashDir: 1, diving: false, charging: false, chargeT: 0, invMax: INVINCIBLE, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
   if (simpleMode()) { G.hp = 1; G.safe = []; G.downs = 0; }
-  G.recordM = VERSUS || TEST_FROM || TEST_MODE ? 0 : store.get(MODES[MODE].best, 0); G.path = []; G.pathT = 0;   // 最高記録の旗・結果画面の道のり   // シンプルジャンプ：HP なし（1回でやられる）
+  G.recordM = VERSUS || TEST_FROM || TEST_MODE ? 0 : store.get(MODES[MODE].best, 0); // 最高記録の旗   // シンプルジャンプ：HP なし（1回でやられる）
   cam.y = 60 - H; cam.shake = 0; cam.lead = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
   clearBands(); if (glfx) glReset();
   if (TEST_FROM) {
@@ -1299,7 +1306,6 @@ function update(dt) {
     G.recordAt = G.time; G.cheerT = 0.8; floaters.push({ text: '新記録！', x: P.x, y: P.y - 40, life: 1.6 }); sfx.gem2();
     if (!calm) for (let i = 0; i < 44; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 160 + Math.random() * 220; particles.push({ kind: 'dot', x: P.x, y: P.y - 10, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 260, life: 1.2 + Math.random() * 0.6, max: 1.8, r: 1.6 + Math.random(), col: ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff'][i % 4] }); }
   }
-  if (G.path && G.time >= G.pathT) { G.pathT = G.time + 0.2; G.path.push([Math.round(P.x), Math.round(P.y)]); if (G.path.length > 3000) G.path = G.path.filter((_, i) => i % 2 === 0); }
 
   const zoneNow = poolAt(G.best).name;
   if (zoneNow !== G.zone) { G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
@@ -3517,7 +3523,7 @@ function showEnd() {
   $('btnCard').textContent = '結果を画像にする';
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
 }
-/* ---------- 結果画面の演出：数字のカウントアップ・新記録のガッツポーズ・やられた原因の絵と一言・今回の道のり ---------- */
+/* ---------- 結果画面の演出：数字のカウントアップ・新記録のガッツポーズ・やられた原因の絵と一言 ---------- */
 const WHY = {   // やられた原因 → [ポーズ, 一言, 絵の飾り]
   lava: ['dizzy', 'あちち…マフラーがこげそう', 'smoke'], spike: ['dizzy', '目がまわる…', 'stars'], box: ['dizzy', 'はさまれた…', 'stars'], spin: ['dizzy', 'くるくる…', 'stars'],
   pend: ['dizzy', 'ごつん', 'stars'], ball: ['dizzy', 'どーん', 'stars'], mine: ['dizzy', 'ぱちっ', 'stars'], bend: ['dizzy', 'ぶつかった…', 'stars'], bolt: ['dizzy', 'しびれた…', 'zap'], mill: ['dizzy', 'まきこまれた…', 'stars'],
@@ -3527,7 +3533,6 @@ function endFx(newRec) {
   END.t0 = -1; END.newRec = newRec; END.why = WHY[G.cause] || ['sleep', 'ひとやすみ', ''];
   $('endHero').hidden = !newRec;
   $('endLine').textContent = END.why[1];
-  const pf = $('endPath'); pf.dataset.w = W; pf.dataset.h = H;
   if (reduceMotion) return;
   [...$('endStats').querySelectorAll('dd')].forEach((dd, i) => {   // 41. 数字を0から数え上げる（下の行ほど少し遅れて）
     const mt = dd.textContent.match(/^(\d+(?:\.\d+)?)(.*)$/); if (!mt) return;
@@ -3551,17 +3556,6 @@ uiCanvas($('endIcon'), (g, t, w, h) => {
   if (why[2] === 'smoke') for (let i = 0; i < 3; i++) { const ph = (t * 0.7 + i / 3) % 1; g.fillStyle = `rgba(120,110,120,${0.5 * (1 - ph)})`; g.beginPath(); g.arc(w / 2 - 8 + i * 8 + Math.sin(t * 2 + i) * 2, h / 2 + 2 - ph * 18, 2.5 + ph * 3, 0, Math.PI * 2); g.fill(); }
   else if (why[2] === 'zap') { g.strokeStyle = '#f2d36b'; g.lineWidth = 1.4; for (const s of [-1, 1]) { const x = w / 2 + s * 14; g.beginPath(); g.moveTo(x, h / 2 - 10); g.lineTo(x - s * 4, h / 2 - 4); g.lineTo(x + s * 2, h / 2 - 2); g.lineTo(x - s * 3, h / 2 + 5); g.stroke(); } }
   else if (why[2] === 'stars') for (let i = 0; i < 3; i++) { const a = t * 3 + i * 2.09; g.fillStyle = '#f2d36b'; g.font = '8px sans-serif'; g.textAlign = 'center'; g.fillText('★', w / 2 + Math.cos(a) * 12, h / 2 - 12 + Math.sin(a) * 3); }
-});
-// 40. 今回の道のり：結果画面の後ろで、下から上へ光る線でなぞる（高さを画面に合わせて縮める）
-uiCanvas($('endPath'), (g, t, w, h) => {
-  const pts = G && G.path; if (!pts || pts.length < 2) return;
-  if (END.t0 < 0) END.t0 = t;
-  let y0 = Infinity, y1 = -Infinity; for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
-  const sy = Math.min(1, (h - 80) / Math.max(1, y1 - y0)), sx = w / W, k = reduceMotion ? 1 : Math.min(1, (t - END.t0) / 1.8), n = Math.max(2, Math.floor(pts.length * (1 - (1 - k) ** 2)));
-  const px = p => p[0] * sx, py = p => h - 40 - (y1 - p[1]) * sy;
-  g.lineCap = g.lineJoin = 'round';
-  for (const [lw, a] of [[7, 0.12], [2.2, 0.65]]) { g.strokeStyle = rgba(PAL.glow, a); g.lineWidth = lw; g.beginPath(); g.moveTo(px(pts[0]), py(pts[0])); for (let i = 1; i < n; i++) g.lineTo(px(pts[i]), py(pts[i])); g.stroke(); }
-  const e = pts[n - 1]; g.fillStyle = rgba('#ffffff', 0.9); g.beginPath(); g.arc(px(e), py(e), 3, 0, Math.PI * 2); g.fill();
 });
 });
 /* ---------- 結果カード：着いた高さの景色・オバケ・高さ・持っていた水晶を 1080×1080 の絵にして、共有（スマホ）か保存 ---------- */
@@ -3602,17 +3596,27 @@ function makeCard(info) {
   if (/^https?:/.test(location.protocol)) { g.textAlign = 'right'; g.fillText((location.host + location.pathname).replace(/index\.html$/, ''), 320, 340); }
   return c;
 }
+// 結果を画像にする：まず絵を見せて、「共有する」（共有できない所では「保存する」）を押したときに出す
+const CARD = { blob: null, name: '', url: '' };
 async function shareCard() {
   const b = $('btnCard'), info = G.cardInfo; if (!info) return;
   b.disabled = true; b.textContent = 'つくっています…';
   try {
     if (document.fonts && document.fonts.load) await document.fonts.load(`800 54px "M PLUS Rounded 1c"`).catch(() => {});
-    const c = makeCard(info), blob = await new Promise(r => c.toBlob(r, 'image/png')), name = `kabegeri-${info.m}m.png`;
-    const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
-    if (file && navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: `おばけじゃんぴんぐで ${info.m}m 登った！` }).catch(() => {}); b.textContent = '結果を画像にする'; }
-    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); b.textContent = '保存しました'; }
+    const c = makeCard(info), blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    if (CARD.url) URL.revokeObjectURL(CARD.url);
+    Object.assign(CARD, { blob, name: `kabegeri-${info.m}m.png`, url: URL.createObjectURL(blob), m: info.m });
+    $('cardImg').src = CARD.url;
+    const go = $('btnCardGo'); go.disabled = false; go.textContent = cardFile() && navigator.canShare && navigator.canShare({ files: [cardFile()] }) ? '共有する' : '保存する';
+    $('ovCard').hidden = false; b.textContent = '結果を画像にする';
   } catch (e) { b.textContent = 'うまく作れなかった'; }
   b.disabled = false;
+}
+function cardFile() { return CARD.blob && typeof File === 'function' ? new File([CARD.blob], CARD.name, { type: 'image/png' }) : null; }
+async function cardGo() {
+  const go = $('btnCardGo'), file = cardFile(); if (!file) return;
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text: `おばけじゃんぴんぐで ${CARD.m}m 登った！` }).catch(() => {}); return; }
+  const a = document.createElement('a'); a.href = CARD.url; a.download = CARD.name; document.body.append(a); a.click(); a.remove(); go.textContent = '保存しました';
 }
 /* ---------- 画面の表示に置く小さな絵（canvas に data-w・data-h、draw(g, t) で毎フレーム描く） ---------- */
 const uiDraws = new Map();
@@ -4291,7 +4295,7 @@ async function autoUpdate() {
 }
 setTimeout(autoUpdate, 1500);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) autoUpdate(); });
-$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard').onclick = shareCard;
+$('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard').onclick = shareCard; $('btnCardGo').onclick = cardGo; $('btnCardBack').onclick = () => { $('ovCard').hidden = true; };
 const toTitle = () => { TITLE.t = 0; state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
 $('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ
 $('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
@@ -4477,13 +4481,21 @@ const MODES = {
 function simpleMode() { return MODE === 'simple'; }
 // 立てた・張り付けた所を覚えておく（復活の場所）
 function respSafe() {
-  if (!canAct(P) || G.inv > 0) return;
+  if (!canAct(P) || G.inv > 0 || P.on) return;   // 動く物の上・横は覚えない（復活のときそこに無いかもしれない）
   const s = G.safe || (G.safe = []), l = s[s.length - 1];
-  if (!l || Math.hypot(l.x - P.x, l.y - P.y) > CELL) { s.push({ x: P.x, y: P.y, side: P.side, ground: P.ground, face: P.face }); if (s.length > 80) s.shift(); }
+  if (!l || Math.hypot(l.x - P.x, l.y - P.y) > CELL) { s.push({ x: P.x, y: P.y, side: P.side, ground: P.ground, face: P.face, wn: { x: P.wn.x, y: P.wn.y } }); if (s.length > 80) s.shift(); }
+}
+// 復活の体（張り付く向き wn も戻す。前の壁の向きのままだと壁から離れて落ちる）
+const respBody = r => ({ x: r.x, y: r.y, vx: 0, vy: 0, side: r.side, ground: r.ground, wn: r.wn ? { x: r.wn.x, y: r.wn.y } : { x: -r.side || 1, y: 0 }, slideV: 0, slideTo: 0, air: MOVE.airJumps, squash: 0, face: r.face || 1, on: null, grace: 0, graceSide: null });
+// その場所で本当に掴まれる・立てるか（少し動かして、離れたり痛かったりしないか）
+function respOk(r) {
+  const b = Object.assign({}, P, respBody(r));
+  for (let i = 0; i < 12; i++) { physStep(world, b, 1 / 120); if (!b.side && !b.ground) return false; }
+  return !spikeHit(world, b.x, b.y, null);
 }
 function respDown() {
   const s = G.safe || [], minY = P.y + RESP.back * PX_PER_M;
-  let pt = null; for (let i = s.length - 1; i >= 0; i--) if (s[i].y >= minY) { pt = s[i]; break; }
+  let pt = null; for (let i = s.length - 1; i >= 0; i--) if (s[i].y >= minY && respOk(s[i])) { pt = s[i]; break; }
   G.resp = pt || s[0] || { x: 2 * CELL + HB, y: -HB, side: 0, ground: true, face: -1 };
   G.downs = (G.downs || 0) + 1;
 }
@@ -4517,7 +4529,7 @@ function respTick(dt) {
 }
 function respawn() {
   const r = G.resp; G.resp = null;
-  Object.assign(P, { x: r.x, y: r.y, vx: 0, vy: 0, side: r.side, ground: r.ground, air: MOVE.airJumps, squash: 0, slideTo: 0, face: r.face || 1 });
+  Object.assign(P, respBody(r));
   state = 'play'; $('pauseBtn').hidden = false; G.hp = 1; G.inv = G.invMax = RESP.inv; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
   cam.y = P.y - H * 0.55; sfx.start();
 }
