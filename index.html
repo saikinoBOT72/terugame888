@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.26">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.1">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -519,13 +519,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.26"></script>
-<script src="data/pieces.js?v=2027.01.26"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.26"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.21.1"></script>
+<script src="data/pieces.js?v=2026.11.21.1"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.1"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.26';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.21.1';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4504,7 +4504,7 @@ function respTick(dt) {
 function respawn() {
   const r = G.resp; G.resp = null;
   Object.assign(P, { x: r.x, y: r.y, vx: 0, vy: 0, side: r.side, ground: r.ground, air: MOVE.airJumps, squash: 0, slideTo: 0, face: r.face || 1 });
-  state = 'play'; G.hp = 1; G.inv = G.invMax = RESP.inv; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
+  state = 'play'; $('pauseBtn').hidden = false; G.hp = 1; G.inv = G.invMax = RESP.inv; G.clingT = 0; G.dashT = 0; G.diving = false; G.charging = false; G.cause = ''; A.flip = 0; A.hurtSpin = 0; trail = [];
   cam.y = P.y - H * 0.55; sfx.start();
 }
 // 画面の下の札：復活待ち（「復活まで ○ ▼ 溶岩まで ○m」）と、2人対戦のガチャ所の中の「溶岩まで」（本編の HUD はそこでは出ないので）
