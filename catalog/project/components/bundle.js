@@ -132,6 +132,18 @@ window.Kabe = (function () {
         col: { bgTop: '#4a5f8f', bgBottom: '#98abd0', far: '#c2cde6', strataA: '#8fa5cc', strataB: '#9db1d6' } },
       { name: '嵐の前', amb: 0.92, bloom: 0.45, lightK: 0.6, weather: { wind: 0.6 },
         col: { bgTop: '#3d4a74', bgBottom: '#7f8fb8', far: '#a8b4d4', strataA: '#7a8db6', strataB: '#8798c0' } }
+    ],
+    // 宇宙（1200〜1600m）：上へ行くほど暗く、星が多く。地形は星くずのふちとクレーター
+    space: [
+      { name: '大気のはて', amb: 1.0, bloom: 0.6, lightK: 0.7,
+        col: { bgTop: '#151a4c', bgBottom: '#34448a', far: '#4a5aa0', strataA: '#26306e', strataB: '#2c3878', terrain: '#9690c0', terrainLight: '#c6c0ea', terrainShade: '#7068a0',
+          terrainDeep: '#746ca2', terrainLine: '#837bb2', terrainGrain: '#aba4d2', accent: '#9fe8ff', accentShade: '#6ab8d8', glow: '#cfe6ff' } },
+      { name: '月の岩場', amb: 0.98, bloom: 0.6, lightK: 0.75,
+        col: { bgTop: '#100e2c', bgBottom: '#272452', far: '#3a3670', strataA: '#1b1840', strataB: '#211d4a', terrain: '#a19eb6', terrainLight: '#d0cede', terrainShade: '#7c7894',
+          terrainDeep: '#7d7a94', terrainLine: '#8c88a4', terrainGrain: '#b6b3c8', accent: '#d8d4f0', accentShade: '#a9a4c8', glow: '#f2eccb' } },
+      { name: '衛星の輪', amb: 0.96, bloom: 0.65, lightK: 0.75 },
+      { name: '星の海', amb: 0.94, bloom: 0.75, lightK: 0.8,
+        col: { bgTop: '#07051a', bgBottom: '#170f38', far: '#2a1d5a', strataA: '#100a2a', strataB: '#140d32', glow: '#e3d6ff', accent: '#ffd9f4', accentShade: '#d6a8cc' } }
     ]
   };
   var stageCache = {};
@@ -219,7 +231,8 @@ window.Kabe = (function () {
   var MID_SLOT = 260, MID_K = 0.7;
   var MID_KINDS = {
     underground: [['crystals', 'column', 'rope'], ['beam', 'cart', 'ladder', 'rope'], ['gear', 'girder', 'pipes', 'sign', 'lamp'], ['ladder', 'sign', 'rope', 'crystals']],
-    surface: [['ruins', 'steps', 'flag'], ['windmill', 'vane', 'arch'], ['aqueduct', 'wheel', 'ruins'], ['tower', 'cairn', 'flag']]
+    surface: [['ruins', 'steps', 'flag'], ['windmill', 'vane', 'arch'], ['aqueduct', 'wheel', 'ruins'], ['tower', 'cairn', 'flag']],
+    space: [['dish', 'girder', 'lamp'], ['flag', 'dish', 'crystals'], ['satellite', 'girder', 'pipes'], ['satellite', 'dish', 'tower']]
   };
   function midHaze(P) { return mixHex(mixHex(P.far, P.strataB, 0.5), P.terrainDeep, 0.26); }   // 背景より少し明るく、地形よりずっと暗い
   function midLit(P) { return mixHex(midHaze(P), P.glow, 0.4); }
@@ -275,6 +288,11 @@ window.Kabe = (function () {
         g.fillStyle = L; R(x + d * 30 * k - (d < 0 ? 3 * k : 0), y - 40 * k, 3 * k, 52 * k); break;   // こわれた端から落ちる水
       case 'wheel': R(x - 2 * k, y - 16 * k, 4 * k, 16 * k); break;
       case 'tower': R(x - 7 * k, y - 80 * k, 14 * k, 80 * k); g.beginPath(); g.moveTo(x - 10 * k, y - 80 * k); g.lineTo(x, y - 94 * k); g.lineTo(x + 10 * k, y - 80 * k); g.closePath(); g.fill(); g.fillStyle = L; g.beginPath(); g.arc(x, y - 70 * k, 3.4 * k, Math.PI, 0); g.lineTo(x + 3.4 * k, y - 66 * k); g.lineTo(x - 3.4 * k, y - 66 * k); g.closePath(); g.fill(); break;
+      case 'dish': R(x - 2 * k, y - 34 * k, 4 * k, 34 * k); R(x - 9 * k, y - 4 * k, 18 * k, 4 * k); g.save(); g.translate(x, y - 40 * k); g.rotate(d * -0.5); g.beginPath(); g.ellipse(0, 0, 16 * k, 7 * k, 0, 0, Math.PI); g.closePath(); g.fill();
+        g.lineWidth = 1.2; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -12 * k); g.stroke(); g.fillStyle = L; g.beginPath(); g.arc(0, -13 * k, 2.2 * k, 0, Math.PI * 2); g.fill(); g.restore(); break;   // パラボラアンテナ
+      case 'satellite': { var sy = y - 70 * k - hash(o.i, 83) * 30 * k; R(x - 7 * k, sy - 6 * k, 14 * k, 12 * k); R(x - 34 * k, sy - 4 * k, 22 * k, 8 * k); R(x + 12 * k, sy - 4 * k, 22 * k, 8 * k);
+        g.lineWidth = 1; g.beginPath(); g.moveTo(x - 12 * k, sy); g.lineTo(x - 7 * k, sy); g.moveTo(x + 7 * k, sy); g.lineTo(x + 12 * k, sy); g.moveTo(x, sy - 6 * k); g.lineTo(x + d * 4 * k, sy - 14 * k); g.stroke();
+        g.fillStyle = L; g.beginPath(); g.arc(x + d * 4 * k, sy - 15 * k, 1.8 * k, 0, Math.PI * 2); g.fill(); break; }   // 古い人工衛星（宙に浮いている）
       case 'cairn': for (i = 0; i < 4; i++) { var cw2 = (11 - i * 2.4) * k; g.beginPath(); g.ellipse(x + (hash(o.i, 90 + i) - 0.5) * 3, y - 4 * k - i * 7.4 * k, cw2, 4 * k, 0, 0, Math.PI * 2); g.fill(); } break;
     }
   }
@@ -587,7 +605,7 @@ window.Kabe = (function () {
   // ただよう機雷：トゲのついた金属の玉
   function mine(g, P, x, y, r) {
     r = r || 8; var i, a;
-    blade(g, P, function () { g.beginPath(); for (i = 0; i < 16; i++) { a = i / 16 * Math.PI * 2; var rr2 = i % 2 ? r + 0.5 : r + 5; g.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); } g.closePath(); });
+    blade(g, P, function () { g.beginPath(); for (i = 0; i < 16; i++) { a = i / 16 * Math.PI * 2; var rr2 = i % 2 ? r - 0.3 : r + r * 0.32; g.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); } g.closePath(); });   // トゲは鈍角（先の角度 100 度くらい）
     metalSolid(g, P, function () { ell(g, x, y, r, r); }, 1.3);
     shine(g, x - r * 0.35, y - r * 0.4, r * 0.32, r * 0.18, 0.5);
     g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(x, y, r * 0.55, 0.3, 2.6); g.stroke();
@@ -647,6 +665,81 @@ window.Kabe = (function () {
     g.fillStyle = 'rgba(255,255,255,0.9)'; ell(g, -4.5, -5, 1.3, 0.8); g.fill();
     g.strokeStyle = alpha(shade, 0.9); g.lineWidth = 1.1; g.beginPath(); g.moveTo(-4, 3); g.quadraticCurveTo(0, 6, 4, 3); g.stroke();   // ぷにっとした線
     g.restore();
+  }
+  /* ---------- 宇宙の仕掛け ---------- */
+  // 届く範囲の点線の輪（引力の星・とげ星・回る衛星の通り道）
+  function dashRing(g, x, y, r, col, a, dash) {
+    g.save(); g.strokeStyle = alpha(col, a); g.lineWidth = 1.1; g.setLineDash(dash || [2, 5]); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); g.restore();
+  }
+  // 引力の星（1マスの硬いブロック。乗れる・張り付ける）：金属の枠の中に光る星。R：引く範囲（うすい点線）
+  function gravStar(g, P, cx, cy, R) {
+    if (R) { dashRing(g, cx, cy, R, P.glow, 0.28, [2, 6]); dashRing(g, cx, cy, R * 0.55, P.glow, 0.18, [2, 6]); }
+    metalSolid(g, P, function () { rr(g, cx - 9, cy - 9, 18, 18, 5); }, 1.2);
+    g.fillStyle = alpha(P.glow, 0.35); ell(g, cx, cy, 7, 7); g.fill();
+    g.fillStyle = '#fffaf0'; g.beginPath();
+    for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.2 : 5.4; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    g.closePath(); g.fill(); g.strokeStyle = alpha(P.glow, 0.9); g.lineWidth = 0.8; g.stroke();
+    shine(g, cx - 5, cy - 5.5, 2.2, 1.1, 0.35);
+  }
+  // とげ星（痛い。まわりを引っぱる）：トゲの金属の星。R：引く範囲
+  function spikeStar(g, P, cx, cy, R, a) {
+    if (R) dashRing(g, cx, cy, R, P.hazardLight, 0.3, [3, 4]);
+    a = a || 0; var i;
+    blade(g, P, function () { g.beginPath(); for (i = 0; i < 16; i++) { var aa = a + i * Math.PI / 8, rr2 = i % 2 ? 6.8 : 9.6; g.lineTo(cx + Math.cos(aa) * rr2, cy + Math.sin(aa) * rr2); } g.closePath(); });
+    metalSolid(g, P, function () { ell(g, cx, cy, 6.5, 6.5); }, 1.1);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(cx, cy, 3.4, 0.4, 2.7); g.stroke();
+    shine(g, cx - 2.4, cy - 2.6, 1.8, 1, 0.5);
+  }
+  // 回る衛星の真ん中（痛くない小さな核とアンテナ）と通り道。R：輪の半径
+  function satellite(g, P, cx, cy, R) {
+    if (R) dashRing(g, cx, cy, R, P.metalLight, 0.35, [1.5, 4.5]);
+    g.strokeStyle = P.metalShade; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 5); g.lineTo(cx + 3, cy - 10); g.stroke();
+    g.fillStyle = P.glow; ell(g, cx + 3, cy - 10.5, 1.4, 1.4); g.fill();
+    solid(g, function () { rr(g, cx - 12, cy - 2.5, 7, 5, 1); }, '#7f9fd6', '#5d7bb2', P.ink, 0.8, 0.8);   // 太陽の板（青）
+    solid(g, function () { rr(g, cx + 5, cy - 2.5, 7, 5, 1); }, '#7f9fd6', '#5d7bb2', P.ink, 0.8, 0.8);
+    metalSolid(g, P, function () { ell(g, cx, cy, 5, 5); }, 1);
+    bolt(g, P, cx - 0.4, cy - 0.4, 1.4);
+  }
+  // 浮き岩（乗れる・張り付ける足場）。x〜x+w、y は上の面、高さ1マス
+  function floatRock(g, P, x, y, w, t) {
+    var i, n = Math.max(1, Math.round(w / 18));
+    g.fillStyle = alpha(P.glow, 0.18 + 0.06 * Math.sin((t || 0) * 3)); ell(g, x + w / 2, y + 23, w * 0.42, 3.2); g.fill();   // 下のかすかな光（浮いている）
+    solid(g, function () { g.beginPath(); g.moveTo(x + 2, y); g.lineTo(x + w - 2, y); g.quadraticCurveTo(x + w, y, x + w, y + 3); g.lineTo(x + w - 1, y + 12);
+      g.quadraticCurveTo(x + w * 0.5, y + 21, x + 1, y + 12); g.lineTo(x, y + 3); g.quadraticCurveTo(x, y, x + 2, y); g.closePath(); }, P.terrain, P.terrainShade, P.ink, 1.6, 1.1);
+    g.fillStyle = P.terrainLight; g.fillRect(x + 2, y + 0.6, w - 4, 2.2);
+    for (i = 0; i < n; i++) { var cx = x + (i + 0.5) * w / n + (hash(i, w, 5) - 0.5) * 5, cy = y + 7 + hash(i, w, 6) * 4, cr = 1.6 + hash(i, w, 7) * 1.6;
+      g.fillStyle = alpha(P.terrainShade, 0.9); ell(g, cx, cy, cr, cr * 0.7); g.fill(); g.fillStyle = alpha(P.terrainLight, 0.7); ell(g, cx + 0.5, cy + 0.6, cr * 0.6, cr * 0.35); g.fill(); }   // クレーター
+  }
+  // 衝撃波の装置（1マスの硬いブロック）。k：0〜1 の予告の明るさ
+  function pulseEmitter(g, P, cx, cy, k) {
+    k = k || 0;
+    metalSolid(g, P, function () { rr(g, cx - 9, cy - 9, 18, 18, 3); }, 1.3);
+    g.fillStyle = mix(P.metalShade, '#000000', 0.35); ell(g, cx, cy, 5.6, 5.6); g.fill();
+    g.fillStyle = mix(P.metalLight, '#ffffff', k); ell(g, cx, cy, 3.6, 3.6); g.fill();
+    if (k > 0) { g.fillStyle = 'rgba(255,255,255,' + (0.35 * k) + ')'; ell(g, cx, cy, 7.5, 7.5); g.fill(); }
+    g.strokeStyle = alpha(P.metalLight, 0.8); g.lineWidth = 0.8; ell(g, cx, cy, 7, 7); g.stroke();
+    bolt(g, P, cx - 6, cy - 6, 0.9); bolt(g, P, cx + 6, cy - 6, 0.9); bolt(g, P, cx - 6, cy + 6, 0.9); bolt(g, P, cx + 6, cy + 6, 0.9);
+  }
+  // 熱くなる壁の板（1マス）。k：0〜1 の熱さ（1＝熱い）。赤は使わず、灰色の金属がこはく色〜白に光る
+  function heatPanel(g, P, x, y, k) {
+    k = k || 0;
+    var base = mixHex(P.metal, '#ffc46b', k * 0.75), shade = mixHex(P.metalShade, '#e89a3c', k * 0.6);
+    solid(g, function () { rr(g, x + 0.5, y + 0.5, 17, 17, 2); }, base, shade, P.ink, 1, 0.9);
+    g.strokeStyle = mixHex(P.metalShade, '#fff1c8', k); g.lineWidth = 1.4; g.lineCap = 'round';
+    for (var i = 0; i < 3; i++) { g.beginPath(); g.moveTo(x + 4, y + 4.5 + i * 4.5); g.lineTo(x + 14, y + 4.5 + i * 4.5); g.stroke(); }   // 放熱のすじ
+    if (k >= 1) { g.fillStyle = 'rgba(255,248,225,0.55)'; g.fillRect(x + 1.5, y + 1.5, 15, 15); }
+    bolt(g, P, x + 2.6, y + 2.6, 0.8); bolt(g, P, x + 15.4, y + 15.4, 0.8);
+  }
+  // センサー機雷：アンテナのついたトゲの玉。st：'idle' 'arm'（点滅中・lit で光る）'off'（戻る途中・うすい）
+  function senseMine(g, P, cx, cy, st, lit) {
+    if (st === 'off') { g.globalAlpha *= 0.3; }
+    var i, a;
+    blade(g, P, function () { g.beginPath(); for (i = 0; i < 12; i++) { a = i / 12 * Math.PI * 2; var rr2 = i % 2 ? 7.2 : 10.2; g.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); } g.closePath(); });
+    metalSolid(g, P, function () { ell(g, cx, cy, 7.5, 7.5); }, 1.2);
+    g.fillStyle = mix(P.metalShade, '#000000', 0.4); ell(g, cx, cy, 3.6, 3.6); g.fill();   // センサーの目
+    g.fillStyle = st === 'arm' ? (lit ? '#ffffff' : '#ffd27a') : st === 'off' ? P.metalShade : '#9ff0d8'; ell(g, cx, cy, 2.3, 2.3); g.fill();
+    if (st === 'arm' && lit) { g.fillStyle = 'rgba(255,240,200,0.45)'; ell(g, cx, cy, 6, 6); g.fill(); }
+    shine(g, cx - 3, cy - 3.6, 1.8, 1, 0.45);
   }
   // 雷（白い光の折れ線）。k：0〜1 の強さ、seed で形が変わる
   function lightningBolt(g, x, y0, y1, k, seed) {
@@ -870,6 +963,10 @@ window.Kabe = (function () {
       if (bk < 0.92) { g.fillStyle = alpha(P.riseLight, 0.55); ell(g, cx, cy, br, br * 0.9); g.fill(); g.strokeStyle = P.riseTop; g.lineWidth = 0.9; ell(g, cx, cy, br, br * 0.9); g.stroke(); g.fillStyle = 'rgba(255,255,255,.6)'; ell(g, cx - br * 0.35, cy - br * 0.35, br * 0.22, br * 0.18); g.fill(); }
     }
     else if (m.rise === 'storm') { if ((t * 2 + i) % 3 < 0.15) { g.strokeStyle = P.riseTop; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 6); g.lineTo(cx + 3, cy); g.lineTo(cx - 1, cy); g.lineTo(cx + 2, cy + 7); g.stroke(); } }
+    else if (m.rise === 'void') {   // 虚空：吸いこまれていく小さな星（下へ細くのびて消える）
+      var vk = (t * 0.5 + hash(i, 4)) % 1; g.strokeStyle = alpha(P.riseTop, 0.7 * (1 - vk)); g.lineWidth = 1; g.beginPath(); g.moveTo(cx, cy + vk * 14); g.lineTo(cx, cy + vk * 14 + 3 + vk * 8); g.stroke();
+      g.fillStyle = alpha('#ffffff', 0.8 * (1 - vk)); ell(g, cx, cy + vk * 14, 1.2, 1.2); g.fill();
+    }
     else { g.fillStyle = alpha(P.riseTop, 0.6); ell(g, cx, cy, 1, 1); g.fill(); }
   }
   function rise(g, P, x, y, w, h, t) {
@@ -2036,7 +2133,7 @@ window.Kabe = (function () {
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     OUTFIT: OUTFIT, OUTFIT_COLORS: OUTFIT_COLORS, OUTFIT_ITEMS: OUTFIT_ITEMS, HAT_TOP: HAT_TOP, hatPal: hatPal, wearBack: wearBack, wearFront: wearFront, hatDraw: hatDraw, propDraw: propDraw, MOUTH_AIM: MOUTH_AIM, outfitIcon: outfitIcon, outfitGet: outfitGet, withOutfit: withOutfit,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, gravStar: gravStar, spikeStar: spikeStar, satellite: satellite, floatRock: floatRock, pulseEmitter: pulseEmitter, heatPanel: heatPanel, senseMine: senseMine, dashRing: dashRing, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
