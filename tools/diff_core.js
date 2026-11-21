@@ -7,7 +7,7 @@ function inPage(W) {
   const K = window.__kabe, { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit } = K._dbg, CHECK = K.CHECK, PIECES = K.PIECES;
   const CELL = 18, HB = 10, DT = 1 / 120;
     function analyze(id) {
-    const pc = PIECES[id], w = Object.assign(newWorld(), { gustAlways: true }), bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1], rows = [];
+    const pc = PIECES[id], w = Object.assign(newWorld(), { gustAlways: true, wellMode: 1 }), bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1], rows = [];
     for (let i = 0; i < CHECK.padBelow; i++) rows.push(bottom); for (const r of pc.rows) rows.push(r); for (let i = 0; i < CHECK.padAbove; i++) rows.push(top);
     appendRows(w, rows); if (pc.lowg) w.lowg.push([CHECK.padBelow, CHECK.padBelow + pc.rows.length - 1]);
     const goalY = -(CHECK.padBelow + pc.rows.length + 1) * CELL, fallY = -CELL;

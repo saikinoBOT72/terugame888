@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.5">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.6">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -527,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.22.5"></script>
-<script src="data/pieces.js?v=2026.11.22.5"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.5"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.22.6"></script>
+<script src="data/pieces.js?v=2026.11.22.6"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.6"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.22.5';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22.6';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -578,8 +578,8 @@ const SKY = { mineAmp: 12, minePeriod: 2.8, mineHit: 10, bendSpeed: 50, bendCorn
 // 浮き岩 R（ゆれ幅・周期）、衝撃波の輪 U（周期・予告・広がる秒・届く半径・切れ目の半分の角度・線の当たり）、熱くなる壁 F（周期・熱い秒・予告の秒・当たりのふくらみ）、
 // センサー機雷 V（気づく半径・破裂までの秒・破裂の半径・破裂の秒・戻るまでの秒・玉の当たり）、ふわり帯（重力の倍率）
 const SPACE = { wellR: 81, wellAcc: 900, sstarR: 63, sstarAcc: 450, sstarHit: 9, satR: 60, satSpeed: 1.1, satBalls: 2, satHit: 7, rockAmp: 12, rockPeriod: 4.2,
-  ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: 0.5, ringHit: 3, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0, heatPad: 3,
-  senseR: 54, senseFuse: 0.7, burstR: 38, burstT: 0.22, senseBack: 6, senseHit: 8, lowG: 0.6 };
+  ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: Math.PI / 6, ringHit: 3, wellPeriod: 6, wellWarn: 0.7, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0, heatPad: 3,
+  senseR: 54, senseFuse: 0.7, burstR: 62, burstT: 0.45, senseBack: 6, senseHit: 8, lowG: 0.6 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -654,7 +654,7 @@ const OPT = Object.assign({ resp: 5, predict: false }, store.get(OPT_KEY, {}), {
 
 function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], rains: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
   stakeRow: {}, stakeAmt: null, crumbleAt: {}, broken: new Set(), springs: [], springHit: {}, gusts: [], clouds: [], railSeen: new Set(), time: 0, gustAlways: null,
-  wells: [], sstars: [], heat: {}, heatRuns: [], lowg: [] }; }
+  wells: [], sstars: [], heat: {}, heatRuns: [], lowg: [], wellMode: null }; }
 // 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
 function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
 const SOLIDS = '#SKk%EH@UF';   // 壁として扱う文字（S バネ、K k 筒、% 崩れる足場、E 雷の装置、H ぽよんブロック、@ 引力の星、U 衝撃波の装置、F 熱くなる壁）
@@ -746,7 +746,7 @@ function addObstacles(w, r0, n) {
       if (ch === '~' && row[c - 1] !== '~') { let e = c; while (row[e + 1] === '~') e++; w.clouds.push({ x: c * CELL, x1: (e + 1) * CELL, y: -(r + 1) * CELL }); }
       if (ch === 'M') w.obs.push({ type: 'mine', x, y, offset: Kabe.hash(c, r, 13) * 4, period: SKY.minePeriod * (0.85 + Kabe.hash(c, r, 15) * 0.3), amp: SKY.mineAmp * (0.75 + Kabe.hash(c, r, 14) * 0.5), yMid: y });   // 玉ごとに、はじめの時間・周期・ゆれ幅をずらす
       // 宇宙の仕掛け
-      if (ch === '@') w.wells.push({ x, y, R: SPACE.wellR, acc: SPACE.wellAcc });   // 引力の星（硬いブロック）
+      if (ch === '@') w.wells.push({ x, y, R: SPACE.wellR, acc: SPACE.wellAcc, flip: true, offset: Kabe.hash(c, r, 37) * SPACE.wellPeriod });   // 引力の星（硬いブロック）。引く・押すを入れかえる
       if (ch === '*') { const s0 = { x, y, R: SPACE.sstarR, acc: SPACE.sstarAcc }; w.wells.push(s0); w.sstars.push(s0); w.obs.push({ type: 'sstar', x, y, yMid: y, spin: Kabe.hash(c, r, 31) }); }   // とげ星（引っぱる・痛い）
       if (ch === 'C') w.obs.push({ type: 'sat', x, y, R: SPACE.satR, speed: (c < COLS / 2 ? 1 : -1) * SPACE.satSpeed, phase: Kabe.hash(c, r, 32) * 6.28, yMid: y });
       if (ch === 'R' && row[c - 1] !== 'R') { let e = c; while (row[e + 1] === 'R') e++; w.obs.push({ type: 'rock', x0: c * CELL, x1: (e + 1) * CELL, y: -(r + 1) * CELL, offset: Kabe.hash(c, r, 33) * SPACE.rockPeriod, yMid: y }); }
@@ -819,6 +819,12 @@ function ringState(o, t) {
 const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d < -Math.PI) d += Math.PI * 2; if (d > Math.PI) d -= Math.PI * 2; return Math.abs(d); };
 const satBall = (o, t, k) => { const a = o.phase + t * o.speed + k * Math.PI * 2 / SPACE.satBalls; return [o.x + Math.cos(a) * o.R, o.y + Math.sin(a) * o.R]; };
 const rockY = (o, t) => o.y + Math.sin((t + o.offset) * Math.PI * 2 / SPACE.rockPeriod) * SPACE.rockAmp;
+// 引力の星：1＝引く、-1＝押す（半分ずつ入れかわる）。チェックでは w.wellMode で決めて両方調べる。とげ星はいつも引く
+const wellPh = (q, t) => ((t + q.offset) % SPACE.wellPeriod + SPACE.wellPeriod) % SPACE.wellPeriod;
+const wellSign = (w, q) => !q.flip ? 1 : w.wellMode != null ? w.wellMode : wellPh(q, w.time || 0) < SPACE.wellPeriod / 2 ? 1 : -1;
+const wellWarnK = (q, t) => { const ph = wellPh(q, t) % (SPACE.wellPeriod / 2), s = SPACE.wellPeriod / 2 - SPACE.wellWarn; return ph > s ? (ph - s) / SPACE.wellWarn : 0; };
+// センサー機雷の破裂：全方位に広がる衝撃波（半径・薄れ）。出ていなければ null
+function senseWave(o, t) { if (o.t0 == null) return null; const e = t - o.t0 - SPACE.senseFuse; if (e < 0 || e >= SPACE.burstT) return null; const k = e / SPACE.burstT; return { r: 8 + (SPACE.burstR - 8) * (1 - (1 - k) * (1 - k)), fade: 1 - Math.max(0, k - 0.7) / 0.3 }; }
 const lowgAt = (w, y) => { if (!w.lowg.length) return false; const r = Math.floor(-y / CELL); return w.lowg.some(([a, b]) => r >= a && r <= b); };
 // トゲのマス → 当たる四角（となりの壁にくっついた側）
 function spikeRect(w, c, r) {
@@ -920,7 +926,7 @@ function physStep(w, b, dt) {
     for (const q of w.wells) {   // 引力の星・とげ星：空中にいる間だけ、星の方へ引く（近いほど強い）
       const dx = q.x - b.x, dy = q.y - b.y; if (dy > q.R || dy < -q.R || dx > q.R || dx < -q.R) continue;
       const d = Math.hypot(dx, dy); if (d >= q.R || d < 1) continue;
-      const a = q.acc * (1 - d / q.R) * dt / d; b.vx += dx * a; b.vy += dy * a;
+      const a = q.acc * wellSign(w, q) * (1 - d / q.R) * dt / d; b.vx += dx * a; b.vy += dy * a;
     }
     b.vy += MOVE.gravity * (lowgAt(w, b.y) ? SPACE.lowG : 1) * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall);   // ふわり帯：重力が軽い
       if (Math.abs(b.vx) > 1) b.face = Math.sign(b.vx); }   // 空中では進んでいる方を向く
@@ -984,14 +990,15 @@ const canAct = b => b.side !== 0 || b.ground;
    ===================================================================== */
 const CHECK = { padBelow: 6, padAbove: 10, djStep: 1 / 12, djMax: 1.8, maxT: 3.5, settle: 0.4 };
 // 突風のあるパーツは「ずっと吹いている」と「吹いていない」の両方で調べて、どちらも OK のときだけ OK
+// 引力の星のあるパーツは「ずっと引く」と「ずっと押す」の両方で調べる（突風と同じやり方。両方あれば4通り）
 function checkPiece(id) {
-  if (!PIECES[id].rows.some(r => /[{}]/.test(r))) return checkPieceOnce(id, null);
-  const a = checkPieceOnce(id, true), b = checkPieceOnce(id, false);
-  return Object.assign({}, a, { ok: a.ok && b.ok, entryOk: Math.min(a.entryOk, b.entryOk), hurtSpots: Math.max(a.hurtSpots, b.hurtSpots), softlocks: a.softlocks + b.softlocks,
-    badEntries: a.badEntries.concat(b.badEntries), points: a.points.concat(b.points), states: a.states + b.states, sims: a.sims + b.sims });
+  const rows = PIECES[id].rows, gs = rows.some(r => /[{}]/.test(r)) ? [true, false] : [null], ws = rows.some(r => r.includes('@')) ? [1, -1] : [null], list = [];
+  for (const g of gs) for (const m of ws) list.push(checkPieceOnce(id, g, m));
+  return list.reduce((a, b) => Object.assign({}, a, { ok: a.ok && b.ok, entryOk: Math.min(a.entryOk, b.entryOk), hurtSpots: Math.max(a.hurtSpots, b.hurtSpots), softlocks: a.softlocks + b.softlocks,
+    badEntries: a.badEntries.concat(b.badEntries), points: a.points.concat(b.points), states: a.states + b.states, sims: a.sims + b.sims }));
 }
-function checkPieceOnce(id, gust) {
-  const pc = PIECES[id], w = newWorld(); w.gustAlways = gust;
+function checkPieceOnce(id, gust, wellMode = null) {
+  const pc = PIECES[id], w = newWorld(); w.gustAlways = gust; w.wellMode = wellMode;
   const bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1];
   const rows = [];
   for (let i = 0; i < CHECK.padBelow; i++) rows.push(bottom);
@@ -1446,6 +1453,12 @@ function rollGem() {
 }
 
 /* ---------- 障害物（時間 G.time だけで動く） ---------- */
+// 衝撃波が出た瞬間：まわりへ火花が飛び、近ければ画面が揺れる
+function waveBurst(x, y, n = 14) {
+  if (Math.abs(y - (cam.y + H / 2)) > H / 2 + 60) return;
+  if (Math.hypot(P.x - x, P.y - y) < 150) shake(2.5);
+  if (!calm) for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + Math.random() * 0.3, v = 140 + Math.random() * 120; particles.push({ kind: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.4, max: 0.4 }); }
+}
 function rectEdges(d, x0, y0, x1, y1, sides) {
   const E = (ax, ay, bx, by, nx, ny) => world.dynEdges.push({ ax, ay, bx, by, nx, ny, dyn: d, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by) });
   E(x0, y0, x1, y0, 0, -1); E(x0, y1, x1, y1, 0, 1);
@@ -1515,15 +1528,14 @@ function updateObstacles() {
     }
     if (o.type === 'ring') {   // 衝撃波の輪：出た瞬間の音（見えているときだけ）
       const n = Math.floor((t + o.offset) / SPACE.ringPeriod);
-      if (o.n != null && n !== o.n && Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 60) sfx.ring();
+      if (o.n != null && n !== o.n && Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 60) { sfx.ring(); waveBurst(o.x, o.y); }
       o.n = n; continue;
     }
     if (o.type === 'sense') {   // センサー機雷：近づくと点滅して、少しあとで破裂。しばらくすると戻る
       if (o.t0 == null && t >= o.back && Math.hypot(P.x - o.x, P.y - o.y) < SPACE.senseR && state === 'play') { o.t0 = t; sfx.senseArm(); }
       if (o.t0 != null) {
         const e = t - o.t0;
-        if (e >= SPACE.senseFuse && !o.boom) { o.boom = true; sfx.senseBurst(); shake(Math.abs(P.y - o.y) < 160 ? 4 : 1.5);
-          for (let i = 0; i < 14; i++) { const a = Math.random() * Math.PI * 2, v = 90 + Math.random() * 160; particles.push({ kind: 'spark', x: o.x, y: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.45, max: 0.45 }); } }
+        if (e >= SPACE.senseFuse && !o.boom) { o.boom = true; sfx.senseBurst(); sfx.ring(); shake(Math.abs(P.y - o.y) < 160 ? 5 : 1.5); waveBurst(o.x, o.y, 22); }
         if (e >= SPACE.senseFuse + SPACE.burstT) { o.t0 = null; o.boom = false; o.back = t + SPACE.senseBack; }
       }
       continue;
@@ -1623,9 +1635,10 @@ function obstacleHit() {
     } else if (o.type === 'ring' && Math.abs(o.y - P.y) < SPACE.ringMax + 20) {   // 衝撃波の輪：線だけ痛い。切れ目は通れる
       const st = ringState(o, G.time), d = Math.hypot(P.x - o.x, P.y - o.y);
       if (st.r != null && st.fade > 0.3 && Math.abs(d - st.r) < SPACE.ringHit + HIT && angDiff(Math.atan2(P.y - o.y, P.x - o.x), st.gap) > SPACE.ringGap) return hurt(Math.sign(P.x - o.x) || 1, 'ring');
-    } else if (o.type === 'sense' && Math.abs(o.y - P.y) < 60) {   // センサー機雷：玉にさわる／破裂に入る
+    } else if (o.type === 'sense' && Math.abs(o.y - P.y) < SPACE.burstR + 20) {   // センサー機雷：玉にさわる／破裂の衝撃波に当たる
       const d = Math.hypot(P.x - o.x, P.y - o.y), e = o.t0 != null ? G.time - o.t0 : -1;
-      if (e >= SPACE.senseFuse && e < SPACE.senseFuse + SPACE.burstT ? d < SPACE.burstR + HIT * 0.5 : G.time >= o.back && !o.boom && d < SPACE.senseHit + HIT) return hurt(Math.sign(P.x - o.x) || 1, 'sense');
+      const wv = senseWave(o, G.time);   // 破裂の衝撃波：広がる縁だけ痛い（全方位）
+      if (wv ? wv.fade > 0.3 && Math.abs(d - wv.r) < SPACE.ringHit + HIT : G.time >= o.back && !o.boom && d < SPACE.senseHit + HIT) return hurt(Math.sign(P.x - o.x) || 1, 'sense');
     } else if (o.type === 'mill' && Math.abs(o.y - P.y) < 50) {
       const a0 = Kabe.spinAngle(G.time, o.speed);
       for (let k = 0; k < SKY.millBlades; k++) {   // 羽は真ん中から外へ（羽と羽の間はくぐれる）
@@ -2055,6 +2068,20 @@ function skyDraw(sp, seg, vis) {
     }
   }
 }
+// ゆがみの波の縁：熱を帯びて光る（外は太い紫のにじみ、まん中はこはく色、芯は白）。少し内側にこだまの輪。出た直後は真ん中が光る。
+// gap：切れ目の向き（null なら全方位）。切れ目の所は光らない。縁にちりちりと火花
+function waveDraw(seg, disc, x, y, r, f, gap, t) {
+  const full = gap == null, n = 44, a0 = full ? 0 : gap + SPACE.ringGap, span = full ? Math.PI * 2 : Math.PI * 2 - SPACE.ringGap * 2;
+  if (r < 34) disc(x, y, 30, '#fff3d6', 0.7 * (1 - (r - 8) / 26));   // 出た瞬間の光
+  for (const [rr, k] of [[r, 1], [r * 0.82, 0.35]]) {
+    let px = x + Math.cos(a0) * rr, py = y + Math.sin(a0) * rr;
+    for (let i = 1; i <= n; i++) {
+      const a = a0 + span * i / n, j = Math.sin(a * 9 + t * 25) * 1.6 * k, xx = x + Math.cos(a) * (rr + j), yy = y + Math.sin(a) * (rr + j), edge = full ? 1 : Math.min(1, Math.min(i, n - i) / 3), A = f * edge * k;
+      seg(px, py, xx, yy, 11, PAL.glow, 0.2 * A); seg(px, py, xx, yy, 4.5, '#ffbe6e', 0.7 * A); seg(px, py, xx, yy, 1.6, '#fffaf0', A); px = xx; py = yy;
+      if (k === 1 && !calm && Kabe.hash(i, Math.floor(t * 16), 61) > 0.55) disc(xx + Math.cos(a) * 4, yy + Math.sin(a) * 4, 1.6, '#fff3d6', f * edge);
+    }
+  }
+}
 // 宇宙の仕掛け（2D と GPU で共通。sp は絵を置く、seg は線、disc は丸）
 function spaceDraw(sp, seg, vis, disc) {
   const t = G.time;
@@ -2064,14 +2091,17 @@ function spaceDraw(sp, seg, vis, disc) {
     for (let r = run.r0; r <= run.r1; r++) { const y = -(r + 1) * CELL; sp(`heat|${k}`, x, y, [-2, -2, CELL + 2, CELL + 2], () => Kabe.heatPanel(ctx, PAL, x, y, k)); }
     if (st.hot && !calm) for (let r = run.r0; r <= run.r1; r++) { const y = -(r + 0.5) * CELL, f = (t * 1.3 + r * 0.37) % 1; disc(x + CELL / 2 + Math.sin(t * 3 + r) * 4, y - f * 16, 1.6 * (1 - f), '#fff1c8', 0.8 * (1 - f)); }   // 立ちのぼる熱
   }
-  for (const q of world.wells) {   // 引力の星：星へ吸いこまれる小さな粒
-    if (!vis(q.y) || calm) continue;
-    for (let i = 0; i < 6; i++) { const h = Kabe.hash(q.x, q.y + i, 41), f = 1 - ((t * 0.5 + h) % 1), a = h * 6.28 + t * 0.4, r = 12 + f * (q.R - 12); disc(q.x + Math.cos(a) * r, q.y + Math.sin(a) * r, 1.3, PAL.glow, 0.55 * (1 - f) * (q.acc === SPACE.wellAcc ? 1 : 0.6)); }
-  }
-  for (let r = Math.max(0, Math.floor(-(cam.y + H + 40) / CELL)); r <= Math.ceil(-(cam.y - 40) / CELL); r++) for (let c = 0; c < COLS; c++) {
-    const ch = raw(world, c, r); if (ch !== '@') continue;
-    const x = (c + 0.5) * CELL, y = -(r + 0.5) * CELL;
-    sp('gstar', x, y, [-SPACE.wellR - 2, -SPACE.wellR - 2, SPACE.wellR + 2, SPACE.wellR + 2], () => Kabe.gravStar(ctx, PAL, x, y, SPACE.wellR));
+  for (const q of world.wells) {   // 引力の星・とげ星：引くときは粒が吸いこまれ、押すときは吹き出す。まわりを光の弧が回る
+    if (!vis(q.y)) continue;
+    const sg = wellSign(world, q), col = sg > 0 ? PAL.glow : '#9fe8ff', star = q.acc === SPACE.wellAcc;
+    if (!calm) {
+      for (let i = 0; i < 10; i++) { const h = Kabe.hash(q.x, q.y + i, 41), u = (t * 0.55 + h) % 1, f = sg > 0 ? 1 - u : u, a = h * 6.28 + t * 0.5 * sg, r = 12 + f * (q.R - 12); disc(q.x + Math.cos(a) * r, q.y + Math.sin(a) * r, 1.5, col, 0.7 * (1 - f) * (star ? 1 : 0.6)); }
+      for (let k = 0; k < 3; k++) { const r = 15 + k * 7, a0 = t * (2.2 - k * 0.5) * sg + k * 2.1; for (let j = 0; j < 5; j++) { const a = a0 + j * 0.18, b = a + 0.18; seg(q.x + Math.cos(a) * r, q.y + Math.sin(a) * r, q.x + Math.cos(b) * r, q.y + Math.sin(b) * r, 1.2, col, (0.55 - k * 0.15) * (1 - j / 5) * (star ? 1 : 0.6)); } }
+    }
+    disc(q.x, q.y, 20, col, (star ? 0.14 : 0.08) * (1 + 0.4 * Math.sin(t * 4)));   // ぼんやり光る
+    if (!star) continue;
+    const wk = wellWarnK(q, t), m = wk > 0 && t % 0.16 < 0.08 ? -sg : sg;   // 入れかわる前に点滅
+    sp(`gstar|${m}`, q.x, q.y, [-SPACE.wellR - 2, -SPACE.wellR - 2, SPACE.wellR + 2, SPACE.wellR + 2], () => Kabe.gravStar(ctx, PAL, q.x, q.y, SPACE.wellR, m));
   }
   if (world.lowg.length && !calm) for (const [a, b] of world.lowg) {   // ふわり帯：ゆっくり昇る星くず
     const y0 = -(b + 1) * CELL, y1 = -a * CELL; if (y1 < cam.y - 40 || y0 > cam.y + H + 40) continue;
@@ -2088,20 +2118,13 @@ function spaceDraw(sp, seg, vis, disc) {
     else if (o.type === 'ring') {
       const st = ringState(o, t), k = Math.round(st.warn * 6) / 6, lit = st.warn > 0 && t % 0.2 < 0.1;
       if (st.warn > 0) for (const s2 of [-1, 1]) { const a = st.gap + s2 * SPACE.ringGap; seg(o.x + Math.cos(a) * 14, o.y + Math.sin(a) * 14, o.x + Math.cos(a) * 30, o.y + Math.sin(a) * 30, 1, '#ffe2b0', 0.5 * st.warn); }   // 予告：次の切れ目の向き（装置のそばだけ）
-      if (st.r != null) {   // ゆがみの波の縁：熱を帯びて光る（外は紫のにじみ、まん中はこはく色、芯は白）。切れ目の所は光らない。縁にちりちりと火花
-        const n = 40, a0 = st.gap + SPACE.ringGap, span = Math.PI * 2 - SPACE.ringGap * 2, f = st.fade;
-        let px = o.x + Math.cos(a0) * st.r, py = o.y + Math.sin(a0) * st.r;
-        for (let i = 1; i <= n; i++) {
-          const a = a0 + span * i / n, j = Math.sin(a * 9 + t * 25) * 1.2, xx = o.x + Math.cos(a) * (st.r + j), yy = o.y + Math.sin(a) * (st.r + j), edge = Math.min(1, Math.min(i, n - i) / 3);
-          seg(px, py, xx, yy, 7, PAL.glow, 0.16 * f * edge); seg(px, py, xx, yy, 3, '#ffc982', 0.6 * f * edge); seg(px, py, xx, yy, 1.1, '#fff8e8', 0.95 * f * edge); px = xx; py = yy;
-          if (!calm && Kabe.hash(i, Math.floor(t * 14), 61) > 0.72) disc(xx + Math.cos(a) * 3, yy + Math.sin(a) * 3, 1.3, '#fff3d6', 0.9 * f * edge);
-        }
-      }
+      if (st.r != null) waveDraw(seg, disc, o.x, o.y, st.r, st.fade, st.gap, t);
       sp(`pulse|${lit ? 1 : k}`, o.x, o.y, [-11, -11, 11, 11], () => Kabe.pulseEmitter(ctx, PAL, o.x, o.y, lit ? 1 : k));
     } else if (o.type === 'sense') {
       const e = o.t0 != null ? t - o.t0 : -1, off = t < o.back || o.boom, st2 = off ? 'off' : e >= 0 ? 'arm' : 'idle', lit = e >= 0 && (e * (6 + e * 14)) % 1 < 0.5;
-      if (o.boom) { const f = (e - SPACE.senseFuse) / SPACE.burstT; disc(o.x, o.y, SPACE.burstR * (0.5 + 0.5 * f), '#fff3d6', 0.5 * (1 - f)); disc(o.x, o.y, SPACE.burstR * 0.5 * (0.6 + f), '#ffffff', 0.8 * (1 - f)); }
-      else if (e >= 0) disc(o.x, o.y, SPACE.burstR, '#fff3d6', 0.08 + 0.1 * (e / SPACE.senseFuse));   // 破裂する範囲がうすく見える
+      const wv = senseWave(o, t);
+      if (wv) waveDraw(seg, disc, o.x, o.y, wv.r, wv.fade, null, t);
+      else if (e >= 0 && !o.boom) disc(o.x, o.y, 10 + 8 * (e / SPACE.senseFuse), '#fff3d6', 0.15 + 0.35 * (e / SPACE.senseFuse));   // ためて光る
       sp(`sense|${st2}|${lit}`, o.x, o.y, [-13, -13, 13, 13], () => Kabe.senseMine(ctx, PAL, o.x, o.y, st2, lit));
     }
   }
@@ -3004,7 +3027,7 @@ const glfx = (() => {
           vec2 dv = p - wv.xy; float d = length(dv); vec2 dir = dv / max(d, 1.0);
           if (wv.z > 0.0) {
             float a = atan(dv.y, dv.x) - warpG[i]; a = abs(mod(a + 3.14159, 6.28318) - 3.14159);
-            float band = exp(-pow((d - wv.z) / 15.0, 2.0)) * smoothstep(0.5, 0.68, a);
+            float band = exp(-pow((d - wv.z) / 18.0, 2.0)) * (warpG[i] < -5.0 ? 1.0 : smoothstep(0.5236, 0.70, a));
             dP -= dir * band * wv.w * (1.0 + 0.25 * sin(d * 0.6 - t * 20.0));
           } else { float f = clamp(d / -wv.z, 0.0, 1.0); dP -= dir * sin(3.14159 * f) * (1.0 - f) * wv.w * (1.0 + 0.15 * sin(t * 2.3 + wv.x)); }
         }
@@ -3419,8 +3442,12 @@ const WARP0 = { v: new Float32Array(24), g: new Float32Array(6) };
 function warpList() {
   if (!world || !world.obs || PAL.id !== 'space' && !world.wells.length) return null;
   const L = [], t = G.time, cy = cam.y + H / 2;
-  for (const o of world.obs) if (o.type === 'ring' && Math.abs(o.y - cy) < H / 2 + 100) { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 12 * st.fade, st.gap]); }
-  for (const q of world.wells) if (Math.abs(q.y - cy) < H / 2 + 60) L.push([q.x, q.y - cam.y, q.acc === SPACE.wellAcc ? -64 : -50, q.acc === SPACE.wellAcc ? 10 : 8, 0]);
+  for (const o of world.obs) {
+    if (Math.abs(o.y - cy) > H / 2 + 100) continue;
+    if (o.type === 'ring') { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 18 * st.fade, st.gap]); }
+    if (o.type === 'sense') { const wv = senseWave(o, t); if (wv) L.push([o.x, o.y - cam.y, wv.r, 16 * wv.fade, -10]); }   // 全方位（切れ目なし）
+  }
+  for (const q of world.wells) if (Math.abs(q.y - cy) < H / 2 + 60) L.push([q.x, q.y - cam.y, q.acc === SPACE.wellAcc ? -70 : -54, (q.acc === SPACE.wellAcc ? 14 : 11) * wellSign(world, q), 0]);   // 押すときは逆向きにふくらむ
   if (!L.length) return null;
   L.sort((a, b) => Math.abs(a[1] - H / 2) - Math.abs(b[1] - H / 2));
   const v = new Float32Array(24), g = new Float32Array(6);

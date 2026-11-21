@@ -671,14 +671,19 @@ window.Kabe = (function () {
   function dashRing(g, x, y, r, col, a, dash) {
     g.save(); g.strokeStyle = alpha(col, a); g.lineWidth = 1.1; g.setLineDash(dash || [2, 5]); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); g.restore();
   }
-  // 引力の星（1マスの硬いブロック。乗れる・張り付ける）：金属の枠の中に光る星。R：引く範囲（うすい点線）
-  function gravStar(g, P, cx, cy, R) {
-    if (R) { dashRing(g, cx, cy, R, P.glow, 0.28, [2, 6]); dashRing(g, cx, cy, R * 0.55, P.glow, 0.18, [2, 6]); }
+  // 引力の星（1マスの硬いブロック。乗れる・張り付ける）：金属の枠の中に光る星。R：届く範囲（うすい点線）。
+  // mode：1＝引く（紫の光）、-1＝押す（水色の光。星のまわりに外向きの小さな矢じり）
+  function gravStar(g, P, cx, cy, R, mode) {
+    var push = mode === -1, col = push ? '#9fe8ff' : P.glow, i;
+    if (R) { dashRing(g, cx, cy, R, col, 0.3, [2, 6]); dashRing(g, cx, cy, R * 0.55, col, 0.2, [2, 6]); }
     metalSolid(g, P, function () { rr(g, cx - 9, cy - 9, 18, 18, 5); }, 1.2);
-    g.fillStyle = alpha(P.glow, 0.35); ell(g, cx, cy, 7, 7); g.fill();
-    g.fillStyle = '#fffaf0'; g.beginPath();
-    for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.2 : 5.4; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
-    g.closePath(); g.fill(); g.strokeStyle = alpha(P.glow, 0.9); g.lineWidth = 0.8; g.stroke();
+    g.fillStyle = alpha(col, 0.45); ell(g, cx, cy, 7, 7); g.fill();
+    g.fillStyle = push ? '#effcff' : '#fffaf0'; g.beginPath();
+    for (i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.2 : 5.4; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
+    g.closePath(); g.fill(); g.strokeStyle = alpha(col, 0.95); g.lineWidth = 0.8; g.stroke();
+    if (R) { g.strokeStyle = alpha(col, 0.55); g.lineWidth = 1.2; g.lineCap = 'round';   // 向きの矢じり（引く＝内向き、押す＝外向き）
+      for (i = 0; i < 4; i++) { var b = Math.PI / 4 + i * Math.PI / 2, r0 = R * 0.35, d = push ? 1 : -1, tx = cx + Math.cos(b) * (r0 + d * 4), ty = cy + Math.sin(b) * (r0 + d * 4);
+        g.beginPath(); g.moveTo(tx - Math.cos(b) * d * 4 + Math.cos(b + 1.57) * 3, ty - Math.sin(b) * d * 4 + Math.sin(b + 1.57) * 3); g.lineTo(tx, ty); g.lineTo(tx - Math.cos(b) * d * 4 - Math.cos(b + 1.57) * 3, ty - Math.sin(b) * d * 4 - Math.sin(b + 1.57) * 3); g.stroke(); } }
     shine(g, cx - 5, cy - 5.5, 2.2, 1.1, 0.35);
   }
   // とげ星（痛い。まわりを引っぱる）：トゲの金属の星。R：引く範囲
