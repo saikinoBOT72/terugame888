@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.20">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.21">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -334,6 +334,7 @@
   @keyframes pop { 0% { transform: translateY(calc(var(--u) * 2px)) scale(.93); } 55% { transform: scale(1.06); } 100% { transform: none; } }
   .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
   .ov.leave { background: transparent; pointer-events: none; }
+  .ov.fadeout { opacity: 0; transition: opacity .35s; pointer-events: none; }
   .ov.leave > .card { animation: cardOut .16s ease-in forwards; }
   @keyframes cardOut { to { transform: translateY(calc(var(--u) * 18px)) scale(.97); opacity: 0; } }
   @keyframes cardIn { from { transform: translateY(calc(var(--u) * 16px)) scale(.95); opacity: 0; } }
@@ -507,13 +508,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.20"></script>
-<script src="data/pieces.js?v=2027.01.20"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.20"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2027.01.21"></script>
+<script src="data/pieces.js?v=2027.01.21"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.21"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.20';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2027.01.21';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -3340,7 +3341,17 @@ function renderBest() {
     el.textContent = '記録は残らない・結晶つき　'; const a = document.createElement('a'); a.href = location.pathname; a.textContent = 'ふつうに遊ぶ'; a.style.color = 'var(--teal)'; el.append(a);
   }
 }
-function startGame() { showOnly(null); newGame(); G.zoneHint = ZH; G.zoneT = 3 + ZH; state = 'play';   // 分け方を見せてから層の見出し
+// 始まり：暗転しない。タイトルの板はふっと消え、カメラはタイトルで見ていた高さから下へすべり、オバケは床から左の壁へ跳びつく（ソロだけ）
+function startGame() {
+  const soft = !VERSUS && !TEST_FROM && !reduceMotion && state === 'title', camY = cam.y;
+  if (soft) { const t = ov.title; t.classList.add('fadeout'); setTimeout(() => { t.hidden = true; t.classList.remove('fadeout'); }, 360); for (const k in ov) if (k !== 'title') ov[k].hidden = true; }
+  else showOnly(null);
+  newGame(); G.zoneHint = ZH; G.zoneT = 3 + ZH; state = 'play';   // 分け方を見せてから層の見出し
+  if (soft) {
+    cam.y = Math.min(camY, cam.y); cam.lead = 0; ensureAhead();
+    P.x = 9 * CELL; P.y = -HB; P.side = 0; P.ground = false; P.vx = -150; P.vy = -560; P.face = -1;
+    G.kickT = 0.14; A.kickPose = 'kick'; P.squash = -0.3; dust(P.x, P.y + HB, 0, 8); sfx.kick();
+  }
   $('pauseBtn').hidden = false; acc = 0; last = performance.now(); sfx.start(); }
 function showEnd() {
   const m = Math.floor(G.best), bk = MODES[MODE].best, best = store.get(bk, 0);
