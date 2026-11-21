@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.21">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.22">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -508,13 +508,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.21"></script>
-<script src="data/pieces.js?v=2027.01.21"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.21"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2027.01.22"></script>
+<script src="data/pieces.js?v=2027.01.22"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.22"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.21';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2027.01.22';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1540,6 +1540,21 @@ function updateEffects(dt) {
   cam.shake = Math.max(0, cam.shake - dt * 25);
   for (const q of particles) { q.life -= dt; if (q.vx !== undefined) { q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= q.kind === 'ember' || q.kind === 'chunk' ? 0.99 : 0.92; q.vy = q.kind === 'ember' ? q.vy * 0.995 : q.kind === 'chunk' ? q.vy + 700 * dt : q.kind === 'dot' ? q.vy * 0.97 + q.g * dt : q.vy * 0.92 + ({ puff: 30, cloud: -20, line: 0 }[q.kind] ?? 160) * dt; if (q.vr) q.rot += q.vr * dt; } }
   particles = particles.filter(q => q.life > 0);
+  if (state === 'play' && G && !calm) {
+    const m = -(cam.y + H * 0.5) / PX_PER_M;
+    if (!G.cloudBurst && m >= 798 && m < 830) {   // 19. 雲の層を抜けた（1回だけ）：雲の切れ端が画面いっぱいに流れて晴れる
+      G.cloudBurst = true;
+      for (let i = 0; i < 46; i++) particles.push({ kind: 'cloud', x: Math.random() * W, y: cam.y + H * (0.15 + Math.random() * 0.85), vx: (Math.random() - 0.5) * 140, vy: 60 + Math.random() * 160, life: 1 + Math.random() * 0.9, max: 1.9, r: 5 + Math.random() * 7 });
+    }
+    if (WX.rain > 0.05 && Math.random() < dt * 22 * WX.rain) {   // 21. 雨が壁に当たってはじける（見えている壁の面に）
+      const y = cam.y + Math.random() * H, r = Math.floor(-y / CELL), side = Math.random() < 0.5 ? -1 : 1;
+      if (rainAtY(y)) {
+        let c = side < 0 ? 9 : 10; while (c > 0 && c < COLS - 1 && !isWall(raw(world, c, r))) c += side;
+        const x = side < 0 ? (c + 1) * CELL : c * CELL;
+        for (let i = 0; i < 3; i++) particles.push({ kind: 'dot', x, y, vx: -side * (30 + Math.random() * 50), vy: -40 - Math.random() * 50, g: 380, life: 0.3, max: 0.3, r: 0.9, col: '#d6efff', al: 0.8 });
+      }
+    }
+  }
   for (const f of floaters) { f.life -= dt; f.y -= 22 * dt; }
   for (const a of trail) a.life -= dt;
   trail = trail.filter(a => a.life > 0);
@@ -2336,6 +2351,106 @@ function ghostBB(Q, face, outer) {
   }
   return [bx0 - 3, by0 - 3, bx1 + 3, by1 + 3];
 }
+/* ---------- 背景の飾り（ゲームには関係しない）。画面の座標で、地層・奥の壁のあと・世界の前に描く。丸と線は GPU、絵は1回描いて使い回す ----------
+   ゾーンごとに、カメラのまん中の高さ（m）で境目の前後12mかけて出し入れする */
+const DECO = { lzNext: 0, lz: null, shaftT: -9, prevDark: 0, litT: -9, litZone: '', lastT: 0 };
+const zoneW = (m, a, b) => smooth01((m - a + 12) / 24) * smooth01((b - m + 12) / 24);
+function bgDeco(S, k, t) {
+  if (t < DECO.lastT) Object.assign(DECO, { lzNext: 0, lz: null, shaftT: -9, prevDark: 0, litT: -9 });   // 新しいプレイ（時計が戻った）
+  DECO.lastT = t;
+  const m = Math.max(0, -(cam.y + H * 0.5) / PX_PER_M), hz = Kabe.midHaze(PAL), sm = cam.y * Kabe.MID_K;
+  const disc = (x, y, r, col, a) => { if (a > 0.004) S.disc(x * k, y * k, r * k, RGB(col), a); };
+  const seg = (x0, y0, x1, y1, r, col, a) => { if (a > 0.004) S.seg(x0 * k, y0 * k, x1 * k, y1 * k, r * k, RGB(col), a); };
+  // 18. 遠くの山なみと太陽（地上。のぼるほど山は下へ沈み、夕焼けの峰で太陽が山へ沈む）
+  const wM = zoneW(m, 400, 800);
+  if (wM > 0) {
+    const base = H * 0.6 + (m - 420) * 0.32;
+    const sunY = base - 200 + smooth01((m - 640) / 160) * 150;
+    const wS = wM * (1 - Math.min(1, WX.rain) * 0.8);   // 雨の間は太陽がかすむ
+    disc(W * 0.7, sunY, 60, '#ffd08a', 0.14 * wS); disc(W * 0.7, sunY, 36, '#ffe2a8', 0.3 * wS); disc(W * 0.7, sunY, 21, '#fff6e0', 0.92 * wS);
+    const mt = Kabe.mix(PAL.far, PAL.terrainDeep, 0.38), mt2 = Kabe.mix(PAL.far, PAL.terrainDeep, 0.22);
+    for (let i = 0; i < 7; i++) { const x = (i / 6) * (W + 160) - 80, r = 80 + Kabe.hash(i, 4, 1) * 70; disc(x, base + 10 + r * 0.6 - Kabe.hash(i, 4, 2) * 40, r, mt2, 0.6 * wM); }   // 奥の山（うすい）
+    for (let i = 0; i < 9; i++) { const x = (i / 8) * (W + 120) - 60, r = 70 + Kabe.hash(i, 3, 1) * 80; disc(x, base + 40 + r * 0.55 - Kabe.hash(i, 3, 2) * 30, r, mt, 0.75 * wM); }
+    // 22. 遠くの凧（草の崖の上のほう。糸は下へのびて見えなくなる）
+    const wK = zoneW(m, 445, 520);
+    if (wK > 0.01) {
+      const kx = W * 0.26 + Math.sin(t * 0.7) * 10, ky = base - 230 + Math.sin(t * 1.1) * 6, rot = Math.sin(t * 0.9) * 0.18;
+      seg(kx, ky + 10, kx + 30, base + 60, 0.5, '#fff4e6', 0.35 * wK);
+      S.sprite('deco:kite', true, kx, ky, 0, 0, [-20, -22, 20, 64], g => { g.translate(kx, ky); g.scale(1.6, 1.6);   // この絵は最初に呼んだ点に描く決まり
+        g.fillStyle = '#7fd6c8'; g.beginPath(); g.moveTo(0, -12); g.lineTo(9, 0); g.lineTo(0, 14); g.lineTo(-9, 0); g.closePath(); g.fill();
+        g.fillStyle = '#f2d36b'; g.beginPath(); g.moveTo(0, -12); g.lineTo(9, 0); g.lineTo(0, 0); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(40,30,50,.6)'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, -12); g.lineTo(0, 14); g.moveTo(-9, 0); g.lineTo(9, 0); g.stroke();
+        g.strokeStyle = '#fff4e6'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, 14); g.quadraticCurveTo(5, 24, -2, 36); g.stroke();
+        for (const [x, y] of [[2, 20], [1, 28], [-1, 35]]) { g.fillStyle = '#f2d36b'; g.beginPath(); g.ellipse(x, y, 2.6, 1.4, 0.5, 0, Math.PI * 2); g.fill(); }
+      }, 0.85 * wK, false, rot);
+    }
+  }
+  // 16. 大きな雲の影がゆっくり流れる（地上〜上空）
+  const wC = zoneW(m, 400, 1200);
+  if (wC > 0) for (let i = 0; i < 4; i++) {
+    const h1 = Kabe.hash(i, 5, 1), h2 = Kabe.hash(i, 5, 2), span = W + 460;
+    const x = ((h1 * span + t * (9 + h2 * 8)) % span + span) % span - 230, y = ((h2 * 1500 - cam.y * 0.3) % (H + 460) + H + 460) % (H + 460) - 230;
+    for (let j = 0; j < 3; j++) disc(x + (j - 1) * 70, y + (j === 1 ? -26 : 10), 95 + j * 18, '#141020', 0.055 * wC);
+  }
+  // 17. 地下の奥の壁に光る鉱石のすじ（ゆっくり明滅し、光がすじを流れる）
+  const wO = zoneW(m, -100, 395);
+  if (wO > 0) {
+    const s0 = Math.floor(sm / 150) - 1, s1 = Math.floor((sm + H) / 150) + 1;
+    for (let j = s0; j <= s1; j++) {
+      const h1 = Kabe.hash(j, 9, 1), h2 = Kabe.hash(j, 9, 2), h3 = Kabe.hash(j, 9, 3), right = h1 < 0.5;
+      const x = right ? W * (0.8 + h2 * 0.17) : W * (0.03 + h2 * 0.17), y = j * 150 + h3 * 150 - sm, len = 10 + h2 * 12, ang = (h3 - 0.5) * 1.2;
+      const ex = x + Math.cos(ang) * len, ey = y + Math.sin(ang) * len, glow = Math.pow(Math.max(0, Math.sin(t * 0.8 + h1 * 40)), 6);
+      seg(x, y, ex, ey, 1.1, '#7fe3d2', (0.25 + 0.55 * glow) * wO);
+      const f = ((t * 0.6 + h3 * 5) % 1); disc(x + (ex - x) * f, y + (ey - y) * f, 2.2, '#c8fff4', glow * 0.8 * wO); disc(x + (ex - x) * f, y + (ey - y) * f, 6, '#7fe3d2', glow * 0.18 * wO);
+    }
+  }
+  // 23. 水車のしずくときらめき
+  for (const o of Kabe.midSpins(PAL, W, sm, sm + H)) {
+    if (!o.rim) continue;
+    const cy = o.s - sm;
+    for (let j = 0; j < 3; j++) { const ph = (t * 0.8 + j / 3 + Kabe.hash(o.x, j, 4)) % 1; disc(o.x + (j - 1) * o.r * 0.45, cy + o.r * 0.9 + ph * ph * 44, 1.3, '#d6efff', (1 - ph) * 0.8); }
+    const a = t * o.speed + Kabe.hash(o.x, 1, 5) * 6, tw = Math.pow(Math.max(0, Math.sin(t * 3 + o.x)), 10);
+    disc(o.x + Math.cos(a) * o.r, cy + Math.sin(a) * o.r, 3, '#ffffff', tw * 0.7);
+  }
+  // 24. ゾーンの境目に、次のゾーンの名前を彫った古い石の札（奥の壁と同じ速さで動く）
+  for (const pool of POOLS) {
+    const B = pool.from; if (!B) continue;
+    const y = H * 0.35 + (-B * PX_PER_M - H * 0.5) * Kabe.MID_K - sm, x = (B / 100) % 2 ? W * 0.11 : W * 0.89;
+    if (y < -90 || y > H + 90) continue;
+    const name = pool.name, hh = 16 + name.length * 11;
+    S.sprite('deco:tab:' + B, true, x, y, 0, 0, [-15, -hh / 2 - 4, 15, hh / 2 + 6], g => { g.translate(x, y);
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(1, hh / 2 + 2, 14, 3.5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = hz; g.beginPath(); g.moveTo(-12, hh / 2); g.lineTo(-12, -hh / 2 + 9); g.quadraticCurveTo(-12, -hh / 2, 0, -hh / 2); g.quadraticCurveTo(12, -hh / 2, 12, -hh / 2 + 9); g.lineTo(12, hh / 2); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,244,230,.18)'; g.lineWidth = 1; g.stroke();
+      g.fillStyle = 'rgba(255,244,230,.55)'; g.font = `800 10px ${FONT}`; g.textAlign = 'center'; g.textBaseline = 'middle';
+      [...name].forEach((c, i) => g.fillText(c, 0, -hh / 2 + 13 + i * 11));
+    }, 0.9, false);
+  }
+  // 20. 遠くで光る稲妻（形だけ。雷の通り道より少し前から）
+  const wL = smooth01((m - 940) / 60) * zoneW(m, 900, 1300);
+  if (wL > 0.01) {
+    if (t > DECO.lzNext) {
+      if (DECO.lzNext) { const pts = [[W * (0.15 + Math.random() * 0.7), 10]]; for (let i = 0; i < 6; i++) { const [px, py] = pts[pts.length - 1]; pts.push([px + (Math.random() - 0.5) * 40, py + 26 + Math.random() * 22]); } DECO.lz = { t0: t, pts }; }
+      DECO.lzNext = t + (3 + Math.random() * 6) / (0.4 + wL);
+    }
+    const L = DECO.lz, e = L ? (t - L.t0) / 0.32 : 9;
+    if (e < 1) {
+      const a = (e < 0.15 ? 1 : 1 - (e - 0.15) / 0.85) * wL;
+      for (let i = 1; i < L.pts.length; i++) { const [x0, y0] = L.pts[i - 1], [x1, y1] = L.pts[i]; seg(x0, y0, x1, y1, 9, '#e8f0ff', a * 0.22); seg(x0, y0, x1, y1, 3.5, '#f6f9ff', a * 0.55); seg(x0, y0, x1, y1, 1.6, '#ffffff', a); }
+      disc(W / 2, H * 0.3, Math.max(W, H), '#eef3ff', a * 0.09);
+    }
+  }
+  // 25. 層の見出しが出るとき、背景が一瞬明るくなる
+  if (G && G.zoneT > 2.85 && G.zoneT <= 3 && DECO.litZone !== G.zone) { DECO.litZone = G.zone; DECO.litT = t; }
+  const le = (t - DECO.litT) / 1.2;
+  if (le >= 0 && le < 1) disc(W / 2, H / 2, Math.max(W, H), PAL.glow, 0.10 * (1 - le) * (1 - le));
+  // 26. 暗い区間の出口で、上から光が差しこむ（1回だけ）
+  const dk = G ? G.dark || 0 : 0;
+  if (DECO.prevDark > 0.5 && dk < 0.15 && state === 'play') DECO.shaftT = t;
+  DECO.prevDark = dk;
+  const se = (t - DECO.shaftT) / 2.6;
+  if (se >= 0 && se < 1) { const a = Math.sin(se * Math.PI); for (let i = 0; i < 4; i++) { const x = W * (0.2 + i * 0.2) + Math.sin(i * 3.1) * 20; seg(x, -40, x - 70, H * 0.85, 26 + i * 6, '#fff6dc', a * 0.06); } }
+}
 function drawGL() {
   const q0g = performance.now(), S = glfx.scene, k = S.begin();
   if (GLW.k !== k) { glReset(); GLW.k = k; }
@@ -2359,6 +2474,7 @@ function drawGL() {
     }
     const D = Kabe.bgDust(PAL, 0, 0, W, H, t), ink = RGB(PAL.uiInk);
     for (let i = 0; i < D.length; i += 4) S.disc(D[i] * k, D[i + 1] * k, D[i + 2] * k, ink, D[i + 3]);
+    if (!calm) bgDeco(S, k, t);
   }
   // 世界：カメラ＋揺れ（整数ピクセルにそろえる）
   const shx = cam.shake ? (Math.random() - 0.5) * cam.shake : 0, shy = cam.shake ? (Math.random() - 0.5) * cam.shake : 0;
@@ -4449,7 +4565,7 @@ requestAnimationFrame(loop);
 if (VERSUS) versusInit();
 { const b = $('boot'); if (b) { b.classList.add('out'); setTimeout(() => b.remove(), 400); } }   // 読み込み中の画面を消す
 if (window.__botCore) { eval('(' + window.__botCore.src + ')')(window.__botCore.BOT); const q = new URLSearchParams(location.search).get('bot'); if (q) window.__bot.view(q); }   // ?bot：ボットを中で動かす（tools/bot.js・?bot=<id> で再生）
-window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
+window.__kabe = { DECO, checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
 </script>
 </body>
