@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.1">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.2">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -527,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.22.1"></script>
-<script src="data/pieces.js?v=2026.11.22.1"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.1"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.22.2"></script>
+<script src="data/pieces.js?v=2026.11.22.2"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.2"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.22.1';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22.2';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1237,7 +1237,7 @@ function hurt(dirX, cause, wallSpike = false) {
 }
 function die() {
   if (simpleMode() && G.cause !== 'lava') respDown();   // シンプルジャンプ：溶岩以外なら少し下から復活
-  state = 'dying'; G.dieT = 0; $('pauseBtn').hidden = true; shake(10); G.flash = 1;
+  state = 'dying'; G.dieT = 0; $('pauseBtn').hidden = !G.resp || !!VERSUS;   // 復活待ちの間も一時停止できる shake(10); G.flash = 1;
   sfx[G.cause === 'lava' ? 'lava' : 'die']();
   for (let i = 0; i < 26; i++) { const a = Math.random() * Math.PI * 2, s = 60 + Math.random() * 140; particles.push({ kind: 'puff', x: P.x, y: P.y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.9, max: 0.9, r: 3 + Math.random() * 4 }); }
 }
@@ -2040,7 +2040,7 @@ function grassDraw(seg) {
       for (const bl of blades) {
         // なびき：風＋小さなゆらぎ。体が近いと押しのけられる
         let bend = windAt(bl.x, y, t) * 0.9 + Math.sin(t * 2.2 + bl.x * 0.3) * (0.06 + WX.wind * 0.18);
-        if (state !== 'title' && state !== 'dying' && state !== 'end') { const dx = bl.x - P.x, dy = y - (P.y + HB); if (Math.abs(dy) < 16 && Math.abs(dx) < 15) bend += Math.sign(dx || 1) * (1 - Math.abs(dx) / 15) * (1 - Math.abs(dy) / 16) * 1.8; }
+        if (state !== 'title' && !deadView()) { const dx = bl.x - P.x, dy = y - (P.y + HB); if (Math.abs(dy) < 16 && Math.abs(dx) < 15) bend += Math.sign(dx || 1) * (1 - Math.abs(dx) / 15) * (1 - Math.abs(dy) / 16) * 1.8; }
         bend = clampN(bend, -1.3, 1.3);
         const tx = bl.x + bl.lean + bend * bl.h * 0.75, ty = bl.y - bl.h * (1 - Math.abs(bend) * 0.22), cx = bl.x + bl.lean * 0.3 + bend * bl.h * 0.25, cy = bl.y - bl.h * 0.6;
         const mx = 0.25 * bl.x + 0.5 * cx + 0.25 * tx, my = 0.25 * bl.y + 0.5 * cy + 0.25 * ty;
@@ -2522,7 +2522,7 @@ function drawGL() {
   const qt = performance.now();
   if (!PERF.off.sprites) {
     sporesGL(); recordGL(); obstaclesGL(); stationsGL(); gemsGL();
-    if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); } else respMark(true);
+    if (!deadView()) { predictGL(); playerGL(); } else respMark(true);
     particlesGL(); if (!PERF.off.weather) weatherDraw(wseg, wdisc); lavaGL(); cloudsDraw(wdisc);
     if (VERSUS) vsArrowGL(S, k);
   }
@@ -2730,7 +2730,7 @@ function drawFrame() {
     drawStations();
     drawGems();
     if (showCheck) drawCheck();
-    if (state !== 'dying' && state !== 'end') { drawPredict(); drawPlayer(); } else respMark(false);
+    if (!deadView()) { drawPredict(); drawPlayer(); } else respMark(false);
     drawParticles(); weatherDraw(seg2, disc2);
     drawLava(); cloudsDraw(disc2);
   }
@@ -3199,7 +3199,7 @@ function obstacleLights(out, cy, inView, k) {
 function collectLights() {
   const out = [], cy = cam.y, inView = (y, r) => y - cy > -r && y - cy < H + r;
   const dk = G.dark || 0;   // 暗い区間では自分の灯りを大きく
-  if (state !== 'dying' && state !== 'end') out.push({ x: P.x, y: P.y - cy, r: 130 + dk * 70, i: 0.55 + dk * 0.35, c: '#fff6ec', s: 1 });
+  if (!deadView()) out.push({ x: P.x, y: P.y - cy, r: 130 + dk * 70, i: 0.55 + dk * 0.35, c: '#fff6ec', s: 1 });
   for (const st of world.stations) if (inView(st.y - 50, 140)) out.push({ x: st.x, y: st.y - 50 - cy, r: st.used ? 60 : 150, i: st.used ? 0.25 : 0.9, c: PAL.glow, s: 1 });
   for (const g of world.gems) if (!g.got && inView(g.y, 60)) out.push({ x: g.x, y: g.y - cy, r: 62, i: 0.75, c: PAL.glow, s: 1 });
   const r0 = Math.max(0, Math.floor(-(cy + H) / CELL) - 1), r1 = Math.floor(-cy / CELL) + 1;
@@ -3236,7 +3236,7 @@ function renderFx(src) {
   glfx.render(src, collectLights(), {
     t: G.time, amb: FX.ambient * (PAL.amb || 1) * (1 - (G.dark || 0) * 0.74), bloomK: FX.bloom * (PAL.bloom == null ? 1 : PAL.bloom), atmK: (PAL.lightK == null ? 1 : PAL.lightK) * (1 - (G.dark || 0) * 0.8), emb: FX.emboss, lavaY: ly, flash: G.flash || 0, calm: calm ? 1 : 0, danger,
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94], occ: occMap(),
-    lp: state !== 'dying' && state !== 'end' ? [P.x, P.y - cam.y] : null,
+    lp: !deadView() ? [P.x, P.y - cam.y] : null,
     rain: PERF.off.rain ? 0 : (G.rainIn || 0) * (calm ? 0.5 : 1), rt: G.time % 64, haze: cloudK(Math.max(0, -(cam.y + H * 0.5) / PX_PER_M)) * 0.32,
   });
 }
@@ -3257,7 +3257,7 @@ function drawLighting() {
     const gr = L.createRadialGradient(x, sy, 0, x, sy, r); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(0.5, `rgba(0,0,0,${a * 0.6})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
     L.fillStyle = gr; L.fillRect(x - r, sy - r, r * 2, r * 2);
   };
-  if (state !== 'dying' && state !== 'end') hole(P.x, P.y, 100 + dk * 50, 0.95);
+  if (!deadView()) hole(P.x, P.y, 100 + dk * 50, 0.95);
   for (const g of world.gems) if (!g.got) hole(g.x, g.y, 34, 0.75);
   for (const st of world.stations) hole(st.x, st.y - 40, st.used ? 40 : 90, st.used ? 0.4 : 0.9);
   // 光るキノコ：カタログの地形と同じ場所（上の面の4つに1つ）
@@ -4305,8 +4305,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) auto
 $('btnStart').onclick = startGame; $('btnRetry').onclick = startGame; $('btnCard').onclick = shareCard; $('btnCardGo').onclick = cardGo; $('btnCardBack').onclick = () => { $('ovCard').hidden = true; };
 const toTitle = () => { TITLE.t = 0; state = 'title'; $('pauseBtn').hidden = true; newGame(); renderBest(); showOnly('title'); };
 $('btnToTitle').onclick = toTitle; $('btnQuit').onclick = toTitle;   // 一時停止からもタイトルへ
-$('btnResume').onclick = () => { showOnly(null); state = 'play'; last = performance.now(); };
-$('pauseBtn').onclick = () => { if (state === 'play') { state = 'pause'; gemRows($('pGems'), G.equip); $('btnPauseGems').hidden = !TEST_MODE; showOnly('pause'); } };
+$('btnResume').onclick = () => { showOnly(null); state = G.pausedFrom === 'dying' && G.resp ? 'dying' : 'play'; G.pausedFrom = ''; last = performance.now(); };
+$('pauseBtn').onclick = () => { if (state === 'play' || (state === 'dying' && G.resp)) { G.pausedFrom = state; state = 'pause'; gemRows($('pGems'), G.equip); $('btnPauseGems').hidden = !TEST_MODE; showOnly('pause'); } };
 /* ---------- テスト：水晶を選ぶ ---------- */
 let tgFrom = 'title';
 function tgRender(focusId) {
@@ -4389,11 +4389,12 @@ addEventListener('keydown', e => {
     if (state === 'title') { if (!ov.title.hidden) startGame(); } else press(e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0);
   }
   else if ((e.key === 'ArrowDown' || e.key === 's') && !e.repeat) { e.preventDefault(); if (state === 'play') special(P.face || 1); }   // 下の特殊ゾーンと同じ
-  else if ((e.key === 'z' || e.key === 'x') && !e.repeat) doDash(e.key === 'z' ? -1 : 1);   // 横っ飛び else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play') $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
+  else if ((e.key === 'z' || e.key === 'x') && !e.repeat) doDash(e.key === 'z' ? -1 : 1);   // 横っ飛び
+  else if (e.key === 'Escape' || e.key === 'p') { if (state === 'play' || (state === 'dying' && G.resp)) $('pauseBtn').onclick(); else if (state === 'pause') $('btnResume').onclick(); }
   else if (e.key === 'd' || e.key === 'D') debug = !debug;
   else if (e.key === 'v' || e.key === 'V') showCheck = !showCheck;
 });
-document.addEventListener('visibilitychange', () => { if (document.hidden && state === 'play' && !VERSUS) $('pauseBtn').onclick(); });   // 2人対戦では親ページが止める
+document.addEventListener('visibilitychange', () => { if (document.hidden && (state === 'play' || (state === 'dying' && G.resp)) && !VERSUS) $('pauseBtn').onclick(); });   // 2人対戦では親ページが止める
 
 // タイトル：オバケは床でうとうと。カメラは下で少し止まってから縦穴をゆっくり上へ流し、上で止まったら暗くして下へ戻る（24秒でくり返す）
 const TITLE = { t: 0, fade: 0, cycle: 24, rise: 1150 };
@@ -4500,6 +4501,8 @@ function respOk(r) {
   for (let i = 0; i < 12; i++) { physStep(world, b, 1 / 120); if (!b.side && !b.ground) return false; }
   return !spikeHit(world, b.x, b.y, null);
 }
+// やられて見えていない（復活待ち・おしまい。復活待ちのまま一時停止している間も）
+const deadView = () => state === 'dying' || state === 'end' || (state === 'pause' && G && G.pausedFrom === 'dying');
 function respDown() {
   const s = G.safe || [], minY = P.y + RESP.back * PX_PER_M;
   let pt = null; for (let i = s.length - 1; i >= 0; i--) if (s[i].y >= minY && respOk(s[i])) { pt = s[i]; break; }
@@ -4513,7 +4516,7 @@ function respCam(dt) {
 }
 // 復活の場所に、うすく光るおばけと上で跳ねる ▼（数字が減るほど濃く）。gl：GPU で描くとき
 function respMark(gl) {
-  const r = G && G.resp; if (!r || state !== 'dying' || G.dieT < 0.9) return;
+  const r = G && G.resp; if (!r || !deadView() || state === 'end' || G.dieT < 0.9) return;
   const k = Math.min(1, (G.dieT - 0.9) / (OPT.resp - 0.9)), a = 0.25 + 0.35 * k + 0.12 * Math.sin(G.time * 8);
   const pose = r.side ? 'cling' : 'stand', face = r.side ? -r.side : r.face || 1;
   const ay = r.y - 34 - Math.abs(Math.sin(G.time * 4)) * 6, ac = Math.min(1, a + 0.3);

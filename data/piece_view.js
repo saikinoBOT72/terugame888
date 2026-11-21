@@ -106,6 +106,12 @@ function mounts(PIECES, only) {
   const W = ch => !!ch && '#SKk%EH'.includes(ch), WS = ch => W(ch) || ch === '/' || ch === '\\', out = [];
   for (const id of only ? [only] : Object.keys(PIECES)) {
     const R = PIECES[id].rows, n = R.length, at = (r, c) => R[r] && R[r][c];
+    // 雷：E から下へ | が続いて E、右へ - が続いて E のときだけ組になる（本編の addObstacles と同じ）。組にならない E は見えない壁になる
+    const pair = new Set();
+    for (let r = 0; r < n; r++) for (let c = 0; c < 20; c++) if (at(r, c) === 'E') {
+      if (at(r - 1, c) === '|') { let e = r - 1; while (at(e - 1, c) === '|') e--; if (at(e - 1, c) === 'E') for (let k = e - 1; k <= r; k++) pair.add(k + ',' + c); }
+      if (at(r, c + 1) === '-') { let e = c + 1; while (at(r, e + 1) === '-') e++; if (at(r, e + 1) === 'E') for (let k = c; k <= e + 1; k++) pair.add(r + ',' + k); }
+    }
     for (let r = 0; r < n; r++) for (let c = 0; c < 20; c++) {
       const ch = at(r, c), bad = msg => out.push(`${id} ${n - r}行目${c}列の ${ch}：${msg}`);
       if ((ch === 'Z' || ch === 'B') && at(r, c - 1) !== ch) { let e = c; while (at(r, e + 1) === ch) e++; if (!W(at(r, c - 1)) && !W(at(r, e + 1))) bad('どちらの端も壁についていない'); }
@@ -113,6 +119,7 @@ function mounts(PIECES, only) {
         if (!W(at(r, ac))) bad('うしろが壁でない'); else if (!WS(at(r + 1, ac)) || !WS(at(r - 1, ac))) bad('壁の角からはみ出す（つけ根の上下も壁にする）'); }
       if ('^pq'.includes(ch) && !W(at(r, c - 1)) && !W(at(r, c + 1)) && !W(at(r - 1, c)) && !W(at(r + 1, c))) bad('となりに壁がない');
       if ((ch === 'K' || ch === 'k') && !W(at(r, ch === 'K' ? c - 1 : c + 1))) bad('うしろが壁でない');
+      if ('E|-'.includes(ch) && !pair.has(r + ',' + c)) bad(ch === 'E' ? '相手の E とつながっていない（見えない壁になる）' : 'E と E の間にない');
       if (ch === '=' && at(r, c - 1) !== '=') { let e = c; while (at(r, e + 1) === '=') e++; if (!W(at(r, c - 1)) || !W(at(r, e + 1))) bad('両はしが壁でない'); }
     }
   }
