@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.4">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.5">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -527,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.22.4"></script>
-<script src="data/pieces.js?v=2026.11.22.4"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.4"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.22.5"></script>
+<script src="data/pieces.js?v=2026.11.22.5"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.5"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.22.4';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22.5';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -2087,11 +2087,15 @@ function spaceDraw(sp, seg, vis, disc) {
     } else if (o.type === 'rock') { const y = rockY(o, t), w = o.x1 - o.x0; sp(`rock|${w}`, o.x0, y, [-3, -3, w + 3, CELL + 8], () => Kabe.floatRock(ctx, PAL, o.x0, y, w, 0)); }
     else if (o.type === 'ring') {
       const st = ringState(o, t), k = Math.round(st.warn * 6) / 6, lit = st.warn > 0 && t % 0.2 < 0.1;
-      if (st.warn > 0) for (const s2 of [-1, 1]) { const a = st.gap + s2 * SPACE.ringGap; seg(o.x + Math.cos(a) * 12, o.y + Math.sin(a) * 12, o.x + Math.cos(a) * SPACE.ringMax, o.y + Math.sin(a) * SPACE.ringMax, 0.8, '#ffffff', 0.35 * st.warn); }   // 予告：次の切れ目の向き
-      if (st.r != null) {   // 輪：切れ目をあけて、短い線でつなぐ
-        const n = 36, a0 = st.gap + SPACE.ringGap, span = Math.PI * 2 - SPACE.ringGap * 2;
+      if (st.warn > 0) for (const s2 of [-1, 1]) { const a = st.gap + s2 * SPACE.ringGap; seg(o.x + Math.cos(a) * 14, o.y + Math.sin(a) * 14, o.x + Math.cos(a) * 30, o.y + Math.sin(a) * 30, 1, '#ffe2b0', 0.5 * st.warn); }   // 予告：次の切れ目の向き（装置のそばだけ）
+      if (st.r != null) {   // ゆがみの波の縁：熱を帯びて光る（外は紫のにじみ、まん中はこはく色、芯は白）。切れ目の所は光らない。縁にちりちりと火花
+        const n = 40, a0 = st.gap + SPACE.ringGap, span = Math.PI * 2 - SPACE.ringGap * 2, f = st.fade;
         let px = o.x + Math.cos(a0) * st.r, py = o.y + Math.sin(a0) * st.r;
-        for (let i = 1; i <= n; i++) { const a = a0 + span * i / n, xx = o.x + Math.cos(a) * st.r, yy = o.y + Math.sin(a) * st.r; seg(px, py, xx, yy, 4, PAL.glow, 0.3 * st.fade); seg(px, py, xx, yy, 1.5, '#ffffff', 0.95 * st.fade); px = xx; py = yy; }
+        for (let i = 1; i <= n; i++) {
+          const a = a0 + span * i / n, j = Math.sin(a * 9 + t * 25) * 1.2, xx = o.x + Math.cos(a) * (st.r + j), yy = o.y + Math.sin(a) * (st.r + j), edge = Math.min(1, Math.min(i, n - i) / 3);
+          seg(px, py, xx, yy, 7, PAL.glow, 0.16 * f * edge); seg(px, py, xx, yy, 3, '#ffc982', 0.6 * f * edge); seg(px, py, xx, yy, 1.1, '#fff8e8', 0.95 * f * edge); px = xx; py = yy;
+          if (!calm && Kabe.hash(i, Math.floor(t * 14), 61) > 0.72) disc(xx + Math.cos(a) * 3, yy + Math.sin(a) * 3, 1.3, '#fff3d6', 0.9 * f * edge);
+        }
       }
       sp(`pulse|${lit ? 1 : k}`, o.x, o.y, [-11, -11, 11, 11], () => Kabe.pulseEmitter(ctx, PAL, o.x, o.y, lit ? 1 : k));
     } else if (o.type === 'sense') {
@@ -2975,6 +2979,7 @@ const glfx = (() => {
       gl_FragColor = vec4(acc * 0.5 + dn, clamp(gs / max(ws, 1e-4), 0.0, 1.0)); }`;
   const COMP = HEAD + `uniform sampler2D scene, bloom, lmA; uniform vec2 res, px, lp; uniform float lite, t, amb, emb, lavaY, flash, calm, danger, rain, rt, haze;
     uniform vec3 lavaC, shadowT, lightT;   // lp：自分の灯りの位置（凹凸を照らす向き）
+    uniform vec4 warp[6]; uniform float warpG[6];   // 空間のゆがみ（宇宙）：xy 画面の点、z>0 衝撃波の半径（warpG は切れ目の向き）、z<0 引力のレンズの半径、w 強さ
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float fbmLite(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
     float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -2992,6 +2997,19 @@ const glfx = (() => {
       vec2 uv = v, p = vec2(v.x, 1.0 - v.y) * res;           // p：画面の点（px、上が0）
       vec3 dr = vec3(0.0);
       if (rain > 0.01) { dr = drops(p, rt) * rain; uv += vec2(dr.x, -dr.y) * px * 7.0; }   // 水滴の向こうがゆがんで見える
+      if (calm < 0.5) {   // 空間のゆがみ：衝撃波は輪の帯が外へふくらみ、引力の星・とげ星のまわりはレンズのように引きこむ
+        vec2 dP = vec2(0.0);
+        for (int i = 0; i < 6; i++) {
+          vec4 wv = warp[i]; if (wv.w == 0.0) continue;
+          vec2 dv = p - wv.xy; float d = length(dv); vec2 dir = dv / max(d, 1.0);
+          if (wv.z > 0.0) {
+            float a = atan(dv.y, dv.x) - warpG[i]; a = abs(mod(a + 3.14159, 6.28318) - 3.14159);
+            float band = exp(-pow((d - wv.z) / 15.0, 2.0)) * smoothstep(0.5, 0.68, a);
+            dP -= dir * band * wv.w * (1.0 + 0.25 * sin(d * 0.6 - t * 20.0));
+          } else { float f = clamp(d / -wv.z, 0.0, 1.0); dP -= dir * sin(3.14159 * f) * (1.0 - f) * wv.w * (1.0 + 0.15 * sin(t * 2.3 + wv.x)); }
+        }
+        uv += vec2(dP.x / res.x, -dP.y / res.y);
+      }
       float heat = clamp(1.0 - (lavaY - p.y) / 230.0, 0.0, 1.0) * (1.0 - calm);
       if (heat > 0.0) uv += vec2(sin(p.y * 0.09 + t * 7.0) * 1.6, sin(p.x * 0.07 + t * 5.0) * 1.2) * px * heat * (1.0 + heat * 2.0);   // 熱のゆらぎ
       vec2 su = vec2(uv.x, 1.0 - uv.y);                                                                                   // scene を読む位置（上が0）
@@ -3336,6 +3354,7 @@ const glfx = (() => {
       for (const k of ['t', 'amb', 'emb', 'lavaY', 'flash', 'calm', 'danger', 'rain', 'rt', 'haze']) gl.uniform1f(P3.u(k), u[k] == null ? 1 : u[k]);
       gl.uniform2f(P3.u('lp'), u.lp ? u.lp[0] : W / 2, u.lp ? u.lp[1] : -400);
       for (const k of ['lavaC', 'shadowT', 'lightT']) gl.uniform3fv(P3.u(k), u[k]);
+      gl.uniform4fv(P3.u('warp'), u.warp || WARP0.v); gl.uniform1fv(P3.u('warpG'), u.warpG || WARP0.g);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     },
     hexRgb,
@@ -3395,7 +3414,21 @@ function occMap() {
   }
   return { data, w: COLS, h: OCC.n, top: -(OCC.r1 + 1) * CELL - cam.y, hpx: OCC.n * CELL, k: 1 };
 }
+// 空間のゆがみ（衝撃波の輪・引力の星・とげ星）を画面の近い順に6つまで。画面の点（上が0）・半径・強さ
+const WARP0 = { v: new Float32Array(24), g: new Float32Array(6) };
+function warpList() {
+  if (!world || !world.obs || PAL.id !== 'space' && !world.wells.length) return null;
+  const L = [], t = G.time, cy = cam.y + H / 2;
+  for (const o of world.obs) if (o.type === 'ring' && Math.abs(o.y - cy) < H / 2 + 100) { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 12 * st.fade, st.gap]); }
+  for (const q of world.wells) if (Math.abs(q.y - cy) < H / 2 + 60) L.push([q.x, q.y - cam.y, q.acc === SPACE.wellAcc ? -64 : -50, q.acc === SPACE.wellAcc ? 10 : 8, 0]);
+  if (!L.length) return null;
+  L.sort((a, b) => Math.abs(a[1] - H / 2) - Math.abs(b[1] - H / 2));
+  const v = new Float32Array(24), g = new Float32Array(6);
+  L.slice(0, 6).forEach((w, i) => { v.set(w.slice(0, 4), i * 4); g[i] = w[4]; });
+  return { v, g };
+}
 function renderFx(src) {
+  const wp = warpList();
   const ly = G.lavaY - cam.y, m = (G.lavaY - P.y) / PX_PER_M;
   const danger = state === 'play' && G.lavaDelay <= 0 && m < 2.5 ? (0.5 + 0.5 * Math.sin(G.time * 8)) * (1 - m / 2.5) * (calm ? 0.5 : 1) : 0;
   glfx.render(src, collectLights(), {
@@ -3403,6 +3436,7 @@ function renderFx(src) {
     lavaC: glfx.hexRgb(PAL.rise), glowC: glfx.hexRgb(PAL.glow), shadowT: [0.82, 0.84, 1.08], lightT: [1.06, 1.0, 0.94], occ: occMap(),
     lp: !deadView() ? [P.x, P.y - cam.y] : null,
     rain: PERF.off.rain ? 0 : (G.rainIn || 0) * (calm ? 0.5 : 1), rt: G.time % 64, haze: cloudK(Math.max(0, -(cam.y + H * 0.5) / PX_PER_M)) * 0.32,
+    warp: wp && wp.v, warpG: wp && wp.g,
   });
 }
 

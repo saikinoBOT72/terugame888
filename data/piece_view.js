@@ -114,7 +114,9 @@ function draw(g, P, d, t) {
     else if (o.k === 'ring') {
       const u = t + o.off, n = Math.floor(u / SPACE.ringPeriod), ph = u - n * SPACE.ringPeriod, gap = o.gap0 + n * Math.PI / 4;
       if (ph < SPACE.ringGrow) { const e = ph / SPACE.ringGrow, r = 9 + (SPACE.ringMax - 9) * (1 - (1 - e) * (1 - e)), fade = 1 - Math.max(0, e - 0.75) / 0.25;
-        g.save(); g.strokeStyle = 'rgba(255,255,255,' + 0.95 * fade + ')'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.arc(o.x, o.y, r, gap + SPACE.ringGap, gap + Math.PI * 2 - SPACE.ringGap); g.stroke(); g.restore(); }
+        g.save(); g.lineCap = 'round';   // 本編と同じ：外は紫のにじみ、まん中はこはく色、芯は白
+        for (const [w, col] of [[14, P.glow + '29'], [6, 'rgba(255,201,130,' + 0.6 * fade + ')'], [2.2, 'rgba(255,248,232,' + 0.95 * fade + ')']]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(o.x, o.y, r, gap + SPACE.ringGap, gap + Math.PI * 2 - SPACE.ringGap); g.stroke(); }
+        g.restore(); }
       K.pulseEmitter(g, P, o.x, o.y, ph > SPACE.ringPeriod - SPACE.ringWarn ? (ph - SPACE.ringPeriod + SPACE.ringWarn) / SPACE.ringWarn : 0);
     }
     else if (o.k === 'rail') {   // 本編の railPos と同じ（角と端で止まり、なめらかに動き出す）
