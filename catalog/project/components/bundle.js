@@ -690,15 +690,9 @@ window.Kabe = (function () {
     g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(cx, cy, 3.4, 0.4, 2.7); g.stroke();
     shine(g, cx - 2.4, cy - 2.6, 1.8, 1, 0.5);
   }
-  // 回る衛星の真ん中（痛くない小さな核とアンテナ）と通り道。R：輪の半径
+  // 回る衛星の通り道（うすい点線の輪だけ。真ん中には何も置かない）。R：輪の半径
   function satellite(g, P, cx, cy, R) {
-    if (R) dashRing(g, cx, cy, R, P.metalLight, 0.35, [1.5, 4.5]);
-    g.strokeStyle = P.metalShade; g.lineWidth = 1.2; g.beginPath(); g.moveTo(cx, cy - 5); g.lineTo(cx + 3, cy - 10); g.stroke();
-    g.fillStyle = P.glow; ell(g, cx + 3, cy - 10.5, 1.4, 1.4); g.fill();
-    solid(g, function () { rr(g, cx - 12, cy - 2.5, 7, 5, 1); }, '#7f9fd6', '#5d7bb2', P.ink, 0.8, 0.8);   // 太陽の板（青）
-    solid(g, function () { rr(g, cx + 5, cy - 2.5, 7, 5, 1); }, '#7f9fd6', '#5d7bb2', P.ink, 0.8, 0.8);
-    metalSolid(g, P, function () { ell(g, cx, cy, 5, 5); }, 1);
-    bolt(g, P, cx - 0.4, cy - 0.4, 1.4);
+    dashRing(g, cx, cy, R, P.metalLight, 0.3, [1.5, 5]);
   }
   // 浮き岩（乗れる・張り付ける足場）。x〜x+w、y は上の面、高さ1マス
   function floatRock(g, P, x, y, w, t) {

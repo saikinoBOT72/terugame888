@@ -9,7 +9,7 @@ const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Ma
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
   O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '-': '雷の柱（横）', E: '雷の装置', H: 'ぽよんブロック', '{': '突風', '}': '突風', W: '風車',
   '@': '引力の星', '*': 'とげ星', C: '回る衛星', R: '浮き岩', U: '衝撃波の輪', F: '熱くなる壁', V: 'センサー機雷' };
-const SPACE = { wellR: 81, sstarR: 63, satR: 40, satSpeed: 1.1, satBalls: 2, rockAmp: 12, rockPeriod: 4.2, ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: 0.5, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0 };   // 本編の SPACE と同じ
+const SPACE = { wellR: 81, sstarR: 63, satR: 60, satSpeed: 1.1, satBalls: 2, rockAmp: 12, rockPeriod: 4.2, ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: 0.5, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0 };   // 本編の SPACE と同じ
 const SKY = { bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5 };   // 本編の SKY と同じ（曲がるトゲブロック）
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 

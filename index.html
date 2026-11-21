@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.3">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.4">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -527,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.22.3"></script>
-<script src="data/pieces.js?v=2026.11.22.3"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.3"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.22.4"></script>
+<script src="data/pieces.js?v=2026.11.22.4"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.4"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.22.3';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22.4';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -577,7 +577,7 @@ const SKY = { mineAmp: 12, minePeriod: 2.8, mineHit: 10, bendSpeed: 50, bendCorn
 // 宇宙の仕掛け：引力の星 @（引く半径・いちばん強い引き）、とげ星 *（引く半径・引き・当たり）、回る衛星 C（輪の半径・速さ・玉の数・玉の当たり）、
 // 浮き岩 R（ゆれ幅・周期）、衝撃波の輪 U（周期・予告・広がる秒・届く半径・切れ目の半分の角度・線の当たり）、熱くなる壁 F（周期・熱い秒・予告の秒・当たりのふくらみ）、
 // センサー機雷 V（気づく半径・破裂までの秒・破裂の半径・破裂の秒・戻るまでの秒・玉の当たり）、ふわり帯（重力の倍率）
-const SPACE = { wellR: 81, wellAcc: 900, sstarR: 63, sstarAcc: 450, sstarHit: 9, satR: 40, satSpeed: 1.1, satBalls: 2, satHit: 7, rockAmp: 12, rockPeriod: 4.2,
+const SPACE = { wellR: 81, wellAcc: 900, sstarR: 63, sstarAcc: 450, sstarHit: 9, satR: 60, satSpeed: 1.1, satBalls: 2, satHit: 7, rockAmp: 12, rockPeriod: 4.2,
   ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: 0.5, ringHit: 3, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0, heatPad: 3,
   senseR: 54, senseFuse: 0.7, burstR: 38, burstT: 0.22, senseBack: 6, senseHit: 8, lowG: 0.6 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
@@ -1618,7 +1618,7 @@ function obstacleHit() {
       if (circleRect(P.x, P.y, HIT, bx - o.w / 2 - T, by - o.h / 2 - T, bx + o.w / 2 + T, by + o.h / 2 + T)) return hurt(Math.sign(P.x - bx) || 1, 'bend');
     } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.bax === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HIT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HIT)) {
       return hurt(o.bax === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
-    } else if (o.type === 'sat' && Math.abs(o.y - P.y) < 60) {   // 回る衛星：輪を回るトゲの玉
+    } else if (o.type === 'sat' && Math.abs(o.y - P.y) < o.R + 20) {   // 回る衛星：輪を回るトゲの玉
       for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, G.time, k); if (Math.hypot(P.x - bx, P.y - by) < SPACE.satHit + HIT) return hurt(Math.sign(P.x - bx) || 1, 'sat'); }
     } else if (o.type === 'ring' && Math.abs(o.y - P.y) < SPACE.ringMax + 20) {   // 衝撃波の輪：線だけ痛い。切れ目は通れる
       const st = ringState(o, G.time), d = Math.hypot(P.x - o.x, P.y - o.y);
@@ -2082,7 +2082,7 @@ function spaceDraw(sp, seg, vis, disc) {
     if (!vis(o.yMid)) continue;
     if (o.type === 'sstar') sp('sstar', o.x, o.y, [-SPACE.sstarR - 2, -SPACE.sstarR - 2, SPACE.sstarR + 2, SPACE.sstarR + 2], () => Kabe.spikeStar(ctx, PAL, o.x, o.y, SPACE.sstarR, 0), 1, true, t * 0.6 + o.spin * 6);
     else if (o.type === 'sat') {
-      sp('satcore', o.x, o.y, [-o.R - 3, -o.R - 3, o.R + 3, o.R + 3], () => Kabe.satellite(ctx, PAL, o.x, o.y, o.R));
+      sp(`satorbit|${o.R}`, o.x, o.y, [-o.R - 3, -o.R - 3, o.R + 3, o.R + 3], () => Kabe.satellite(ctx, PAL, o.x, o.y, o.R));
       for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, t, k); sp('satball', bx, by, [-12, -12, 12, 12], () => Kabe.mine(ctx, PAL, bx, by, 6), 1, true, t * 2); }
     } else if (o.type === 'rock') { const y = rockY(o, t), w = o.x1 - o.x0; sp(`rock|${w}`, o.x0, y, [-3, -3, w + 3, CELL + 8], () => Kabe.floatRock(ctx, PAL, o.x0, y, w, 0)); }
     else if (o.type === 'ring') {
