@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.6">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.22.7">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -527,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.22.6"></script>
-<script src="data/pieces.js?v=2026.11.22.6"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.6"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.22.7"></script>
+<script src="data/pieces.js?v=2026.11.22.7"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.22.7"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.22.6';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.22.7';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -3029,7 +3029,7 @@ const glfx = (() => {
             float a = atan(dv.y, dv.x) - warpG[i]; a = abs(mod(a + 3.14159, 6.28318) - 3.14159);
             float band = exp(-pow((d - wv.z) / 18.0, 2.0)) * (warpG[i] < -5.0 ? 1.0 : smoothstep(0.5236, 0.70, a));
             dP -= dir * band * wv.w * (1.0 + 0.25 * sin(d * 0.6 - t * 20.0));
-          } else { float f = clamp(d / -wv.z, 0.0, 1.0); dP -= dir * sin(3.14159 * f) * (1.0 - f) * wv.w * (1.0 + 0.15 * sin(t * 2.3 + wv.x)); }
+          } else { float R = -wv.z, g = smoothstep(14.0, 28.0, d) * (1.0 - smoothstep(R * 0.45, R, d)); dP -= dir * g * wv.w; }   // 星のブロックそのものはゆがめない（まわりの帯だけ）
         }
         uv += vec2(dP.x / res.x, -dP.y / res.y);
       }
@@ -3444,10 +3444,15 @@ function warpList() {
   const L = [], t = G.time, cy = cam.y + H / 2;
   for (const o of world.obs) {
     if (Math.abs(o.y - cy) > H / 2 + 100) continue;
-    if (o.type === 'ring') { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 18 * st.fade, st.gap]); }
-    if (o.type === 'sense') { const wv = senseWave(o, t); if (wv) L.push([o.x, o.y - cam.y, wv.r, 16 * wv.fade, -10]); }   // 全方位（切れ目なし）
+    // ゆがみの強さは、出てから消えるまで なめらかに大きくなって小さくなる
+    if (o.type === 'ring') { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 18 * Math.sin(Math.PI * clamp((st.r - 9) / (SPACE.ringMax - 9), 0, 1)) * st.fade, st.gap]); }
+    if (o.type === 'sense') { const wv = senseWave(o, t); if (wv) L.push([o.x, o.y - cam.y, wv.r, 16 * Math.sin(Math.PI * clamp((wv.r - 8) / (SPACE.burstR - 8), 0, 1)), -10]); }   // 全方位（切れ目なし）
   }
-  for (const q of world.wells) if (Math.abs(q.y - cy) < H / 2 + 60) L.push([q.x, q.y - cam.y, q.acc === SPACE.wellAcc ? -70 : -54, (q.acc === SPACE.wellAcc ? 14 : 11) * wellSign(world, q), 0]);   // 押すときは逆向きにふくらむ
+  for (const q of world.wells) {   // 引力の星：引く・押すのそれぞれの間に 0→最大→0 となめらかに（押すときは逆向き）。とげ星はゆっくり強弱
+    if (Math.abs(q.y - cy) > H / 2 + 60) continue;
+    const half = SPACE.wellPeriod / 2, k = q.flip ? Math.sin(Math.PI * (wellPh(q, t) % half) / half) * wellSign(world, q) : 0.55 + 0.45 * Math.sin(t * 1.6 + q.x);
+    L.push([q.x, q.y - cam.y, q.flip ? -76 : -60, (q.flip ? 12 : 9) * k, 0]);
+  }
   if (!L.length) return null;
   L.sort((a, b) => Math.abs(a[1] - H / 2) - Math.abs(b[1] - H / 2));
   const v = new Float32Array(24), g = new Float32Array(6);
