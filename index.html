@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.22">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.23">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -334,6 +334,13 @@
   @keyframes pop { 0% { transform: translateY(calc(var(--u) * 2px)) scale(.93); } 55% { transform: scale(1.06); } 100% { transform: none; } }
   .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
   .ov.leave { background: transparent; pointer-events: none; }
+  .endPath { position: absolute; left: 0; top: 0; pointer-events: none; }
+  #ovEnd > .card { position: relative; }
+  .endHero { margin: calc(var(--u) * -8px) 0 calc(var(--u) * -10px); }
+  .endWhy { display: flex; align-items: center; gap: calc(var(--u) * 6px); margin-top: calc(var(--u) * -6px); color: var(--dim); font-weight: 800; font-size: calc(var(--u) * 12px); }
+  #edgeFlash { position: absolute; inset: 0; pointer-events: none; z-index: 3; opacity: 0; border-radius: inherit; box-shadow: inset 0 0 calc(var(--u) * 46px) calc(var(--u) * 6px) rgba(242,211,107,.85); }
+  #edgeFlash.on { animation: edgeFlash 1.3s ease-out; }
+  @keyframes edgeFlash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
   .ov.fadeout { opacity: 0; transition: opacity .35s; pointer-events: none; }
   .ov.leave > .card { animation: cardOut .16s ease-in forwards; }
   @keyframes cardOut { to { transform: translateY(calc(var(--u) * 18px)) scale(.97); opacity: 0; } }
@@ -495,10 +502,14 @@
         <button class="sub" id="btnGachaGo" type="button">出発する</button>
       </div>
     </section>
+    <div id="edgeFlash" aria-hidden="true"></div>
     <canvas class="uic gshow" id="gShow" data-w="360" data-h="640" role="img" aria-label="ガチャの演出（タップで先へ）" hidden></canvas>
     <section id="ovEnd" class="ov" hidden>
+      <canvas class="uic endPath" id="endPath" data-w="360" data-h="640" aria-hidden="true"></canvas>
       <div class="card">
+        <canvas class="uic endHero" id="endHero" data-w="200" data-h="96" aria-hidden="true" hidden></canvas>
         <h2 id="endTitle">溶岩に呑まれた</h2>
+        <div class="endWhy"><canvas class="uic" id="endIcon" data-w="44" data-h="40" aria-hidden="true"></canvas><span id="endLine"></span></div>
         <dl class="stats" id="endStats"></dl>
         <div class="grows" id="eGems"></div>
         <button class="btn" id="btnRetry" type="button">もう一度</button>
@@ -508,13 +519,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.22"></script>
-<script src="data/pieces.js?v=2027.01.22"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.22"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2027.01.23"></script>
+<script src="data/pieces.js?v=2027.01.23"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.23"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.22';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2027.01.23';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1115,7 +1126,8 @@ function newGame() {
   G = { time: 0, airT: 0, hp: MAX_HP, inv: 0, best: 0, cause: '', lavaY: 200, lavaDelay: LAVA.delay, mark: 0,
     crystals: 0, got: 0, gems: {}, equip: [], tripleCd: 0, hoverLeft: 0, clingT: 0, coinBump: 0, pulls: [],
     kickT: 0, landT: 0, cheerT: 0, happyT: 0, pressAt: -9, landAt: -9, dashCd: 0, diveCd: 0, dashT: 0, dashDir: 1, diving: false, charging: false, chargeT: 0, invMax: INVINCIBLE, standT: 0, hovering: false, wasHover: false, puffT: 0, heals: 0, trailT: 0, stop: 0, flash: 0, zone: poolAt(0).name, zoneT: 0 };
-  if (simpleMode()) { G.hp = 1; G.safe = []; G.downs = 0; }   // シンプルジャンプ：HP なし（1回でやられる）
+  if (simpleMode()) { G.hp = 1; G.safe = []; G.downs = 0; }
+  G.recordM = VERSUS || TEST_FROM || TEST_MODE ? 0 : store.get(MODES[MODE].best, 0); G.path = []; G.pathT = 0;   // 最高記録の旗・結果画面の道のり   // シンプルジャンプ：HP なし（1回でやられる）
   cam.y = 60 - H; cam.shake = 0; cam.lead = 0; inputBuf = 0; inputDir = 0; holding = false; particles = []; floaters = []; flyers = []; trail = [];
   clearBands(); if (glfx) glReset();
   if (TEST_FROM) {
@@ -1280,7 +1292,14 @@ function update(dt) {
   if (inputBuf > 0) inputBuf -= dt;
   P.squash += (0 - P.squash) * Math.min(1, dt * 10);   // ポーズ（とマフラー）は1フレームに1回（loop）
   G.best = Math.max(G.best, heightM());
-  if (Math.floor(G.best / 10) > G.mark) { G.mark = Math.floor(G.best / 10); sfx.tick(); G.happyT = 0.7; floaters.push({ text: G.mark * 10 + 'm', x: P.x, y: P.y - 24, life: 1.2 }); }
+  if (Math.floor(G.best / 10) > G.mark) { G.mark = Math.floor(G.best / 10); sfx.tick(); G.happyT = 0.7; floaters.push({ text: G.mark * 10 + 'm', x: P.x, y: P.y - 24, life: 1.2 });
+    if (G.mark % 50 === 0 && !calm) { const e = $('edgeFlash'); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); sfx.chargeFull(); }   // 37. 500m ごと：画面のふちが金色に光る
+  }
+  if (G.recordM > 0 && !G.recordAt && G.best > G.recordM) {   // 36. 最高記録をこえた：旗が飛んで紙ふぶき（ゲームは止めない）
+    G.recordAt = G.time; G.cheerT = 0.8; floaters.push({ text: '新記録！', x: P.x, y: P.y - 40, life: 1.6 }); sfx.gem2();
+    if (!calm) for (let i = 0; i < 44; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 160 + Math.random() * 220; particles.push({ kind: 'dot', x: P.x, y: P.y - 10, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 260, life: 1.2 + Math.random() * 0.6, max: 1.8, r: 1.6 + Math.random(), col: ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff'][i % 4] }); }
+  }
+  if (G.path && G.time >= G.pathT) { G.pathT = G.time + 0.2; G.path.push([Math.round(P.x), Math.round(P.y)]); if (G.path.length > 3000) G.path = G.path.filter((_, i) => i % 2 === 0); }
 
   const zoneNow = poolAt(G.best).name;
   if (zoneNow !== G.zone) { G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
@@ -2430,7 +2449,7 @@ function bgDeco(S, k, t) {
   const wL = smooth01((m - 940) / 60) * zoneW(m, 900, 1300);
   if (wL > 0.01) {
     if (t > DECO.lzNext) {
-      if (DECO.lzNext) { const pts = [[W * (0.15 + Math.random() * 0.7), 10]]; for (let i = 0; i < 6; i++) { const [px, py] = pts[pts.length - 1]; pts.push([px + (Math.random() - 0.5) * 40, py + 26 + Math.random() * 22]); } DECO.lz = { t0: t, pts }; }
+      if (DECO.lzNext) { const pts = [[W * (0.15 + Math.random() * 0.7), 10]]; for (let i = 0; i < 6; i++) { const [px, py] = pts[pts.length - 1]; pts.push([px + (Math.random() - 0.5) * 40, py + 26 + Math.random() * 22]); } DECO.lz = { t0: t, pts }; if (state === 'play') setTimeout(() => sfx.thunder(0.6 + wL * 0.4), 400 + Math.random() * 900); }
       DECO.lzNext = t + (3 + Math.random() * 6) / (0.4 + wL);
     }
     const L = DECO.lz, e = L ? (t - L.t0) / 0.32 : 9;
@@ -2489,7 +2508,7 @@ function drawGL() {
   }
   const qt = performance.now();
   if (!PERF.off.sprites) {
-    sporesGL(); obstaclesGL(); stationsGL(); gemsGL();
+    sporesGL(); recordGL(); obstaclesGL(); stationsGL(); gemsGL();
     if (state !== 'dying' && state !== 'end') { predictGL(); playerGL(); } else respMark(true);
     particlesGL(); if (!PERF.off.weather) weatherDraw(wseg, wdisc); lavaGL(); cloudsDraw(wdisc);
   }
@@ -2580,6 +2599,18 @@ function predictGL() {
   if (!pts) return;
   pts.forEach(([x, y, end], i) => { const a = (faint ? 0.45 : 0.75) * (1 - i / (pts.length + 4));
     wdisc(x, y, end ? 4.2 : 2.9, PAL.ink, (end ? 0.9 : a) * 0.6); wdisc(x, y, end ? 3 : 1.9, PAL.glow, end ? 0.95 : Math.min(1, a + 0.15)); });   // 暗い縁＋光の点（明るい空でも見える）
+}
+function recordGL() {
+  if (!G || !(G.recordM > 0)) return;
+  const y = -G.recordM * PX_PER_M, t = G.time, fly = G.recordAt ? t - G.recordAt : -1;   // 足もとの高さ
+  if (y < cam.y - 80 || y > cam.y + H + 80 || fly > 1.4) return;
+  const a = fly < 0 ? 1 : 1 - fly / 1.4, fx = 2 * CELL + 4 + (fly > 0 ? fly * 40 : 0), fy = y - (fly > 0 ? fly * fly * 160 : 0), rot = fly > 0 ? fly * 2.4 : Math.sin(t * 2) * 0.04;
+  if (fly < 0) for (let x = 2 * CELL + 14; x < W - 2 * CELL; x += 12) wseg(x, y, x + 5, y, 1, PAL.glow, 0.35 + 0.15 * Math.sin(t * 3 - x * 0.05));
+  wspr('recflag', fx, fy, [-3, -36, 40, 3], () => {
+    ctx.translate(fx, fy); ctx.fillStyle = PAL.uiInk; ctx.fillRect(-1.2, -34, 2.4, 34);
+    ctx.fillStyle = PAL.glow; ctx.beginPath(); ctx.moveTo(1, -34); ctx.lineTo(34, -27); ctx.lineTo(1, -18); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = PAL.ink; ctx.font = `800 7px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText('最高', 5, -26.5);
+  }, a, true, rot);
 }
 function playerGL() {
   const p = P, t = G.time;
@@ -3347,6 +3378,7 @@ const sfx = {
   crack() { noise(0.06, 0.04, 800, 3000); tone(200, 0.06, 'triangle', 0.05, 150); },
   crumble() { noise(0.25, 0.06, 200, 1600); tone(120, 0.2, 'sine', 0.06, 70); },
   cannon() { noise(0.12, 0.05, 150, 900); tone(110, 0.15, 'sine', 0.08, 60); },
+  thunder(v = 1) { [0, 0.32, 0.7].forEach((d, i) => setTimeout(() => { noise(0.5, 0.05 * v / (i + 1), 25, 240 - i * 50); }, d * 1000)); tone(52, 1.3, 'sine', 0.05 * v, 38, 0, 0.08); },
   clank() { tone(520, 0.06, 'triangle', 0.03, 380); noise(0.03, 0.015, 1500, 5000); },
   hurt() { tone(420, 0.3, 'triangle', 0.12, 160, 0, 0.003); tone(400, 0.3, 'triangle', 0.08, 150, 0.02, 0.003); },
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
@@ -3479,10 +3511,58 @@ function showEnd() {
     const dt = document.createElement('dt'); dt.textContent = a; const dd = document.createElement('dd'); dd.textContent = b + (isNew ? ' 新記録' : ''); if (isNew) dd.className = 'new'; st.append(dt, dd);
   }
   gemRows($('eGems'), GEM_ORDER.filter(id => G.gems[id]), true);
+  endFx(m > best && !G.test);
   G.cardInfo = { m, isNew: m > best && !G.test, zone: poolAt(G.best).name, time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
   $('btnCard').textContent = '結果を画像にする';
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
 }
+/* ---------- 結果画面の演出：数字のカウントアップ・新記録のガッツポーズ・やられた原因の絵と一言・今回の道のり ---------- */
+const WHY = {   // やられた原因 → [ポーズ, 一言, 絵の飾り]
+  lava: ['dizzy', 'あちち…マフラーがこげそう', 'smoke'], spike: ['dizzy', '目がまわる…', 'stars'], box: ['dizzy', 'はさまれた…', 'stars'], spin: ['dizzy', 'くるくる…', 'stars'],
+  pend: ['dizzy', 'ごつん', 'stars'], ball: ['dizzy', 'どーん', 'stars'], mine: ['dizzy', 'ぱちっ', 'stars'], bend: ['dizzy', 'ぶつかった…', 'stars'], bolt: ['dizzy', 'しびれた…', 'zap'], mill: ['dizzy', 'まきこまれた…', 'stars'],
+};
+const END = { t0: -1, newRec: false, why: null };
+function endFx(newRec) {
+  END.t0 = -1; END.newRec = newRec; END.why = WHY[G.cause] || ['sleep', 'ひとやすみ', ''];
+  $('endHero').hidden = !newRec;
+  $('endLine').textContent = END.why[1];
+  const pf = $('endPath'); pf.dataset.w = W; pf.dataset.h = H;
+  if (reduceMotion) return;
+  [...$('endStats').querySelectorAll('dd')].forEach((dd, i) => {   // 41. 数字を0から数え上げる（下の行ほど少し遅れて）
+    const mt = dd.textContent.match(/^(\d+(?:\.\d+)?)(.*)$/); if (!mt) return;
+    const to = +mt[1], dec = (mt[1].split('.')[1] || '').length, rest = mt[2], t0 = performance.now() + i * 110;
+    const step = now => { const k = Math.max(0, Math.min(1, (now - t0) / 600)), e = 1 - (1 - k) ** 3; dd.textContent = (to * e).toFixed(dec) + rest; if (k < 1) requestAnimationFrame(step); };
+    dd.textContent = (0).toFixed(dec) + rest; requestAnimationFrame(step);
+  });
+}
+queueMicrotask(() => {   // uiCanvas の仕組みはこの下で作るので、読み終えてから登録する
+// 42. 新記録：ガッツポーズでマフラーをなびかせる
+uiCanvas($('endHero'), (g, t, w, h) => {
+  const glow = g.createRadialGradient(w / 2, h - 30, 4, w / 2, h - 30, 70); glow.addColorStop(0, rgba(PAL.glow, 0.35)); glow.addColorStop(1, rgba(PAL.glow, 0)); g.fillStyle = glow; g.fillRect(0, 0, w, h);
+  const hop = -Math.abs(Math.sin(t * 4)) * 6;
+  Kabe.ghost(g, PAL, 'sheet', Math.floor(t * 1.2) % 3 === 2 ? 'cheer' : 'fist', w / 2, h - 40 + hop, t, 1, 2.2);
+  for (let i = 0; i < 5; i++) { const a = t * 1.6 + i * 1.26, r = 52 + Math.sin(t * 3 + i) * 4; g.fillStyle = ['#f2d36b', '#7fd6c8', '#fff4e6'][i % 3]; g.beginPath(); g.arc(w / 2 + Math.cos(a) * r, h - 44 + Math.sin(a) * r * 0.45, 2.2, 0, Math.PI * 2); g.fill(); }
+});
+// 44. やられた原因の小さな絵（溶岩はけむり、雷はぴりぴり、ほかは目のまわりに星）
+uiCanvas($('endIcon'), (g, t, w, h) => {
+  const why = END.why || WHY.spike;
+  Kabe.ghost(g, PAL, 'sheet', why[0], w / 2, h / 2 + 4, t, 1, 0.95);
+  if (why[2] === 'smoke') for (let i = 0; i < 3; i++) { const ph = (t * 0.7 + i / 3) % 1; g.fillStyle = `rgba(120,110,120,${0.5 * (1 - ph)})`; g.beginPath(); g.arc(w / 2 - 8 + i * 8 + Math.sin(t * 2 + i) * 2, h / 2 + 2 - ph * 18, 2.5 + ph * 3, 0, Math.PI * 2); g.fill(); }
+  else if (why[2] === 'zap') { g.strokeStyle = '#f2d36b'; g.lineWidth = 1.4; for (const s of [-1, 1]) { const x = w / 2 + s * 14; g.beginPath(); g.moveTo(x, h / 2 - 10); g.lineTo(x - s * 4, h / 2 - 4); g.lineTo(x + s * 2, h / 2 - 2); g.lineTo(x - s * 3, h / 2 + 5); g.stroke(); } }
+  else if (why[2] === 'stars') for (let i = 0; i < 3; i++) { const a = t * 3 + i * 2.09; g.fillStyle = '#f2d36b'; g.font = '8px sans-serif'; g.textAlign = 'center'; g.fillText('★', w / 2 + Math.cos(a) * 12, h / 2 - 12 + Math.sin(a) * 3); }
+});
+// 40. 今回の道のり：結果画面の後ろで、下から上へ光る線でなぞる（高さを画面に合わせて縮める）
+uiCanvas($('endPath'), (g, t, w, h) => {
+  const pts = G && G.path; if (!pts || pts.length < 2) return;
+  if (END.t0 < 0) END.t0 = t;
+  let y0 = Infinity, y1 = -Infinity; for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  const sy = Math.min(1, (h - 80) / Math.max(1, y1 - y0)), sx = w / W, k = reduceMotion ? 1 : Math.min(1, (t - END.t0) / 1.8), n = Math.max(2, Math.floor(pts.length * (1 - (1 - k) ** 2)));
+  const px = p => p[0] * sx, py = p => h - 40 - (y1 - p[1]) * sy;
+  g.lineCap = g.lineJoin = 'round';
+  for (const [lw, a] of [[7, 0.12], [2.2, 0.65]]) { g.strokeStyle = rgba(PAL.glow, a); g.lineWidth = lw; g.beginPath(); g.moveTo(px(pts[0]), py(pts[0])); for (let i = 1; i < n; i++) g.lineTo(px(pts[i]), py(pts[i])); g.stroke(); }
+  const e = pts[n - 1]; g.fillStyle = rgba('#ffffff', 0.9); g.beginPath(); g.arc(px(e), py(e), 3, 0, Math.PI * 2); g.fill();
+});
+});
 /* ---------- 結果カード：着いた高さの景色・オバケ・高さ・持っていた水晶を 1080×1080 の絵にして、共有（スマホ）か保存 ---------- */
 function makeCard(info) {
   const S = 1080, u = S / 360, c = document.createElement('canvas'); c.width = c.height = S;
@@ -3496,18 +3576,25 @@ function makeCard(info) {
   // 光
   const gl = g.createRadialGradient(250, 240, 10, 250, 240, 150); gl.addColorStop(0, rgba(P.glow, 0.28)); gl.addColorStop(1, rgba(P.glow, 0)); g.fillStyle = gl; g.fillRect(0, 0, 360, 360);
   // オバケ（新記録ならばんざい）
-  Kabe.ghost(g, P, 'sheet', info.isNew ? 'cheer' : 'stand', 252, 270, 1.2, -1, 2.6);
+  Kabe.ghost(g, P, 'sheet', info.isNew ? 'cheer' : 'stand', 254, 256, 1.2, -1, 3.2);
   // 文字の板
   g.fillStyle = rgba(P.uiPanel, 0.9); rr(g, 44, 36, 178, 232, 18); g.fill();
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
   g.fillStyle = P.glow; g.font = `800 13px ${FONT}`; g.fillText('おばけじゃんぴんぐ', 60, 62);
   g.fillStyle = P.uiInk; g.font = `800 54px ${FONT}`; g.fillText(info.m + 'm', 58, 120);
   g.fillStyle = P.uiMuted; g.font = `800 12px ${FONT}`; g.fillText(`${info.zone}まで登った`, 60, 142);
-  if (info.isNew) { g.fillStyle = P.glow; rr(g, 150, 58, 62, 20, 10); g.fill(); g.fillStyle = P.ink; g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.fillText('新記録', 181, 72); g.textAlign = 'left'; }
+  if (info.isNew) { g.fillStyle = P.glow; rr(g, 150, 26, 62, 20, 10); g.fill(); g.fillStyle = P.ink; g.font = `800 11px ${FONT}`; g.textAlign = 'center'; g.fillText('新記録', 181, 40); g.textAlign = 'left'; }   // 板の上のふちに貼った札（タイトルにかからない）
   g.font = `500 12px ${FONT}`; g.fillStyle = P.uiMuted;
   [['タイム', info.time + '秒'], ['拾った結晶', info.got + '個'], ['おしまい', info.cause]].forEach(([a, b], i) => { g.fillStyle = P.uiMuted; g.fillText(a, 60, 170 + i * 20); g.fillStyle = P.uiInk; g.textAlign = 'right'; g.fillText(b, 206, 170 + i * 20); g.textAlign = 'left'; });
   info.gems.slice(0, 5).forEach((id, i) => Kabe.gem(g, P, id, GEMS[id].star, 68 + i * 33, 248, 1.15, 0.5));
   if (!info.gems.length) { g.fillStyle = P.uiMuted; g.fillText('水晶なし', 60, 252); }
+  // ゾーンの景色の帯：0m から上へ、ゾーンごとの空と地形の色。登ったところまではこく、先はうすい
+  POOLS.forEach((pool, i) => {
+    const x0 = 40 + i * (280 / POOLS.length), x1 = x0 + 280 / POOLS.length - 1.5, zp = palAt(pool.from + 50), on = info.m >= pool.from;
+    g.globalAlpha = on ? 1 : 0.3; g.fillStyle = zp.far; g.fillRect(x0, 312, x1 - x0, 12); g.fillStyle = zp.terrain; g.fillRect(x0, 320, x1 - x0, 4); g.fillStyle = zp.glow; g.fillRect(x0, 312, x1 - x0, 1.2);
+  });
+  g.globalAlpha = 1;
+  { const mx = 40 + Math.min(1, info.m / (POOLS.length * 100)) * 280; g.fillStyle = P.uiInk; g.beginPath(); g.moveTo(mx, 309); g.lineTo(mx - 4, 303); g.lineTo(mx + 4, 303); g.closePath(); g.fill(); }
   // 下のはし：日付と遊べる場所
   const d = new Date(), ds = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`;
   g.fillStyle = rgba(P.uiInk, 0.85); g.font = `500 10px ${FONT}`; g.textAlign = 'left'; g.fillText(ds, 40, 340);
@@ -4565,7 +4652,7 @@ requestAnimationFrame(loop);
 if (VERSUS) versusInit();
 { const b = $('boot'); if (b) { b.classList.add('out'); setTimeout(() => b.remove(), 400); } }   // 読み込み中の画面を消す
 if (window.__botCore) { eval('(' + window.__botCore.src + ')')(window.__botCore.BOT); const q = new URLSearchParams(location.search).get('bot'); if (q) window.__bot.view(q); }   // ?bot：ボットを中で動かす（tools/bot.js・?bot=<id> で再生）
-window.__kabe = { DECO, checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
+window.__kabe = { DECO, makeCard, checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
 </script>
 </body>
