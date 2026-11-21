@@ -417,6 +417,15 @@ function frame(now) {
   const t = reduce ? 0 : now / 1000, P = V.lookPal(cur.from), W = COLS * CELL, H = cur.art.length * CELL;
   g.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0); g.clearRect(0, 0, W, H);
   try { V.draw(g, P, d, t); } catch (e) { g.fillStyle = '#300'; g.fillRect(0, 0, W, H); }
+  // 雷の通り道（| と -）：雷が走っていない間も、うすい点線で見せる
+  g.save(); g.setLineDash([3, 3]); g.lineCap = 'round';
+  for (let r = 0; r < cur.art.length; r++) for (let c = 0; c < COLS; c++) {
+    const ch = cur.art[r][c]; if (ch !== '|' && ch !== '-') continue;
+    const x = (c + 0.5) * CELL, y = (r + 0.5) * CELL;
+    g.strokeStyle = 'rgba(30,30,70,.22)'; g.lineWidth = 4; g.beginPath(); if (ch === '|') { g.moveTo(x, r * CELL); g.lineTo(x, (r + 1) * CELL); } else { g.moveTo(c * CELL, y); g.lineTo((c + 1) * CELL, y); } g.stroke();
+    g.strokeStyle = 'rgba(255,236,140,.8)'; g.lineWidth = 1.4; g.stroke();
+  }
+  g.restore();
   // つなぎ口（上下2行）をうすく
   g.fillStyle = 'rgba(120,200,255,.10)'; g.fillRect(0, 0, W, 2 * CELL); g.fillRect(0, H - 2 * CELL, W, 2 * CELL);
   // マス目の線
