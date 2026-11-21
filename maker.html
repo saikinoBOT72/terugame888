@@ -368,15 +368,24 @@ const push = () => { undo.push(cur.art.slice()); if (undo.length > 200) undo.shi
 
 /* ---------- パレット ---------- */
 const palBtn = {};
+const palGroups = {};
 PAL.forEach(([g, items]) => {
-  const h = document.createElement('span'); h.className = 'g'; h.textContent = g; $('pal').append(h);
+  const h = document.createElement('span'); h.className = 'g'; h.textContent = g; $('pal').append(h); palGroups[g] = [h];
   for (const [ch, name, tip] of items) {
     const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', `${ch} ${name}`);
     const bb = document.createElement('b'); bb.textContent = ch; const sm = document.createElement('small'); sm.textContent = name; b.append(bb, sm);
     b.onclick = () => { ink = ch; if (tool === 'pick') tool = 'pen'; syncPal(); syncTools(); };
-    palBtn[ch] = { b, name, tip }; $('pal').append(b);
+    palBtn[ch] = { b, name, tip }; $('pal').append(b); palGroups[g].push(b);
   }
 });
+// いま入れるプールの仕掛け（地下 0〜400m・地上 400〜800m・上空 800m〜）を「基本」のすぐ隣に出す
+let palZone = '';
+function orderPal() {
+  const z = cur.from < 400 ? '地下' : cur.from < 800 ? '地上' : '上空';
+  if (z === palZone) return; palZone = z;
+  ['基本', z, ...PAL.map(p => p[0]).filter(g => g !== '基本' && g !== z)].forEach(g => palGroups[g].forEach(n => $('pal').append(n)));
+  $('pal').scrollLeft = 0;
+}
 function syncPal() {
   for (const ch in palBtn) palBtn[ch].b.setAttribute('aria-pressed', ch === ink);
   const p = palBtn[ink]; $('hint').innerHTML = ''; const b = document.createElement('b'); b.textContent = `${ink}　${p.name}`; $('hint').append(b, '：' + p.tip + '。1本指で塗る・2本指で上下に動かす');
@@ -390,6 +399,7 @@ const pcOf = art => {   // pieces.js の piece() と同じ形（rows は下の�
   return { id: cur.id, diff: cur.diff, rain: cur.rain, rows: art.map(r => r.replace('G', '.')).reverse(), station };
 };
 function changed(size) {
+  orderPal();
   pcNow = pcOf(cur.art); d = V.prepare(pcNow);
   mt = V.mounts({ [cur.id]: pcNow }, cur.id).map(s => { const m = s.match(/ (\d+)行目(\d+)列/); return m ? { r: +m[1] - 1, c: +m[2], msg: s.replace(cur.id + ' ', '') } : null; }).filter(Boolean);   // mounts の「n行目」は上から1で数える
   if (size) resize();
