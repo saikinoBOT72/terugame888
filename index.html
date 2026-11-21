@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.19">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.20">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -108,8 +108,11 @@
   .logo .l2 { font-size: calc(var(--u) * 46px); letter-spacing: .02em; }
   .logo .l1 .ch { color: var(--teal); } .logo .l2 .ch { color: var(--cream); }
   .logo .ch { display: inline-block; paint-order: stroke fill; -webkit-text-stroke: calc(var(--u) * 7px) rgba(20,15,28,.92);
-    text-shadow: 0 calc(var(--u) * 5px) 0 rgba(0,0,0,.35); animation: hop 2.6s cubic-bezier(.3,.7,.4,1) infinite; animation-delay: calc(var(--i) * .09s); }
-  @keyframes hop { 0%, 18%, 100% { transform: none; } 7% { transform: translateY(calc(var(--u) * -9px)) rotate(-4deg); } 12% { transform: translateY(calc(var(--u) * 1px)) scaleY(.92); } }
+    text-shadow: 0 calc(var(--u) * 5px) 0 rgba(0,0,0,.35); }
+  .logo .ch.kick { animation: kick .62s cubic-bezier(.3,.7,.4,1); }
+  .logo.wave .ch { animation: hop 1.1s cubic-bezier(.3,.7,.4,1); animation-delay: calc(var(--i) * .07s); }
+  @keyframes kick { 0%, 100% { transform: none; } 22% { transform: translateY(calc(var(--u) * -14px)) rotate(var(--r, -9deg)); } 48% { transform: translateY(calc(var(--u) * 2px)) scaleY(.88) scaleX(1.06); } 70% { transform: translateY(calc(var(--u) * -3px)); } }
+  @keyframes hop { 0%, 45%, 100% { transform: none; } 17% { transform: translateY(calc(var(--u) * -9px)) rotate(-4deg); } 30% { transform: translateY(calc(var(--u) * 1px)) scaleY(.92); } }
   .tagline { margin-top: calc(var(--u) * 10px) !important; font-size: calc(var(--u) * 12.5px); color: var(--cream) !important; opacity: .85;
     background: rgba(0,0,0,.28); border-radius: 999px; padding: calc(var(--u) * 2px) calc(var(--u) * 12px); }
   .tGhost { flex: none; margin: auto 0; }
@@ -156,7 +159,9 @@
   .wName { font-weight: 800; font-size: calc(var(--u) * 15px); }
   .wTabs { display: flex; gap: calc(var(--u) * 4px); width: 100%; min-height: calc(var(--u) * 32px); flex: none; overflow-x: auto; scrollbar-width: none; border-bottom: 2px solid rgba(255,244,230,.12); }
   .wTab { font: inherit; font-weight: 800; font-size: calc(var(--u) * 13px); color: var(--dim); background: transparent; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: calc(var(--u) * 4px) calc(var(--u) * 12px); cursor: pointer; white-space: nowrap; }
-  .wTab[aria-selected="true"] { color: var(--cream); border-bottom-color: var(--teal); }
+  .wTab[aria-selected="true"] { color: var(--cream); }
+  .wTabs { position: relative; }
+  .tabBar { position: absolute; left: 0; bottom: 0; height: 3px; width: 0; border-radius: 3px; background: var(--teal); pointer-events: none; transition: transform .28s cubic-bezier(.3,1.3,.5,1), width .28s cubic-bezier(.3,1.3,.5,1); }
   .wItems { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: calc(var(--u) * 6px); }
   .wHead { text-align: left; font-size: calc(var(--u) * 11px); font-weight: 800; color: var(--dim) !important; }
   .sw { position: relative; }
@@ -175,6 +180,8 @@
     background: repeating-linear-gradient(90deg, var(--c) 0 calc(var(--u) * 5px), var(--st) calc(var(--u) * 5px) calc(var(--u) * 6.5px)); box-shadow: inset 0 calc(var(--u) * -3px) 0 var(--sh); }
   .sw[aria-pressed="true"] { border-color: var(--teal); background: rgba(255,255,255,.08); }
   .sw:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .sw.pop { animation: swPop .34s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes swPop { 40% { transform: scale(1.12); } }
   .blink { animation: blink 1.4s ease-in-out infinite; }
   @keyframes blink { 50% { opacity: .35; } }
   .ver { position: absolute; left: calc(var(--u) * 12px); top: calc(var(--u) * 12px + max(env(safe-area-inset-top, 0px), var(--vs-st, 0px))); font-size: calc(var(--u) * 10px); color: var(--dim); opacity: .8; }
@@ -326,11 +333,26 @@
   .pop { animation: pop .28s cubic-bezier(.3, 1.7, .5, 1); }
   @keyframes pop { 0% { transform: translateY(calc(var(--u) * 2px)) scale(.93); } 55% { transform: scale(1.06); } 100% { transform: none; } }
   .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
+  .ov.leave { background: transparent; pointer-events: none; }
+  .ov.leave > .card { animation: cardOut .16s ease-in forwards; }
+  @keyframes cardOut { to { transform: translateY(calc(var(--u) * 18px)) scale(.97); opacity: 0; } }
   @keyframes cardIn { from { transform: translateY(calc(var(--u) * 16px)) scale(.95); opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { .pop, .ov:not([hidden]) > .card { animation: none !important; } }
 </style>
 </head>
 <body>
+<div id="boot" aria-hidden="true"><div class="bootG"><i></i><i></i></div><div class="bootS"></div></div>
+<style>
+  #boot { position: fixed; inset: 0; z-index: 50; display: grid; place-content: center; justify-items: center; gap: 10px; background: var(--cave, #1e1826); transition: opacity .35s; }
+  #boot.out { opacity: 0; pointer-events: none; }
+  .bootG { position: relative; width: 34px; height: 38px; background: var(--cream, #fff4e6); border-radius: 17px 17px 8px 8px; animation: bootHop .9s cubic-bezier(.3,.7,.4,1) infinite; }
+  .bootG i { position: absolute; top: 15px; width: 4px; height: 6px; border-radius: 2px; background: #2b2235; } .bootG i:first-child { left: 10px; } .bootG i:last-child { right: 10px; }
+  .bootG::after { content: ''; position: absolute; left: 3px; right: 3px; top: 24px; height: 6px; border-radius: 3px; background: var(--scarf, #e5463f); }
+  .bootS { width: 28px; height: 5px; border-radius: 50%; background: rgba(0,0,0,.35); animation: bootSh .9s cubic-bezier(.3,.7,.4,1) infinite; }
+  @keyframes bootHop { 0%, 100% { transform: translateY(0) scaleY(.9); } 15% { transform: translateY(0) scaleY(1.05); } 50% { transform: translateY(-26px); } }
+  @keyframes bootSh { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.55); opacity: .5; } }
+  @media (prefers-reduced-motion: reduce) { .bootG, .bootS { animation: none; } }
+</style>
 <div id="safeProbe" aria-hidden="true" style="position:fixed;left:0;top:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)"></div>
 <div id="app">
   <div id="deco" aria-hidden="true" hidden></div>
@@ -485,13 +507,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.19"></script>
-<script src="data/pieces.js?v=2027.01.19"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.19"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2027.01.20"></script>
+<script src="data/pieces.js?v=2027.01.20"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.20"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.19';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2027.01.20';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -3293,7 +3315,23 @@ function ambTick(dt) {
 }
 /* ---------- menus & loop ---------- */
 const ov = { title: $('ovTitle'), settings: $('ovSettings'), wardrobe: $('ovWardrobe'), how: $('ovHow'), pause: $('ovPause'), end: $('ovEnd'), gacha: $('ovGacha'), gems: $('ovGems') };
-function showOnly(n) { for (const k in ov) ov[k].hidden = k !== n; }
+const MENU_OV = ['title', 'settings', 'wardrobe', 'how'];   // この画面どうしの切り替えは、出ていく板がすっと下へ消える
+function showOnly(n) {
+  for (const k in ov) {
+    const el = ov[k]; clearTimeout(el._lv); el.classList.remove('leave');
+    if (k === n) { el.hidden = false; continue; }
+    if (!el.hidden && MENU_OV.includes(k) && MENU_OV.includes(n) && !reduceMotion) { el.classList.add('leave'); el._lv = setTimeout(() => { el.hidden = true; el.classList.remove('leave'); }, 160); }
+    else el.hidden = true;
+  }
+}
+// タブの下線：選んだタブの下へすべって動く棒（タブを作り直しても前の場所からすべる）
+function tabBar(box) {
+  const sel = box.querySelector('[aria-selected="true"]'); if (!sel || !sel.offsetWidth) return;
+  let bar = box.querySelector('.tabBar'); const fresh = !bar;
+  if (fresh) { bar = document.createElement('span'); bar.className = 'tabBar'; box.append(bar); }
+  if (fresh && box.dataset.bx != null) { bar.style.transition = 'none'; bar.style.transform = `translateX(${box.dataset.bx}px)`; bar.style.width = box.dataset.bw + 'px'; void bar.offsetWidth; bar.style.transition = ''; }
+  bar.style.transform = `translateX(${sel.offsetLeft}px)`; bar.style.width = sel.offsetWidth + 'px'; box.dataset.bx = sel.offsetLeft; box.dataset.bw = sel.offsetWidth;
+}
 function renderBest() {
   const b = store.get(MODES[MODE].best, 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : '';   // モードごとの最高
   $('btnTestGems').hidden = !TEST_MODE;
@@ -3838,12 +3876,24 @@ for (const [id, key] of [['volAmb', 'amb'], ['volSfx', 'sfx']]) {
 $('btnHow').onclick = () => showOnly('how');
 $('btnHowBack').onclick = () => showOnly('settings');
 // タイトルのメニュー：設定・着せ替え・開発用の一覧（どこかを押したら閉じる）
-$('btnSettings').onclick = () => { sfx.tick(); showOnly('settings'); };
+$('btnSettings').onclick = () => { sfx.tick(); showOnly('settings'); tabBar($('setTabs')); };
 $('btnSetBack').onclick = () => showOnly('title');
 $('btnDev').onclick = () => { const l = $('devList'); l.hidden = !l.hidden; $('btnDev').setAttribute('aria-expanded', !l.hidden); };
 document.addEventListener('pointerdown', e => { if (!e.target.closest('.dev')) { $('devList').hidden = true; $('btnDev').setAttribute('aria-expanded', 'false'); } });
 // ロゴ：1文字ずつ、順にぴょんと跳ねる
 (() => { let i = 0; for (const [cls, txt] of [['l1', 'おばけ'], ['l2', 'じゃんぴんぐ']]) { const el = document.querySelector('.logo .' + cls); for (const c of txt) { const sp = document.createElement('span'); sp.className = 'ch'; sp.textContent = c; sp.style.setProperty('--i', i++); el.append(sp); } } })();
+// ロゴ：ときどき1文字が蹴られたように跳ねる。5回に1回は全体が順に跳ねる波
+(() => {
+  const lg = document.querySelector('.logo'), chs = [...lg.querySelectorAll('.ch')]; let n = 0;
+  const go = () => {
+    if (!reduceMotion && !ov.title.hidden) {
+      if (++n % 5 === 0) { lg.classList.remove('wave'); void lg.offsetWidth; lg.classList.add('wave'); }
+      else { const c = chs[Math.floor(Math.random() * chs.length)]; c.style.setProperty('--r', (Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 6) + 'deg'); c.classList.remove('kick'); void c.offsetWidth; c.classList.add('kick'); }
+    }
+    setTimeout(go, 1300 + Math.random() * 1700);
+  };
+  setTimeout(go, 1200);
+})();
 /* ---------- 着せ替え（最初から全部選べる。ろうそくとろうそくガチャはやめた。絵の Kabe.candle・gachaLantern はカタログに残してある） ----------
    WARDROBE：分類（タブ）→ 品物（持ちもの一覧のマス）→ 色。品物を足すときは items に { id, name, colors, wear(色), icon(g, w, h, t, 色) } を足す。
    着ているものは LOOK（分類: { item, color }） */
@@ -3921,7 +3971,7 @@ function wardRender() {
     const c = document.createElement('canvas'); c.className = 'uic'; c.dataset.w = 40; c.dataset.h = 34; c.setAttribute('aria-hidden', 'true');
     uiCanvas(c, (g, t, w, h) => it.icon(g, w, h, t, on ? L.color : ownedOf(cat, it)[0]));
     b.append(c); b.setAttribute('aria-label', it.name); b.title = it.name;
-    b.onclick = () => { if (!on) { LOOK[cat.id] = { item: it.id, color: ownedOf(cat, it)[0] }; it.wear(LOOK[cat.id].color); saveMeta(); sfx.tick(); } wardRender(); };
+    b.onclick = () => { if (!on) { LOOK[cat.id] = { item: it.id, color: ownedOf(cat, it)[0] }; it.wear(LOOK[cat.id].color); saveMeta(); sfx.tick(); wardShow('item'); } wardRender(); };
     inv.append(b);
   }
   const used = mine.length + (cat.optional ? 1 : 0);
@@ -3934,39 +3984,66 @@ function wardRender() {
       b.setAttribute('aria-pressed', L.color === c.id);
       const nm = document.createElement('span'); nm.textContent = c.name;
       b.append(chipOf(c), nm);
-      b.onclick = () => { L.color = c.id; it.wear(c.id); saveMeta(); sfx.tick(); wardRender(); };
+      b.onclick = () => { const ch = L.color !== c.id; L.color = c.id; it.wear(c.id); saveMeta(); sfx.tick(); if (ch) { wardShow('color'); wardRender(); $('wColors').children[it.colors.indexOf(c)].classList.add('pop'); } };
       box.append(b);
     }
   }
   if (!it) { const n = document.createElement('p'); n.className = 'none'; n.textContent = 'えらんでいない'; box.append(n); }
+  tabBar(tabs);
   $('wName').textContent = it ? `${it.name}・${colorName(it, L.color)}` : 'なし';
 }
 const WPOSE = ['stand', 'wave', 'cheer', 'jump', 'twirl', 'stand', 'fist', 'lookUp'];
-$('btnWardrobe').onclick = () => { sfx.tick(); wardRender(); showOnly('wardrobe'); };
+$('btnWardrobe').onclick = () => { sfx.tick(); showOnly('wardrobe'); wardRender(); };
 // 設定のタブ（音・画面・その他）。パネルは同じ高さ（タブを変えても「もどる」が動かない）
 function setTab(id) {
   for (const b of document.querySelectorAll('#setTabs .wTab')) b.setAttribute('aria-selected', b.dataset.tab === id);
   for (const l of document.querySelectorAll('#ovSettings .setList')) l.hidden = l.dataset.tab !== id;
+  tabBar($('setTabs'));
 }
 for (const b of document.querySelectorAll('#setTabs .wTab')) b.onclick = () => { if (b.getAttribute('aria-selected') !== 'true') sfx.tick(); setTab(b.dataset.tab); };
 $('btnWardBack').onclick = () => showOnly('title');
+const WSHOW = { t0: -9, kind: '' };   // 選んだ直後の見せ方（item：くるっと回る、color：ぴょんと跳ねる）
+const wardShow = kind => { WSHOW.kind = kind; WSHOW.t0 = -1; };
+function wardColor() {   // いま着ている「着る」の色（光の輪の色）
+  const L = LOOK.scarf, cat = WARDROBE[0], it = L && cat.items.find(i => i.id === L.item), c = it && it.colors.find(x => x.id === L.color);
+  return (c && c.scarf) || PAL.scarf;
+}
 uiCanvas($('wStage'), (g, t, w, h) => {
-  const id = WPOSE[Math.floor(t / 1.6) % WPOSE.length], hop = id === 'cheer' || id === 'jump' ? -Math.abs(Math.sin(t * 5)) * 6 : 0;
+  if (WSHOW.t0 === -1) WSHOW.t0 = t;
+  const ws = t - WSHOW.t0, col = wardColor();
+  const glow = g.createRadialGradient(w / 2, h - 34, 4, w / 2, h - 34, 58); glow.addColorStop(0, rgba(col, 0.32)); glow.addColorStop(1, rgba(col, 0));
+  g.fillStyle = glow; g.fillRect(0, 0, w, h);
+  let id = WPOSE[Math.floor(t / 1.6) % WPOSE.length], hop = id === 'cheer' || id === 'jump' ? -Math.abs(Math.sin(t * 5)) * 6 : 0, rot = 0;
+  if (ws < 0.8 && WSHOW.kind === 'item') { const a = ws / 0.8; id = 'twirl'; rot = (1 - (1 - a) * (1 - a)) * Math.PI * 2; hop = -Math.sin(a * Math.PI) * 10; }
+  else if (ws < 0.6 && WSHOW.kind === 'color') { const a = ws / 0.6; id = 'cheer'; hop = -Math.sin(a * Math.PI) * 14; }
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h - 12, 26, 5, 0, 0, Math.PI * 2); g.fill();
-  Kabe.ghost(g, PAL, 'sheet', id, w / 2, h - 37 + hop, t, Math.sin(t * 0.4) > -0.7 ? 1 : -1, 2.1);
+  g.save(); g.translate(w / 2, h - 37 + hop); if (rot) g.rotate(rot); Kabe.ghost(g, PAL, 'sheet', id, 0, 0, t, Math.sin(t * 0.4) > -0.7 ? 1 : -1, 2.1); g.restore();
 });
 // メニューのアイコン：マフラー（着せ替え）と歯車（設定）
 uiCanvas($('icWard'), (g, t, w, h) => Kabe.ghost(g, PAL, 'sheet', 'stand', w / 2 + 2, h / 2 + 1, t, 1, 0.68));
 // タイトルのまん中：大きいおばけが、その場でぴょんぴょん跳ねる（ため→跳ぶ→てっぺん→落ちる→着地）
+const POKE = { t0: -9, n: 0, at: -9 };
+$('tGhost').addEventListener('pointerdown', () => {
+  const now = performance.now() / 1000; POKE.n = now - POKE.at < 1.6 ? POKE.n + 1 : 1; POKE.at = now; POKE.t0 = -1;   // t0 は次に描くときの t
+  sfx.spring();
+});
 uiCanvas($('tGhost'), (g, t, w, h) => {
   const T = 1.5, k = (t % T) / T, base = h - 34;
-  let y = 0, id = 'stand', sq = 0;
+  let y = 0, id = 'stand', sq = 0, rot = 0, dx = 0;
+  if (POKE.t0 === -1) POKE.t0 = t;
+  const pk = t - POKE.t0, kind = Math.min(POKE.n, 3);
   if (k < 0.18) { id = 'land'; sq = Math.sin(k / 0.18 * Math.PI) * 0.12; }
   else if (k < 0.88) { const a = (k - 0.18) / 0.7; y = -4 * a * (1 - a) * 46; id = a < 0.12 ? 'kick' : a < 0.38 ? 'jump' : a < 0.62 ? (Math.floor(t / T) % 3 === 2 ? 'twirl' : 'apex') : a < 0.9 ? 'fall' : 'land'; }
   else id = 'land';
+  if (pk < 1.1) {   // 押されたときの反応
+    const a = pk / 1.1;
+    if (kind === 1) { y = -4 * a * (1 - a) * 70; id = a < 0.15 ? 'kick' : a < 0.85 ? 'cheer' : 'land'; sq = 0; }
+    else if (kind === 2) { y = -4 * a * (1 - a) * 50; id = 'twirl'; rot = a * Math.PI * 2; sq = 0; }
+    else { y = -Math.abs(Math.sin(pk * 14)) * 6 * (1 - a); id = 'happy'; dx = Math.sin(pk * 22) * 5 * (1 - a); rot = Math.sin(pk * 22) * 0.12 * (1 - a); sq = 0; }
+  }
   const sh = 1 + y / 120;
   g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(w / 2, base + 26, 26 * sh, 5 * sh, 0, 0, Math.PI * 2); g.fill();
-  g.save(); g.translate(w / 2, base + y); g.scale(1 + sq, 1 - sq);
+  g.save(); g.translate(w / 2 + dx, base + y); if (rot) g.rotate(rot); g.scale(1 + sq, 1 - sq);
   Kabe.ghost(g, PAL, 'sheet', id, 0, 0, t, Math.floor(t / (T * 2)) % 2 ? -1 : 1, 2.4); g.restore();
 });
 uiCanvas($('icSet'), (g, t, w, h) => {
@@ -4359,6 +4436,7 @@ if (document.fonts && document.fonts.load) document.fonts.load(`800 15px "M PLUS
 if (document.fonts && glfx && glfx.scene) { document.fonts.ready.then(() => glfx.scene.clearCache()); document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => glfx.scene.clearCache()); }
 requestAnimationFrame(loop);
 if (VERSUS) versusInit();
+{ const b = $('boot'); if (b) { b.classList.add('out'); setTimeout(() => b.remove(), 400); } }   // 読み込み中の画面を消す
 if (window.__botCore) { eval('(' + window.__botCore.src + ')')(window.__botCore.BOT); const q = new URLSearchParams(location.search).get('bot'); if (q) window.__bot.view(q); }   // ?bot：ボットを中で動かす（tools/bot.js・?bot=<id> で再生）
 window.__kabe = { checkAll, checkPiece, _dbg: { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit, collide }, CHECK, PIECES, get state() { return state; }, get cam() { return cam; }, PERF, get FX() { return FX; }, get show() { return show; }, get A() { return A; }, get live() { return live; }, get P() { return P; }, get G() { return G; }, get world() { return world; }, press, release, startGame, leaveGacha, openGacha, startShow, GEMS, get glfx() { return glfx; } };
 })();
