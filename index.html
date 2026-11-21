@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.6">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.21.7">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -377,6 +377,7 @@
         <div class="devList" id="devList" hidden>
           <a href="chara.html">キャラの動き<small>ポーズ・表情・マフラー</small></a>
           <a href="pools.html">プール一覧<small>パーツと「ここから遊ぶ」</small></a>
+          <a href="maker.html">パーツメーカー<small>パーツを描き直す・試す</small></a>
           <a href="simulator.html">シミュレーター<small>壁ジャンプの数値</small></a>
           <a href="?perf">重さを見る<small>1フレームの内訳（?perf）</small></a>
           <button id="btnTestGems" type="button" hidden>水晶を選ぶ<small>テストプレイ用</small></button>
@@ -526,13 +527,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.21.6"></script>
-<script src="data/pieces.js?v=2026.11.21.6"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.6"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.21.7"></script>
+<script src="data/pieces.js?v=2026.11.21.7"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.21.7"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.21.6';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.21.7';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1088,6 +1089,7 @@ function scatterGems(r0, r1) {
 }
 const connector = row => row.replace(/[^#]/g, '.');
 function nextPiece() {
+  if (TRY && world.tryOn) return '__try';
   const lastP = world.placed[world.placed.length - 1], topRow = PIECES[lastP.id].rows[PIECES[lastP.id].rows.length - 1];
   const m = world.rows.length * CELL / PX_PER_M, pool = poolAt(m).pieces.length ? poolAt(m) : POOLS.filter(p => p.pieces.length && p.from <= m).pop();   // 空のプール（作りかけ）は飛ばして、その前のプールを使う
   if (m >= world.nextGacha && !simpleMode()) {   // ガチャ所（シンプルジャンプは無し）：形のちがうものから選ぶ（前と同じ形は避ける）
@@ -1112,7 +1114,9 @@ const TEST_FROM = (() => { const v = Math.floor(+new URLSearchParams(location.se
 const TEST_CRYSTALS = 40;   // テストで始めるときの結晶（100mにつき）
 // テストモード：?from=N か ?test のとき。水晶を自由に選べる（タイトルと一時停止の「水晶を選ぶ」）。
 // 選んだ水晶は URL（gems=charge3e.bigjump2e.hover1：数字が Lv、e が装備）と、この端末に覚える（プール一覧のどの「ここから遊ぶ」でも同じ水晶で始まる）
-const TEST_MODE = TEST_FROM > 0 || /[?&]test\b/.test(location.search);
+// パーツメーカー（maker.html）の「試す」：?try のとき、メーカーのパーツ（この端末に覚えてある）を __try として足し、スタート（?from があればその高さの床）から上はずっとそれを繰り返す
+const TRY = (() => { if (VERSUS || !/[?&]try\b/.test(location.search)) return null; try { const o = JSON.parse(localStorage.getItem('kabe_maker_try')); KABE_DATA.piece('__try', { diff: o.diff, rain: o.rain }, o.art); return o; } catch (e) { return null; } })();
+const TEST_MODE = TEST_FROM > 0 || !!TRY || /[?&]test\b/.test(location.search);
 const TG = { gems: {}, equip: [] };
 const tgParse = str => { const o = { gems: {}, equip: [] }; for (const t of String(str || '').split('.')) { const m = t.match(/^([a-z]+)([1-3])(e?)$/); if (m && GEMS[m[1]]) { o.gems[m[1]] = +m[2]; if (m[3] && o.equip.length < GACHA.slots) o.equip.push(m[1]); } } return o; };
 const tgString = () => GEM_ORDER.filter(id => TG.gems[id]).map(id => id + TG.gems[id] + (TG.equip.includes(id) ? 'e' : '')).join('.');
@@ -1144,6 +1148,7 @@ function newGame() {
     cam.y = P.y + HB + 60 - H; G.lavaY = P.y + HB + 200; G.test = TEST_FROM;
     G.best = heightM(); G.mark = Math.floor(G.best / 10); G.zone = poolAt(G.best).name; G.crystals = Math.round(TEST_FROM / 100 * TEST_CRYSTALS);
   }
+  if (TRY) world.tryOn = true;
   if (TEST_MODE) { G.test = TEST_FROM || 'test'; G.gems = Object.assign({}, TG.gems); G.equip = TG.equip.filter(id => G.gems[id]); if (!TEST_FROM) G.crystals = TEST_CRYSTALS; }   // テスト：選んだ水晶で始める（記録は残らない）
   ensureAhead();
 }
@@ -3494,8 +3499,8 @@ function renderBest() {
   const b = store.get(MODES[MODE].best, 0), el = $('bestTitle'); el.textContent = b ? `最高 ${b}m` : '';   // モードごとの最高
   $('btnTestGems').hidden = !TEST_MODE;
   if (TEST_MODE) {   // テストプレイのとき：ボタンの文字と、ふつうに遊ぶへのリンク
-    $('btnStart').textContent = `${TEST_FROM}mから テスト`;
-    el.textContent = '記録は残らない・結晶つき　'; const a = document.createElement('a'); a.href = location.pathname; a.textContent = 'ふつうに遊ぶ'; a.style.color = 'var(--teal)'; el.append(a);
+    $('btnStart').textContent = TRY ? `${TRY.name || 'パーツ'}を試す` : `${TEST_FROM}mから テスト`;
+    el.textContent = '記録は残らない・結晶つき　'; const a = document.createElement('a'); a.href = TRY ? 'maker.html' : location.pathname; a.textContent = TRY ? 'メーカーへ戻る' : 'ふつうに遊ぶ'; a.style.color = 'var(--teal)'; el.append(a);
   }
 }
 // 始まり：暗転しない。タイトルの板はふっと消え、カメラはタイトルで見ていた高さから下へすべり、オバケは床から左の壁へ跳びつく（ソロだけ）

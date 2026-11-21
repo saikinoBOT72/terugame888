@@ -24,7 +24,9 @@
 **開発用**
 | ファイル | 中身 |
 |---|---|
-| `pools.html` | プールとパーツの一覧（動く見本・「ここから遊ぶ」・「ボット ▶」でボットの遊びを再生） |
+| `pools.html` | プールとパーツの一覧（動く見本・「ここから遊ぶ」・「ボット ▶」でボットの遊びを再生・「直す」でメーカーへ） |
+| `maker.html` | パーツメーカー（タッチ向け）。文字のマス目に塗る→「チェック」（本編を見えない枠で開いて `checkPiece`）・「試す ▶」（`index.html?try`：`kabe_maker_try` のパーツ `__try` を繰り返す）・「コピー」（`piece(...)` の文。ユーザーが貼ってきたら pieces.js に入れる）。下書きは端末に `kabe_maker_drafts` |
+| `data/piece_view.js` | パーツの見本の描き方と浮きの調べ方（`KABE_VIEW`：prepare・draw・mounts）。pools.html・maker.html・tools/check.js が共通で使う |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `chara.html` | キャラの動き・表情・マフラー（本編の `updatePose`・`scarfStep` を写したもの。変えたらこちらも合わせる。マフラーの形は `Kabe.SCARF`） |
 | `catalog/project/` | 統一カタログの元ファイル。`components/bundle.js` が全素材の描画ライブラリ `Kabe` |
@@ -36,7 +38,7 @@
 軽さの決まり：毎フレーム描き直して送ってよいのはオバケだけ。動く物は1回描いて GPU で回す（`wspr` の rot）か、動きを段階に分けて絵を使い回す。小さく動く粒は GPU の点（`wdisc`）。背景3枚は半分の解像度。点光源と影は1/4の「光の地図」。HUD は表示が変わったときだけ描く。`?perf` の下の段に、1フレームの内訳（動き・組み立て・送る・仕上げ・HUD）が出る。
 
 ## GitHub Pages（だれでも遊べる）
-- https://saikinobot72.github.io/terugame888/ （ソロ）、`/versus.html`（2人対戦）、`/pools.html`・`/simulator.html`・`/chara.html`（開発用）。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
+- https://saikinobot72.github.io/terugame888/ （ソロ）、`/versus.html`（2人対戦）、`/pools.html`・`/maker.html`・`/simulator.html`・`/chara.html`（開発用）。ブランチ `claude/laughing-hypatia-idf7le` の直下をそのまま配信（`.nojekyll` あり）。
 - **作業のたびに必ずコミットして push する**（ユーザーの指示）。`index.html` を変えたら先頭の `VERSION` を上げる。番号は日本の日付と、その日の何回目か（`2026.11.21.1`、`TZ=Asia/Tokyo date +%Y.%m.%d`）（タイトルの「アプデ」ボタンが新旧を見分ける）。読み込む3つ（tokens.css・bundle.js・pieces.js）の `?v=` も同じ番号なので、`sed -i "s/旧番号/新番号/g" index.html` でまとめて上げる（GitHub Pages は10分ほど古いファイルを返すので、新旧が混ざらないように）。
 
 ## 公開ページ（private）

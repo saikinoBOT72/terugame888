@@ -10749,5 +10749,5 @@ const POOLS = [
 ];
 const poolAt = m => { let p = POOLS[0]; for (const q of POOLS) if (m >= q.from) p = q; return p; };
 
-return { PIECES, POOLS, poolAt, COLS };
+return { PIECES, POOLS, poolAt, COLS, piece };   // piece：パーツメーカーの「試す」「チェック」が自分のパーツを足すのに使う
 })();

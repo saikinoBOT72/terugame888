@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="ja" data-theme="underground">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!--BODY-START-->
+<title>パーツメーカー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<link rel="stylesheet" href="catalog/project/tokens.css">
+<style>
+  /* パーツメーカー（開発用）：パーツを文字のマス目で描き直し、試し、チェックして、文をコピーする。タッチ向け */
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--ui-panel); color: var(--ui-ink); font-family: var(--font-round); -webkit-tap-highlight-color: transparent; overflow: hidden; }
+  button, select, input { font: inherit; color: inherit; }
+  button { border: 0; border-radius: 12px; background: rgba(255,255,255,.08); padding: 0 12px; min-height: 40px; cursor: pointer; font-weight: 800; font-size: 14px; touch-action: manipulation; }
+  button:active { background: rgba(255,255,255,.16); }
+  button[aria-pressed="true"] { background: var(--ui-ink); color: var(--ui-panel); }
+  button:disabled { opacity: .35; }
+  button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+  button.go { background: var(--glow); color: var(--ink, #2b2235); }
+  select, input[type=text] { min-height: 40px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.25); padding: 0 10px; font-size: 14px; }
+  .app { height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  .app > *, .body > * { min-width: 0; }
+  header { display: flex; align-items: center; gap: 8px; padding: 8px 12px 4px; padding-top: max(8px, env(safe-area-inset-top)); }
+  header h1 { font-size: 18px; margin: 0; white-space: nowrap; }
+  header a { color: var(--glow); font-size: 13px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  header select { flex: 1 1 auto; min-width: 0; }
+  .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 4px 12px 6px; font-size: 13px; }
+  .meta input[type=text] { width: 9.5em; font-family: ui-monospace, monospace; }
+  .meta .seg { display: flex; gap: 2px; }
+  .meta .seg button { min-width: 40px; padding: 0 8px; color: var(--gem-gold); }
+  .meta .seg button[aria-pressed="true"] { color: var(--ui-panel); background: var(--gem-gold); }
+  .meta select { max-width: 14em; }
+  .draft { font-size: 11px; color: var(--glow); font-weight: 800; }
+  .body { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; min-height: 0; }
+  .stage { overflow-y: auto; overflow-x: hidden; min-height: 0; padding: 0 12px 12px; padding-top: 2px; overscroll-behavior: contain; }
+  .stage canvas { display: block; width: 100%; max-width: 560px; margin: 0 auto; border-radius: 10px; touch-action: none; }
+  .side { display: flex; flex-direction: column; gap: 8px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.18); min-height: 0; max-height: 40vh; overflow-y: auto; }
+  .tools { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .tools::-webkit-scrollbar { display: none; }
+  .tools button { flex: 0 0 auto; }
+  .pal { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, 48px); grid-auto-columns: 58px; gap: 4px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .pal button { display: grid; grid-template-rows: 1fr auto; place-items: center; padding: 3px 2px; border-radius: 10px; min-height: 0; gap: 0; }
+  .pal b { font-family: ui-monospace, monospace; font-size: 20px; line-height: 1; }
+  .pal small { font-size: 9.5px; font-weight: 600; opacity: .8; white-space: nowrap; overflow: hidden; max-width: 100%; }
+  .pal .g { grid-row: span 2; writing-mode: vertical-rl; font-size: 11px; color: var(--ui-muted); display: grid; place-items: center; background: none; }
+  .hint { font-size: 12px; color: var(--ui-muted); line-height: 1.5; min-height: 3em; max-height: 3em; overflow: hidden; margin: 0; }
+  .hint b { color: var(--ui-ink); }
+  .acts { display: flex; gap: 6px; }
+  .acts button { flex: 1 1 0; }
+  .info { font-size: 12px; line-height: 1.55; color: var(--ui-muted); margin: 0; display: grid; gap: 2px; max-height: 6.5em; overflow-y: auto; }
+  .info .ok { color: var(--teal, #7fd6c2); font-weight: 800; }
+  .info .ng { color: var(--glow); font-weight: 800; }
+  .info code { font-family: ui-monospace, monospace; color: var(--ui-ink); letter-spacing: .5px; }
+  dialog { border: 0; border-radius: 16px; background: var(--ui-panel); color: var(--ui-ink); width: min(560px, 94vw); padding: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+  dialog::backdrop { background: rgba(0,0,0,.55); }
+  dialog h2 { font-size: 16px; margin: 0 0 6px; }
+  dialog p { font-size: 12px; color: var(--ui-muted); margin: 0 0 8px; line-height: 1.5; }
+  dialog textarea { width: 100%; height: 46vh; font: 12px/1.35 ui-monospace, monospace; color: var(--ui-ink); background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 8px; resize: vertical; }
+  dialog .acts { margin-top: 8px; flex-wrap: wrap; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ui-ink); color: var(--ui-panel); font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 9; }
+  .toast.on { opacity: 1; }
+  /* iPad（横）・PC：マス目を左、道具を右 */
+  @media (min-width: 820px) {
+    .body { grid-template-columns: minmax(0, 1fr) 380px; grid-template-rows: minmax(0, 1fr); }
+    .side { border-top: 0; border-left: 1px solid rgba(255,255,255,.1); overflow-y: auto; max-height: none; }
+    .tools { flex-wrap: wrap; overflow: visible; }
+    .pal { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: repeat(6, 1fr); grid-auto-rows: auto; overflow: visible; }
+    .pal button { height: 50px; }
+    .pal .g { grid-row: auto; grid-column: 1 / -1; writing-mode: horizontal-tb; min-height: 0; padding: 4px 2px 0; justify-items: start; }
+    .info { max-height: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <a href="pools.html">← 一覧</a>
+    <h1>パーツメーカー</h1>
+    <select id="pick" aria-label="直すパーツ"></select>
+  </header>
+  <div class="meta">
+    <input type="text" id="pid" aria-label="パーツの名前（id）" spellcheck="false" autocapitalize="off">
+    <span class="seg" id="diff" role="group" aria-label="難しさ"></span>
+    <button type="button" id="rain" aria-pressed="false">雨</button>
+    <select id="look" aria-label="入れるプール（見た目とつなぎ口）"></select>
+    <span class="draft" id="draft"></span>
+  </div>
+  <div class="body">
+    <div class="stage" id="stage"><canvas id="cv" aria-label="パーツのマス目（1本指で塗る・2本指で動かす）"></canvas></div>
+    <div class="side">
+      <div class="tools" id="tools"></div>
+      <div class="pal" id="pal" role="group" aria-label="塗る文字"></div>
+      <p class="hint" id="hint"></p>
+      <div class="acts">
+        <button type="button" id="btnCheck">チェック</button>
+        <button type="button" id="btnTry" class="go">試す ▶</button>
+        <button type="button" id="btnCopy">コピー</button>
+      </div>
+      <div class="info" id="info" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+<dialog id="dlg">
+  <h2>パーツの文</h2>
+  <p>このまま Claude に貼れば pieces.js に入れて push します。別の文を貼って「読み込む」と、マス目がその形になります。</p>
+  <textarea id="txt" spellcheck="false" autocapitalize="off" aria-label="パーツの文"></textarea>
+  <div class="acts">
+    <button type="button" id="dCopy" class="go">コピー</button>
+    <button type="button" id="dLoad">読み込む</button>
+    <button type="button" id="dClose">閉じる</button>
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
+<script src="catalog/project/components/bundle.js"></script>
+<script src="data/pieces.js"></script>
+<script src="data/piece_view.js"></script>
+<script>
+(function () {
+'use strict';
+const K = Kabe, { PIECES, POOLS } = KABE_DATA, V = KABE_VIEW, CELL = V.CELL, COLS = 20, PX_PER_M = 120;
+const $ = id => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} } };
+
+/* ---------- 塗れる文字（STAGES.md の表） ---------- */
+const PAL = [
+  ['基本', [['.', '空間', '何もない'], ['#', '壁', '張り付ける壁・床'], ['^', 'トゲ', 'となりの壁から生える'], ['/', '斜め', '45度の斜め。まわりの壁から向きが決まる'], ['\\', '斜め', '45度の斜め（反対向き）']]],
+  ['地下', [['p', '出入り', '出入りトゲ'], ['q', '出入りずれ', '出入りトゲ（p と半分ずれて出る）'], ['>', '扇風機→', '左の壁から右へ吹く（空中だけ押す。痛くない）。つけ根の上下も壁に'], ['<', '扇風機←', '右の壁から左へ吹く'],
+    ['X', '往復', '往復ブロックの通り道（横に並べる）。左右の面にトゲ・上に乗ると運ばれる'], ['Y', '上下', '上下ブロックの通り道（縦に並べる）。上下の面にトゲ・左右は張り付ける'],
+    ['T', '回る棒', '回る棒の軸。棒ぜんぶが痛い（地上 400m〜）'], ['=', 'シャッター', 'シャッター（横に並べ、両端は壁）。閉じた板に乗れる'], ['O', '振り子', '振り子の軸。下の鉄球が左右にゆれる（200m〜）']]],
+  ['地上', [['K', '筒→', '筒（左の壁の列に置く）。右へ鉄球を撃つ'], ['k', '筒←', '筒（右の壁の列に置く）。左へ鉄球を撃つ'], ['Z', '杭', '杭（壁につながった横の並び）。突き出て戻る'],
+    ['B', '跳ね橋', '跳ね橋（壁につながった横の並び）。下りている間は乗れる'], ['S', 'バネ', 'バネ。乗ると真上へ高く跳ねる'], ['%', '崩れる', '崩れる足場（横の並び）。触れると1マスずつ崩れ、8秒で戻る']]],
+  ['上空', [['~', '雲', '雲の足場（横の並び）。下からすり抜け、上に乗れる'], ['M', '機雷', 'ただよう機雷。狭い所は1パーツ2つまで'], ['J', 'トゲ縦', '曲がるトゲブロック（縦長）。同じ文字でつないだ道すじを往復'], ['L', 'トゲ横', '曲がるトゲブロック（横長）'],
+    ['}', '突風→', '突風の口（左のまっすぐな壁のとなり）'], ['{', '突風←', '突風の口（右のまっすぐな壁のとなり）'], ['E', '雷装置', '雷の装置。E と E を | か - でつなぐ'], ['|', '雷 縦', 'E と E の間（縦）'], ['-', '雷 横', 'E と E の間（横）'],
+    ['H', 'ぽよん', 'ぽよんブロック。乗る・張り付くと横へはじく'], ['W', '風車', '風車。上下3行で幅14マス以上ある所だけ']]],
+  ['特別', [['G', 'ガチャ所', 'ガチャ所の家（すぐ下が床・上に4マスあける）。1つだけ']]],
+];
+const HAZ = '^pqXYTOKkZMJLW}{E|-';   // つなぎ目の上下2行に置かないもの
+const FLIP = { '/': '\\', '\\': '/', '>': '<', '<': '>', K: 'k', k: 'K', '}': '{', '{': '}' };
+const STD = '##................##';
+
+/* ---------- いまのパーツ ---------- */
+let cur = null;   // { base: 元の id（新規は ''）, id, art: 上の行から, diff, rain, from }
+let undo = [], redo = [], ink = '#', tool = 'pen', showChars = false, checkRes = null;
+const drafts = store.get('kabe_maker_drafts', {});   // 元の id（新規は '+名前'）ごとの下書き
+const artOf = id => { const pc = PIECES[id], rows = pc.rows.slice().reverse(); if (pc.station) { const r = rows.length - 1 - pc.station.r; rows[r] = rows[r].slice(0, pc.station.c) + 'G' + rows[r].slice(pc.station.c + 1); } return rows; };
+const poolOf = id => { const p = POOLS.find(q => q.pieces.includes(id)); return p ? p.from : 0; };
+const keyOf = c => c.base || '+' + c.id;
+const orig = () => cur.base && PIECES[cur.base] ? artOf(cur.base) : null;
+const edited = () => { const o = orig(); return !o || o.join('\n') !== cur.art.join('\n') || PIECES[cur.base].diff !== cur.diff || !!PIECES[cur.base].rain !== cur.rain || cur.id !== cur.base; };
+function save() {
+  if (edited()) drafts[keyOf(cur)] = { id: cur.id, art: cur.art, diff: cur.diff, rain: cur.rain, from: cur.from }; else delete drafts[keyOf(cur)];
+  store.set('kabe_maker_drafts', drafts); store.set('kabe_maker_cur', keyOf(cur));
+  $('draft').textContent = cur.base ? (edited() ? '● 下書き（元とちがう）' : '') : '● 新しいパーツ';
+}
+function open(key) {
+  const d = drafts[key];
+  if (key[0] === '+') cur = Object.assign({ base: '', id: key.slice(1), art: Array(14).fill(STD), diff: 1, rain: false, from: 0 }, d || {}, { base: '' });
+  else if (PIECES[key]) cur = Object.assign({ base: key, id: key, art: artOf(key), diff: PIECES[key].diff, rain: !!PIECES[key].rain, from: poolOf(key) }, d || {}, { base: key });
+  else return open(POOLS[0].pieces[0]);
+  cur.art = cur.art.slice(); undo = []; redo = []; checkRes = null;
+  syncMeta(); changed(true);
+}
+
+/* ---------- 上のメニュー ---------- */
+function fillPick() {
+  const s = $('pick'); s.textContent = '';
+  const add = (parent, value, label) => { const o = document.createElement('option'); o.value = value; o.textContent = label; parent.append(o); };
+  const g0 = document.createElement('optgroup'); g0.label = '作る'; add(g0, '+new', '＋ 新しいパーツ');
+  Object.keys(drafts).filter(k => k[0] === '+').forEach(k => add(g0, k, '✎ ' + k.slice(1) + '（新）')); s.append(g0);
+  const mark = id => (drafts[id] ? '✎ ' : '') + id + ' ' + '★'.repeat(PIECES[id].diff);
+  POOLS.forEach(p => { if (!p.pieces.length) return; const g = document.createElement('optgroup'); g.label = `${p.from}m ${p.name}`; p.pieces.forEach(id => add(g, id, mark(id))); s.append(g); });
+  const used = new Set(POOLS.flatMap(p => p.pieces)), rest = Object.keys(PIECES).filter(id => !used.has(id) && id !== '__try');
+  if (rest.length) { const g = document.createElement('optgroup'); g.label = '特別・予備'; rest.forEach(id => add(g, id, mark(id))); s.append(g); }
+  s.value = keyOf(cur);
+}
+$('pick').onchange = e => {
+  let k = e.target.value;
+  if (k === '+new') { let n = 1; while (drafts['+new_' + n] || PIECES['new_' + n]) n++; k = '+new_' + n; }
+  open(k); fillPick();
+};
+const dseg = $('diff');
+[1, 2, 3].forEach(n => { const b = document.createElement('button'); b.type = 'button'; b.textContent = '★'.repeat(n); b.setAttribute('aria-label', `難しさ${n}`); b.onclick = () => { cur.diff = n; syncMeta(); save(); }; dseg.append(b); });
+$('rain').onclick = () => { cur.rain = !cur.rain; syncMeta(); save(); };
+$('pid').onchange = e => {
+  const v = e.target.value.trim().replace(/[^\w]/g, '_') || cur.id;
+  if (!cur.base) { delete drafts[keyOf(cur)]; }
+  cur.id = v; save(); fillPick(); syncMeta();
+};
+POOLS.forEach(p => { const o = document.createElement('option'); o.value = p.from; o.textContent = `${p.from}m ${p.name}`; $('look').append(o); });
+$('look').onchange = e => { cur.from = +e.target.value; save(); changed(false); };
+function syncMeta() {
+  $('pid').value = cur.id;
+  [...dseg.children].forEach((b, i) => b.setAttribute('aria-pressed', i + 1 === cur.diff));
+  $('rain').setAttribute('aria-pressed', cur.rain);
+  $('look').value = POOLS.slice().reverse().find(p => p.from <= cur.from).from;
+}
+
+/* ---------- 道具 ---------- */
+const TOOLS = [
+  ['pen', 'ペン'], ['rect', '四角'], ['pick', 'スポイト'], null,
+  ['undo', '↶ 戻す'], ['redo', '↷'], null,
+  ['flip', '左右反転'], ['addT', '＋上'], ['delT', '−上'], ['addB', '＋下'], ['delB', '−下'], null,
+  ['chars', '文字'], ['reset', '元に戻す'],
+];
+const tb = {};
+TOOLS.forEach(t => {
+  if (!t) return;
+  const b = document.createElement('button'); b.type = 'button'; b.textContent = t[1]; tb[t[0]] = b; $('tools').append(b);
+  b.onclick = () => act(t[0]);
+});
+function act(k) {
+  if (k === 'pen' || k === 'rect' || k === 'pick') { tool = k; syncTools(); return; }
+  if (k === 'chars') { showChars = !showChars; syncTools(); return; }
+  if (k === 'undo') { if (!undo.length) return; redo.push(cur.art.slice()); cur.art = undo.pop(); changed(true); return; }
+  if (k === 'redo') { if (!redo.length) return; undo.push(cur.art.slice()); cur.art = redo.pop(); changed(true); return; }
+  if (k === 'reset') { const o = orig(); if (!o || !confirm('元のパーツに戻す？（下書きは消える）')) return; push(); cur.art = o; cur.diff = PIECES[cur.base].diff; cur.rain = !!PIECES[cur.base].rain; cur.id = cur.base; syncMeta(); changed(true); fillPick(); return; }
+  const n = cur.art.length, clean = row => row.replace(/[^#]/g, '.');
+  if ((k === 'delT' || k === 'delB') && n <= 4) return;
+  push();
+  if (k === 'flip') cur.art = cur.art.map(r => [...r].reverse().map(ch => FLIP[ch] || ch).join(''));
+  if (k === 'addT') cur.art.unshift(clean(cur.art[0]));
+  if (k === 'delT') cur.art.shift();
+  if (k === 'addB') cur.art.push(clean(cur.art[n - 1]));
+  if (k === 'delB') cur.art.pop();
+  changed(true);
+}
+function syncTools() {
+  for (const k of ['pen', 'rect', 'pick']) tb[k].setAttribute('aria-pressed', tool === k);
+  tb.chars.setAttribute('aria-pressed', showChars);
+  tb.undo.disabled = !undo.length; tb.redo.disabled = !redo.length; tb.reset.disabled = !cur.base || !edited();
+}
+const push = () => { undo.push(cur.art.slice()); if (undo.length > 200) undo.shift(); redo = []; };
+
+/* ---------- パレット ---------- */
+const palBtn = {};
+PAL.forEach(([g, items]) => {
+  const h = document.createElement('span'); h.className = 'g'; h.textContent = g; $('pal').append(h);
+  for (const [ch, name, tip] of items) {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', `${ch} ${name}`);
+    const bb = document.createElement('b'); bb.textContent = ch; const sm = document.createElement('small'); sm.textContent = name; b.append(bb, sm);
+    b.onclick = () => { ink = ch; if (tool === 'pick') tool = 'pen'; syncPal(); syncTools(); };
+    palBtn[ch] = { b, name, tip }; $('pal').append(b);
+  }
+});
+function syncPal() {
+  for (const ch in palBtn) palBtn[ch].b.setAttribute('aria-pressed', ch === ink);
+  const p = palBtn[ink]; $('hint').innerHTML = ''; const b = document.createElement('b'); b.textContent = `${ink}　${p.name}`; $('hint').append(b, '：' + p.tip + '。1本指で塗る・2本指で上下に動かす');
+}
+
+/* ---------- マス目 ---------- */
+const cv = $('cv'), g = cv.getContext('2d'), stage = $('stage');
+let d = null, pcNow = null, mt = [], dpr = 1, scale = 1;
+const pcOf = art => {   // pieces.js の piece() と同じ形（rows は下の行から、G は空間）
+  let station = null; art.forEach((r, i) => { const c = r.indexOf('G'); if (c >= 0) station = { c, r: art.length - 1 - i }; });
+  return { id: cur.id, diff: cur.diff, rain: cur.rain, rows: art.map(r => r.replace('G', '.')).reverse(), station };
+};
+function changed(size) {
+  pcNow = pcOf(cur.art); d = V.prepare(pcNow);
+  mt = V.mounts({ [cur.id]: pcNow }, cur.id).map(s => { const m = s.match(/ (\d+)行目(\d+)列/); return m ? { r: +m[1] - 1, c: +m[2], msg: s.replace(cur.id + ' ', '') } : null; }).filter(Boolean);   // mounts の「n行目」は上から1で数える
+  if (size) resize();
+  save(); syncTools(); info();
+}
+function resize() {
+  const w = Math.min(stage.clientWidth - 24, 560); dpr = Math.min(3, devicePixelRatio || 1); scale = w / (COLS * CELL);
+  const h = cur.art.length * CELL * scale;
+  cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); cv.style.height = h + 'px';
+}
+addEventListener('resize', () => cur && resize());
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let hover = null, rect = null;
+function frame(now) {
+  const t = reduce ? 0 : now / 1000, P = V.lookPal(cur.from), W = COLS * CELL, H = cur.art.length * CELL;
+  g.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0); g.clearRect(0, 0, W, H);
+  try { V.draw(g, P, d, t); } catch (e) { g.fillStyle = '#300'; g.fillRect(0, 0, W, H); }
+  // つなぎ口（上下2行）をうすく
+  g.fillStyle = 'rgba(120,200,255,.10)'; g.fillRect(0, 0, W, 2 * CELL); g.fillRect(0, H - 2 * CELL, W, 2 * CELL);
+  // マス目の線
+  g.strokeStyle = 'rgba(255,255,255,.10)'; g.lineWidth = 0.5; g.beginPath();
+  for (let c = 1; c < COLS; c++) { g.moveTo(c * CELL, 0); g.lineTo(c * CELL, H); }
+  for (let r = 1; r < cur.art.length; r++) { g.moveTo(0, r * CELL); g.lineTo(W, r * CELL); }
+  g.stroke();
+  // 元とちがうマス
+  const o = orig();
+  if (o) { g.strokeStyle = 'rgba(255,220,90,.9)'; g.lineWidth = 1; for (let r = 0; r < cur.art.length; r++) for (let c = 0; c < COLS; c++) if (!o[r] || o[r][c] !== cur.art[r][c]) g.strokeRect(c * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2); }
+  // 文字
+  if (showChars) {
+    g.font = `800 ${CELL * 0.7}px ui-monospace, monospace`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    for (let r = 0; r < cur.art.length; r++) for (let c = 0; c < COLS; c++) { const ch = cur.art[r][c]; if (ch === '.') continue; g.fillStyle = 'rgba(0,0,0,.55)'; g.fillRect(c * CELL + 3, r * CELL + 3, CELL - 6, CELL - 6); g.fillStyle = '#fff'; g.fillText(ch, (c + 0.5) * CELL, (r + 0.55) * CELL); }
+  }
+  // 浮き
+  g.strokeStyle = '#ff5a5a'; g.lineWidth = 2; for (const m of mt) g.strokeRect(m.c * CELL + 1, m.r * CELL + 1, CELL - 2, CELL - 2);
+  // チェックの結果：痛い場所（だいだい）・詰み（赤）
+  if (checkRes && checkRes.points) for (const p of checkRes.points) {
+    if (p.kind === 'good') continue; const y = H + p.y; if (y < 0 || y > H) continue;
+    g.fillStyle = p.kind === 'lock' ? '#ff3b3b' : 'rgba(255,170,60,.85)'; g.beginPath(); g.arc(p.x, y, p.kind === 'lock' ? 3 : 2, 0, Math.PI * 2); g.fill();
+  }
+  // 四角の範囲・指の下のマス
+  if (rect) { const [c0, r0, c1, r1] = rectBox(); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.setLineDash([3, 2]); g.strokeRect(c0 * CELL, r0 * CELL, (c1 - c0 + 1) * CELL, (r1 - r0 + 1) * CELL); g.setLineDash([]); }
+  else if (hover) { g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.strokeRect(hover.c * CELL, hover.r * CELL, CELL, CELL); }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- 塗る（1本指）・動かす（2本指） ---------- */
+const pts = new Map();
+let stroke = null, pan = null;
+const cellAt = e => { const b = cv.getBoundingClientRect(), x = (e.clientX - b.left) / b.width * COLS, y = (e.clientY - b.top) / b.height * cur.art.length; return { c: Math.max(0, Math.min(COLS - 1, Math.floor(x))), r: Math.max(0, Math.min(cur.art.length - 1, Math.floor(y))) }; };
+const setCell = (c, r, ch) => {
+  if (cur.art[r][c] === ch) return false;
+  if (ch === 'G') cur.art = cur.art.map(row => row.replace('G', '.'));   // ガチャ所は1つだけ
+  cur.art[r] = cur.art[r].slice(0, c) + ch + cur.art[r].slice(c + 1); return true;
+};
+const rectBox = () => [Math.min(rect.a.c, rect.b.c), Math.min(rect.a.r, rect.b.r), Math.max(rect.a.c, rect.b.c), Math.max(rect.a.r, rect.b.r)];
+function paintTo(p) {
+  const q = stroke.last, n = Math.max(Math.abs(p.c - q.c), Math.abs(p.r - q.r));
+  for (let i = 1; i <= n; i++) { const c = Math.round(q.c + (p.c - q.c) * i / n), r = Math.round(q.r + (p.r - q.r) * i / n); if (setCell(c, r, stroke.ink)) stroke.any = true; }
+  stroke.last = p; if (stroke.any) { pcNow = pcOf(cur.art); d = V.prepare(pcNow); }
+}
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, e.clientY);
+  if (pts.size >= 2) {   // 2本目の指：塗りかけをやめて動かす
+    if (stroke) { if (stroke.any) cur.art = stroke.before; stroke = null; changed(false); }
+    rect = null; hover = null; pan = { y: [...pts.values()].reduce((a, b) => a + b) / pts.size, top: stage.scrollTop }; return;
+  }
+  const p = cellAt(e); hover = p; checkRes = null;
+  if (tool === 'pick') { ink = cur.art[p.r][p.c]; tool = 'pen'; syncPal(); syncTools(); return; }
+  if (tool === 'rect') { rect = { a: p, b: p }; return; }
+  const before = cur.art.slice(), inkNow = e.button === 2 ? '.' : ink;
+  stroke = { before, ink: inkNow, last: p, any: setCell(p.c, p.r, inkNow) };
+  if (stroke.any) { pcNow = pcOf(cur.art); d = V.prepare(pcNow); }
+});
+cv.addEventListener('pointermove', e => {
+  if (pts.has(e.pointerId)) pts.set(e.pointerId, e.clientY);
+  if (pan) { const y = [...pts.values()].reduce((a, b) => a + b) / pts.size; stage.scrollTop = pan.top - (y - pan.y); return; }
+  const p = cellAt(e);
+  if (rect) { rect.b = p; return; }
+  if (stroke) paintTo(p); else if (e.pointerType === 'mouse') hover = p;
+});
+const up = e => {
+  pts.delete(e.pointerId);
+  if (pan) { if (!pts.size) pan = null; return; }
+  if (rect) { const [c0, r0, c1, r1] = rectBox(), before = cur.art.slice(); let any = false; for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) any = setCell(c, r, ink) || any; rect = null; if (any) { undo.push(before); redo = []; changed(false); } }
+  if (stroke) { if (stroke.any) { undo.push(stroke.before); if (undo.length > 200) undo.shift(); redo = []; changed(false); } stroke = null; }
+  if (e.pointerType !== 'mouse') hover = null;
+};
+cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !stroke && !rect) hover = null; });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || $('dlg').open) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { act(e.shiftKey ? 'redo' : 'undo'); e.preventDefault(); return; }
+  if (!e.ctrlKey && !e.metaKey && palBtn[e.key]) { ink = e.key; syncPal(); }   // キーボード：文字を押すとその文字で塗る
+});
+
+/* ---------- 知らせ（高さ・つなぎ口・決まり・チェック） ---------- */
+const conn = row => row.replace(/[^#]/g, '.');
+function info() {
+  const el = $('info'); el.textContent = '';
+  const line = (...parts) => { const p = document.createElement('div'); parts.forEach(x => p.append(x)); el.append(p); return p; };
+  const span = (txt, cls) => { const s = document.createElement(cls === 'code' ? 'code' : 'span'); if (cls && cls !== 'code') s.className = cls; s.textContent = txt; return s; };
+  const art = cur.art, n = art.length, bot = conn(art[n - 1]), top = conn(art[0]);
+  const pool = POOLS.slice().reverse().find(p => p.from <= cur.from), others = pool.pieces.filter(id => id !== cur.base).map(id => PIECES[id]);
+  const below = others.filter(pc => conn(pc.rows[pc.rows.length - 1]) === bot).length, above = others.filter(pc => conn(pc.rows[0]) === top).length;
+  line(`高さ ${(n * CELL / PX_PER_M).toFixed(1)}m（${n}行）　難しさ ${'★'.repeat(cur.diff)}${cur.rain ? '・雨' : ''}`);
+  line('下のつなぎ口 ', span(bot, 'code'), below ? `（${pool.name}の ${below}こ の上につく）` : span('　このプールにつながるパーツがない', 'ng'));
+  line('上のつなぎ口 ', span(top, 'code'), above ? `（${above}こ が上につく）` : span('　このプールにつながるパーツがない', 'ng'));
+  const near = [0, 1, n - 2, n - 1].filter(r => [...art[r]].some(ch => HAZ.includes(ch)));
+  if (near.length) line(span('つなぎ目の上下2行にトゲ・仕掛けがある', 'ng'));
+  for (const m of mt) line(span('浮き ', 'ng'), m.msg);
+  if (!mt.length) line(span('浮き 0', 'ok'));
+  if (checkRes === 'busy') line('チェック中…（数秒〜20秒ほど）');
+  else if (checkRes && checkRes.err) line(span('チェックできない：' + checkRes.err, 'ng'));
+  else if (checkRes) {
+    const ok = checkRes.ok && !checkRes.softlocks;
+    line(span(ok ? 'チェック OK' : 'チェック NG', ok ? 'ok' : 'ng'), `　入口 ${checkRes.entryOk}/${checkRes.entries}　痛い ${checkRes.hurtSpots}（だいだいの点）　詰み ${checkRes.softlocks}（赤い点）`);
+    if (checkRes.badEntries && checkRes.badEntries.length) line('ノーダメで抜けられない入口：' + checkRes.badEntries.slice(0, 6).map(([s, y]) => `${s < 0 ? '左' : '右'}の壁（下のつなぎ目の${Math.round(y / CELL * 10) / 10}マス下）`).join('、'));
+  } else line('「チェック」で、詰まないか・ノーダメで抜けられるかを調べる');
+}
+
+/* ---------- チェック：本編を見えない枠で開いて、同じ到達チェックを走らせる ---------- */
+const artText = () => cur.art.join('\n');
+$('btnCheck').onclick = () => {
+  if (checkRes === 'busy') return;
+  checkRes = 'busy'; info();
+  const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;width:360px;height:640px;left:-9999px;top:0;border:0;visibility:hidden'; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+  const done = r => { checkRes = r; f.remove(); info(); };
+  const to = setTimeout(() => done({ err: '本編が開けなかった' }), 30000);
+  f.onload = () => setTimeout(() => {
+    try {
+      const w = f.contentWindow; w.KABE_DATA.piece('__mk', { diff: cur.diff, rain: cur.rain }, artText());
+      const r = w.__kabe.checkPiece('__mk'); clearTimeout(to);
+      done({ ok: r.ok, entries: r.entries, entryOk: r.entryOk, hurtSpots: r.hurtSpots, softlocks: r.softlocks, badEntries: r.badEntries, points: r.points.map(p => ({ x: p.x, y: p.y, kind: p.kind })) });
+    } catch (e) { clearTimeout(to); done({ err: e.message }); }
+  }, 300);
+  f.src = 'index.html?check'; document.body.append(f);
+};
+
+/* ---------- 試す：本編でこのパーツを繰り返し遊ぶ ---------- */
+$('btnTry').onclick = () => {
+  try { localStorage.setItem('kabe_maker_try', JSON.stringify({ art: artText(), diff: cur.diff, rain: cur.rain, name: cur.id })); } catch (e) { toast('この端末に覚えられない'); return; }
+  const pool = POOLS.slice().reverse().find(p => p.from <= cur.from);
+  location.href = pool.from ? `index.html?try&from=${pool.from}` : 'index.html?try';
+};
+
+/* ---------- コピー・読み込み ---------- */
+const pieceText = () => `piece('${cur.id}', { diff: ${cur.diff}${cur.rain ? ', rain: 1' : ''} }, String.raw\`\n${artText()}\n\`);${cur.base && cur.base !== cur.id ? `   // ${cur.base} を直したもの` : ''}${!cur.base ? `   // 新しいパーツ（${POOLS.slice().reverse().find(p => p.from <= cur.from).name}）` : ''}`;
+function toast(s) { const t = $('toast'); t.textContent = s; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1600); }
+async function copyText(s) {
+  try { await navigator.clipboard.writeText(s); return true; } catch (e) {}
+  const ta = $('txt'); ta.value = s; ta.select(); try { return document.execCommand('copy'); } catch (e) { return false; }
+}
+$('btnCopy').onclick = () => { $('txt').value = pieceText(); $('dlg').showModal(); };
+$('dCopy').onclick = async () => { const ok = await copyText($('txt').value); toast(ok ? 'コピーした' : '文を長押ししてコピーしてね'); };
+$('dClose').onclick = () => $('dlg').close();
+$('dLoad').onclick = () => {
+  const s = $('txt').value, rows = s.split('\n').map(r => r.trimEnd()).filter(r => r.length === COLS && /^[#.^\/\\pq<>XYT=OKkZBS%~MJL}{E|\-HWG]+$/.test(r));
+  if (rows.length < 4) { toast('20文字の行が見つからない'); return; }
+  const m = s.match(/piece\('(\w+)'/), dm = s.match(/diff:\s*([123])/);
+  push(); cur.art = rows; if (dm) cur.diff = +dm[1]; cur.rain = /rain:\s*(1|true)/.test(s);
+  if (m && !cur.base) cur.id = m[1];
+  $('dlg').close(); syncMeta(); changed(true); fillPick(); toast('読み込んだ');
+};
+
+/* ---------- はじめ ---------- */
+const last = new URLSearchParams(location.search).get('id') || store.get('kabe_maker_cur', '');   // ?id=：プール一覧の「直す」
+open(last && (last[0] === '+' ? drafts[last] : PIECES[last]) ? last : POOLS[0].pieces[0]);
+fillPick(); syncPal(); syncTools();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
