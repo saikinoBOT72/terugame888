@@ -61,6 +61,9 @@
   /* 3・2・1 */
   #ovCount { background: transparent; pointer-events: none; }
   #count { margin: auto; font-weight: 800; font-size: clamp(90px, 24vmin, 200px); color: var(--glow); paint-order: stroke fill; -webkit-text-stroke: 12px rgba(20,15,28,.9); text-shadow: 0 8px 0 rgba(0,0,0,.35); }
+  .bow { position: absolute; top: 64%; width: min(26vw, 180px); height: auto; transform: translate(-50%, -50%); }
+  #bow0 { left: 25%; } #bow1 { left: 75%; }
+  #conf { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 4; pointer-events: none; }
   #count.go { font-size: clamp(56px, 14vmin, 120px); color: var(--cream); }
   #count.pop { animation: pop .55s cubic-bezier(.2,1.4,.4,1); }
   @keyframes pop { from { transform: scale(1.8); opacity: 0; } 40% { opacity: 1; } to { transform: scale(1); } }
@@ -92,7 +95,8 @@
   <button class="sub" id="btnReset" type="button">コントローラーを選び直す</button>
 </div>
 
-<section class="ov" id="ovCount" hidden><div id="count">3</div></section>
+<section class="ov" id="ovCount" hidden><canvas class="bow" id="bow0" width="180" height="150"></canvas><div id="count">3</div><canvas class="bow" id="bow1" width="180" height="150"></canvas></section>
+<canvas id="conf" aria-hidden="true"></canvas>
 
 <!-- 一時停止 -->
 <section class="ov" id="ovPause" hidden>
@@ -130,6 +134,7 @@ const MODE_NAME = { simple: 'シンプルジャンプモード', advance: 'ア�
 // モード名とオプション（例：シンプルジャンプモード・復活5秒・予測線・続ける）
 const modeLabel = () => [MODE_NAME[mode], opt.cont && '続ける'].filter(Boolean).join('・');
 const optLabel = x => mode === 'simple' ? `復活${x.resp}秒${x.predict ? '・予測線' : ''}` : '';   // 人ごとのオプション
+let countT0 = -1e9, bowLooks = [null, null], conf = [];
 let phase = 'start', seed = 0, actx = null, endAt = 0, fx = store.get('kabe_vs_fx', true), result = null, countDrawn = false, mode = 'advance', opt = {};
 const gone = [null, null];   // オプション「1人やられても続ける」：やられた人の記録（高さなど）。2人そろったら勝ち負け
 // 2人で1つ：溶岩（ゲームの座標。上がマイナス）・試合の時計（秒。障害物はこれで動くので2人とも同じ動きになる）
@@ -169,7 +174,33 @@ function drawGhost(cv, look, side, pose, t) {   // look：その人の着せ替�
   const g = cv.getContext('2d'), w = cv.width, h = cv.height;
   g.clearRect(0, 0, w, h);
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, w * 0.2, h * 0.05, 0, 0, Math.PI * 2); g.fill();
-  Kabe.withOutfit(look, () => Kabe.ghost(g, PAL, 'sheet', pose, w / 2, h * 0.56 + (pose === 'cheer' ? Math.sin(t * 6) * 3 : Math.sin(t * 2.2 + side) * 2), t, side ? -1 : 1, h / 60));
+  const sad = pose === 'sad';
+  Kabe.withOutfit(look, () => Kabe.ghost(g, PAL, 'sheet', sad ? 'sleep' : pose, w / 2, h * 0.56 + (pose === 'cheer' ? Math.sin(t * 6) * 3 : sad ? 5 + Math.sin(t * 1.2) * 1 : Math.sin(t * 2.2 + side) * 2), t, side ? -1 : 1, h / 60));
+  if (sad) { const ph = (t * 0.6) % 1; g.fillStyle = `rgba(150,200,255,${0.8 * (1 - ph)})`; const x = w / 2 + (side ? -1 : 1) * w * 0.12, y = h * 0.36 + ph * 14; g.beginPath(); g.moveTo(x, y - 6); g.quadraticCurveTo(x + 4, y, x, y + 3); g.quadraticCurveTo(x - 4, y, x, y - 6); g.fill(); }
+  if (pose === 'cheer') for (let k = 0; k < 14; k++) { const ph = (t * 0.35 + k / 14) % 1, x = (Math.sin(k * 12.9) * 0.5 + 0.5) * w; g.save(); g.translate(x + Math.sin(t * 2 + k) * 6, ph * h); g.rotate(t * 3 + k); g.fillStyle = ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff'][k % 4]; g.fillRect(-3, -1.5, 6, 3); g.restore(); }
+}
+
+function drawBow(i, e, t) {
+  const cv = $('bow' + i), g = cv.getContext('2d'), w = cv.width, h = cv.height, face = i ? -1 : 1;
+  g.clearRect(0, 0, w, h);
+  let pose = 'stand', rot = 0, y = 0;
+  if (e < 1.3) { const a = Math.max(0, Math.min(1, (e - 0.12) / 0.95)); rot = 0.5 * Math.sin(a * Math.PI); y = rot * 6; }   // お辞儀
+  else if (e < 1.95) pose = 'fist';
+  else { pose = 'cheer'; y = -Math.abs(Math.sin((e - 1.95) * 7)) * 12; }
+  g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(w / 2, h * 0.86, w * 0.18, h * 0.045, 0, 0, Math.PI * 2); g.fill();
+  Kabe.withOutfit(bowLooks[i], () => { g.save(); g.translate(w / 2, h * 0.6 + y); g.rotate(face * rot); Kabe.ghost(g, PAL, 'sheet', pose, 0, 0, t, face, h / 60); g.restore(); });
+}
+// 46. 勝った側の画面に紙ふぶき（勝負がついた瞬間）
+function confetti(side) {
+  const r = $('s' + side).getBoundingClientRect(), cols = ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff', side ? '#f2b544' : '#8fd0ff'];
+  for (let k = 0; k < 140; k++) conf.push({ x: r.left + Math.random() * r.width, y: r.top - Math.random() * r.height * 0.5, vx: (Math.random() - 0.5) * 60, vy: 80 + Math.random() * 140, rot: Math.random() * 6, vr: (Math.random() - 0.5) * 10, w: 4 + Math.random() * 4, h: 2 + Math.random() * 3, c: cols[k % cols.length], bot: r.bottom });
+}
+function drawConf(dt) {
+  const cv = $('conf'); if (!conf.length) { if (cv.width) cv.width = 0; return; }
+  if (cv.width !== innerWidth) { cv.width = innerWidth; cv.height = innerHeight; }
+  const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height);
+  for (const q of conf) { q.vy += 30 * dt; q.x += (q.vx + Math.sin(q.rot * 2) * 30) * dt; q.y += q.vy * dt; q.rot += q.vr * dt; g.save(); g.translate(q.x, q.y); g.rotate(q.rot); g.fillStyle = q.c; g.fillRect(-q.w / 2, -q.h / 2, q.w, q.h * Math.abs(Math.cos(q.rot * 1.3)) + 0.5); g.restore(); }
+  conf = conf.filter(q => q.y < q.bot + 20);
 }
 
 /* ---------- 画質（2画面ぶん描くので重ければ「かるい」に） ---------- */
@@ -288,6 +319,7 @@ function start() {
   seed = (Math.random() * 4294967295) >>> 0 || 1;
   api(0).start(seed, mode, opt); api(1).start(seed, mode, opt);   // 先に作って見せておき、数え終わるまで動かさない
   const g = api(0).get(); world.y = g.lavaY; world.delay = g.delay; world.clock = 0;
+  countT0 = performance.now(); bowLooks = [api(0).get().look, api(1).get().look];
   const steps = ['3', '2', '1', 'スタート！'];
   const tick = i => {
     const el = $('count'); el.textContent = steps[i]; el.className = i === 3 ? 'go' : ''; void el.offsetWidth; el.classList.add('pop');
@@ -320,6 +352,7 @@ function decide(out, g) {
     b.textContent = win < 0 ? 'ひきわけ' : i === win ? 'かち！' : 'まけ'; b.style.color = i === win ? `var(--p${i + 1})` : 'var(--cream)';
   }
   result = { win, out, g };
+  if (win >= 0 && fx) confetti(win);
   setTimeout(() => {
     phase = 'end';
     $('endMode').textContent = modeLabel();
@@ -435,7 +468,9 @@ function loop() {
       } else if (out[0] || out[1]) decide(out, g);
     }
   }
-  if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), result.g[i].look, i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'dizzy', now / 1000);
+  if (phase === 'end' && result) for (const i of [0, 1]) drawGhost($('rv' + i), result.g[i].look, i, result.win < 0 ? 'stand' : i === result.win ? 'cheer' : 'sad', now / 1000);
+  if (phase === 'count' || now - countT0 < 2600) for (const i of [0, 1]) drawBow(i, (now - countT0) / 1000, now / 1000);
+  drawConf(dt);
   requestAnimationFrame(loop);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
