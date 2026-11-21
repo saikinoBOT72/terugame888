@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.25">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2027.01.26">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -519,13 +519,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2027.01.25"></script>
-<script src="data/pieces.js?v=2027.01.25"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.25"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2027.01.26"></script>
+<script src="data/pieces.js?v=2027.01.26"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2027.01.26"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2027.01.25';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2027.01.26';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -4408,7 +4408,7 @@ function loop(now) {
   }
   else if (state === 'title') { G.time += frame; titleTick(frame); updatePose(frame); }
   else if (state === 'gacha') updateGacha(frame);
-  else if (state === 'dying') G.time += frame;
+  else if (state === 'dying') { G.time += frame; if (G.resp) respTick(frame); }
   if (state !== 'gacha') updateShow(frame);   // タイトルの着せ替えガチャ
   const tB = performance.now();
   updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
@@ -4493,6 +4493,13 @@ function respMark(gl) {
     ctx.fillStyle = rgba(PAL.glow, 0.12 + 0.1 * k); ctx.beginPath(); ctx.arc(r.x, r.y, 22 + 4 * Math.sin(G.time * 4), 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = a; Kabe.ghost(ctx, PAL, 'sheet', pose, r.x, r.y, 0, face, 1); ctx.globalAlpha = 1;
   }
+}
+// 復活待ちの間も、障害物と溶岩は止めない（2人対戦では溶岩と時計は親ページが動かす）。溶岩が復活の場所に来たらおしまい
+function respTick(dt) {
+  updateObstacles();
+  if (VERSUS) return;
+  if (G.lavaDelay > 0) G.lavaDelay -= dt; else G.lavaY -= LAVA.speed * dt;
+  if (G.resp.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; G.resp = null; end(); }
 }
 function respawn() {
   const r = G.resp; G.resp = null;
