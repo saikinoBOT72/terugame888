@@ -63,7 +63,14 @@
   dialog .acts { margin-top: 8px; flex-wrap: wrap; }
   .curBtn { flex: 1 1 auto; min-width: 0; text-align: left; font-family: ui-monospace, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* パーツ一覧（はじめの画面・上のボタンで開く） */
-  .list { position: fixed; inset: 0; z-index: 5; background: var(--ui-panel); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .list { position: fixed; inset: 0; z-index: 5; background: var(--ui-panel); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+  .lbar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; padding-bottom: max(8px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,.1); background: rgba(0,0,0,.25); }
+  .lbar[hidden] { display: none; }
+  .lbar #selN { flex: 1 1 auto; font-weight: 800; font-size: 14px; }
+  .lcard { position: relative; }
+  .lcard.sel::after { content: ''; position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.6); background: rgba(0,0,0,.4); }
+  .lcard.sel[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--glow) inset; }
+  .lcard.sel[aria-pressed="true"]::after { content: '✓'; display: grid; place-items: center; font-size: 13px; font-weight: 800; background: var(--glow); border-color: var(--glow); color: var(--ink, #2b2235); }
   .list[hidden] { display: none; }
   .lhead { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); border-bottom: 1px solid rgba(255,255,255,.1); }
   .lhead h1 { font-size: 18px; margin: 0; }
@@ -132,9 +139,17 @@
     <a href="pools.html">← プール一覧</a>
     <h1>パーツメーカー</h1>
     <span class="lfilt" role="group" aria-label="しぼりこみ"><button type="button" data-f="all" aria-pressed="true">ぜんぶ</button><button type="button" data-f="draft" aria-pressed="false">下書き</button></span>
+    <button type="button" id="lPick">まとめて出す</button>
     <button type="button" id="lBack">編集へ ▸</button>
   </div>
   <div class="lbody" id="lbody"></div>
+  <div class="lbar" id="lbar" hidden>
+    <span id="selN">0こ</span>
+    <button type="button" id="selAll">ぜんぶ</button>
+    <button type="button" id="selDel">消す</button>
+    <button type="button" id="selOut" class="go">出す ▶</button>
+    <button type="button" id="selEnd">やめる</button>
+  </div>
 </section>
 <dialog id="dlg">
   <h2>パーツの文</h2>
@@ -221,13 +236,17 @@ function listCard(key, from) {
   const ds = document.createElement('span'); ds.className = 'dr'; ds.textContent = isNew ? '新' : dr ? '✎ 下書き' : `${(art.length * CELL / PX_PER_M).toFixed(1)}m`; if (!dr && !isNew) ds.className = '';
   sub.append(st, ds); b.append(thumb(art, dr ? dr.from : from), nm, sub);
   b.setAttribute('aria-label', `${nm.textContent} 難しさ${st.textContent.length}${dr ? ' 下書きあり' : ''}`);
-  b.onclick = () => { open(key); fillPick(); showList(false); };
+  if (sel) { b.classList.add('sel'); b.setAttribute('aria-pressed', sel.has(key)); }
+  b.onclick = () => {
+    if (sel) { sel.has(key) ? sel.delete(key) : sel.add(key); b.setAttribute('aria-pressed', sel.has(key)); syncSel(); return; }
+    open(key); fillPick(); showList(false);
+  };
   return b;
 }
 function renderList() {
   const body = $('lbody'); body.textContent = ''; thumbIO.disconnect();
   const sec = (title, range, note, keys, from, extra) => {
-    keys = keys.filter(k => filt === 'all' || drafts[k]);
+    keys = keys.filter(k => (filt === 'all' && !sel) || drafts[k]);
     if (!keys.length && !extra) return;
     const h = document.createElement('h2'); if (range) { const r = document.createElement('span'); r.className = 'rg'; r.textContent = range; h.append(r); }
     h.append(title); if (note) { const sm = document.createElement('small'); sm.textContent = note; h.append(sm); }
@@ -236,8 +255,9 @@ function renderList() {
   };
   const nb = document.createElement('button'); nb.type = 'button'; nb.className = 'lcard new'; nb.textContent = '＋ 新しいパーツ';
   nb.onclick = () => { let n = 1; while (drafts['+new_' + n] || PIECES['new_' + n]) n++; open('+new_' + n); fillPick(); showList(false); };
-  sec('作る', '', '', Object.keys(drafts).filter(k => k[0] === '+'), 0, filt === 'all' ? nb : null);
-  POOLS.forEach(p => sec(p.name, `${p.from}m`, `${p.pieces.length}こ`, p.pieces.slice(), p.from));
+  sec('作る', '', '', Object.keys(drafts).filter(k => k[0] === '+'), 0, filt === 'all' && !sel ? nb : null);
+  const shown = new Set();   // 選ぶときは、2つのプールに入っているパーツも1回だけ出す
+  POOLS.forEach(p => sec(p.name, `${p.from}m`, `${p.pieces.length}こ`, p.pieces.filter(id => !sel || (!shown.has(id) && shown.add(id))), p.from));
   const used = new Set(POOLS.flatMap(p => p.pieces)), rest = Object.keys(PIECES).filter(id => !used.has(id) && id !== '__try');
   sec('特別・予備', '', 'スタート・ガチャ所など', rest, 0);
   if (!body.children.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '下書きはまだない'; body.append(p); }
@@ -248,6 +268,33 @@ function showList(on) {
 }
 $('btnList').onclick = () => showList(true);
 $('lBack').onclick = () => showList(false);
+/* まとめて出す：下書きだけを並べて選び、1つの文にして渡す（消すこともできる） */
+let sel = null;
+const draftObj = k => Object.assign({ base: k[0] === '+' ? '' : k }, drafts[k]);
+function syncSel() {
+  $('selN').textContent = `${sel.size}こ 選んだ`; $('selOut').disabled = $('selDel').disabled = !sel.size;
+  $('selAll').textContent = sel.size && sel.size === Object.keys(drafts).length ? 'はずす' : 'ぜんぶ';
+}
+function pickMode(on) {
+  sel = on ? new Set() : null; $('lbar').hidden = !on; $('lPick').hidden = on;
+  document.querySelector('.lfilt').hidden = on; $('lBack').hidden = on || !cur;
+  renderList(); if (on) syncSel();
+}
+$('lPick').onclick = () => pickMode(true);
+$('selEnd').onclick = () => pickMode(false);
+$('selAll').onclick = () => { const ks = Object.keys(drafts); sel = new Set(sel.size === ks.length ? [] : ks); renderList(); syncSel(); };
+$('selOut').onclick = () => {
+  const ks = Object.keys(drafts).filter(k => sel.has(k));
+  $('txt').value = `// パーツメーカーの下書き ${ks.length}こ\n\n` + ks.map(k => pieceText(draftObj(k))).join('\n\n');
+  $('dLoad').hidden = true; $('dlg').showModal();
+};
+$('selDel').onclick = () => {
+  if (!confirm(`下書き ${sel.size}こ を消す？（元に戻せない）`)) return;
+  for (const k of sel) delete drafts[k];
+  store.set('kabe_maker_drafts', drafts);
+  if (cur && !drafts[keyOf(cur)]) { const k = keyOf(cur); open(k[0] === '+' ? POOLS[0].pieces[0] : k); fillPick(); }
+  sel.clear(); renderList(); syncSel(); toast('消した');
+};
 document.querySelectorAll('.lfilt button').forEach(b => b.onclick = () => { filt = b.dataset.f; document.querySelectorAll('.lfilt button').forEach(x => x.setAttribute('aria-pressed', x === b)); renderList(); });
 const dseg = $('diff');
 [1, 2, 3].forEach(n => { const b = document.createElement('button'); b.type = 'button'; b.textContent = '★'.repeat(n); b.setAttribute('aria-label', `難しさ${n}`); b.onclick = () => { cur.diff = n; syncMeta(); save(); }; dseg.append(b); });
@@ -473,13 +520,13 @@ $('btnTry').onclick = () => {
 };
 
 /* ---------- コピー・読み込み ---------- */
-const pieceText = () => `piece('${cur.id}', { diff: ${cur.diff}${cur.rain ? ', rain: 1' : ''} }, String.raw\`\n${artText()}\n\`);${cur.base && cur.base !== cur.id ? `   // ${cur.base} を直したもの` : ''}${!cur.base ? `   // 新しいパーツ（${POOLS.slice().reverse().find(p => p.from <= cur.from).name}）` : ''}`;
+const pieceText = (c = cur) => `piece('${c.id}', { diff: ${c.diff}${c.rain ? ', rain: 1' : ''} }, String.raw\`\n${c.art.join('\n')}\n\`);${c.base ? `   // ${c.base === c.id ? '直したもの' : c.base + ' を直したもの'}` : `   // 新しいパーツ（${POOLS.slice().reverse().find(p => p.from <= (c.from || 0)).name}）`}`;
 function toast(s) { const t = $('toast'); t.textContent = s; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 1600); }
 async function copyText(s) {
   try { await navigator.clipboard.writeText(s); return true; } catch (e) {}
   const ta = $('txt'); ta.value = s; ta.select(); try { return document.execCommand('copy'); } catch (e) { return false; }
 }
-$('btnCopy').onclick = () => { $('txt').value = pieceText(); $('dlg').showModal(); };
+$('btnCopy').onclick = () => { $('txt').value = pieceText(); $('dLoad').hidden = false; $('dlg').showModal(); };
 $('dCopy').onclick = async () => { const ok = await copyText($('txt').value); toast(ok ? 'コピーした' : '文を長押ししてコピーしてね'); };
 $('dClose').onclick = () => $('dlg').close();
 $('dLoad').onclick = () => {
@@ -492,6 +539,8 @@ $('dLoad').onclick = () => {
 };
 
 /* ---------- はじめ ---------- */
+for (const k of Object.keys(drafts)) { const d = drafts[k], pc = PIECES[k]; if (k[0] === '+') continue; if (!pc) { drafts['+' + d.id] = d; delete drafts[k]; } else if (d.id === k && d.diff === pc.diff && !!d.rain === !!pc.rain && d.art.join('\n') === artOf(k).join('\n')) delete drafts[k]; }   // 元のパーツが無くなった下書きは「新しいパーツ」に   // pieces.js に入って元と同じになった下書きは消す
+store.set('kabe_maker_drafts', drafts);
 const qid = new URLSearchParams(location.search).get('id'), last = qid || store.get('kabe_maker_cur', '');   // ?id=：プール一覧の「直す」
 open(last && (last[0] === '+' ? drafts[last] : PIECES[last]) ? last : POOLS[0].pieces[0]);
 fillPick(); syncPal(); syncTools();

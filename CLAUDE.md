@@ -25,7 +25,7 @@
 | ファイル | 中身 |
 |---|---|
 | `pools.html` | プールとパーツの一覧（動く見本・「ここから遊ぶ」・「ボット ▶」でボットの遊びを再生・「直す」でメーカーへ） |
-| `maker.html` | パーツメーカー（タッチ向け）。はじめはパーツ一覧（プールごとの絵・下書きだけに絞れる・上のボタンでいつでも開く）→文字のマス目に塗る→「チェック」（本編を見えない枠で開いて `checkPiece`）・「試す ▶」（`index.html?try`：`kabe_maker_try` のパーツ `__try` を繰り返す）・「コピー」（`piece(...)` の文。ユーザーが貼ってきたら pieces.js に入れる）。下書きは端末に `kabe_maker_drafts` |
+| `maker.html` | パーツメーカー（タッチ向け）。はじめはパーツ一覧（プールごとの絵・下書きだけに絞れる・上のボタンでいつでも開く）→文字のマス目に塗る→「チェック」（本編を見えない枠で開いて `checkPiece`）・「試す ▶」（`index.html?try`：`kabe_maker_try` のパーツ `__try` を繰り返す）・「コピー」（`piece(...)` の文。ユーザーが貼ってきたら pieces.js に入れる。一覧の「まとめて出す」で下書きを複数選んで1つの文に）。下書きは端末に `kabe_maker_drafts`（pieces.js と同じになった下書きは開いたときに消える） |
 | `data/piece_view.js` | パーツの見本の描き方と浮きの調べ方（`KABE_VIEW`：prepare・draw・mounts）。pools.html・maker.html・tools/check.js が共通で使う |
 | `simulator.html` | 壁ジャンプの数値だけを試すシミュレーター |
 | `chara.html` | キャラの動き・表情・マフラー（本編の `updatePose`・`scarfStep` を写したもの。変えたらこちらも合わせる。マフラーの形は `Kabe.SCARF`） |
