@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.23.1">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.23.2">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -335,7 +335,18 @@
   .ov:not([hidden]) > .card { animation: cardIn .32s cubic-bezier(.25, 1.45, .5, 1); }
   .ov.leave { background: transparent; pointer-events: none; }
   #ovEnd > .card { position: relative; }
-  #ovCard { z-index: 5; }   /* 結果の画像：共有・保存の前に見せる */
+  #ovCard, #ovPhoto { z-index: 5; }
+  /* 名場面の写真（結果の画面）：ポラロイド風に3枚。押すと大きく */
+  .photos { display: flex; justify-content: center; gap: calc(var(--u) * 6px); margin: calc(var(--u) * 6px) 0 calc(var(--u) * 2px); }
+  .photos:empty { display: none; }
+  .pol { background: #fbf8ff; padding: calc(var(--u) * 4px) calc(var(--u) * 4px) calc(var(--u) * 15px); border-radius: calc(var(--u) * 3px); box-shadow: 0 calc(var(--u) * 2px) calc(var(--u) * 6px) rgba(0,0,0,.35); position: relative; cursor: pointer; border: 0; font: inherit; }
+  .photos .pol { width: calc(var(--u) * 82px); animation: polIn .45s cubic-bezier(.3, 1.5, .5, 1) backwards; }
+  .photos .pol:nth-child(1) { transform: rotate(-4deg); } .photos .pol:nth-child(2) { transform: rotate(2deg); animation-delay: .12s; } .photos .pol:nth-child(3) { transform: rotate(-1.5deg); animation-delay: .24s; }
+  @keyframes polIn { 0% { opacity: 0; translate: 0 calc(var(--u) * 14px); scale: .8; } }
+  .pol img { display: block; width: 100%; aspect-ratio: 1; border-radius: calc(var(--u) * 1px); }
+  .pol span { position: absolute; left: 0; right: 0; bottom: calc(var(--u) * 2px); color: #3a2f55; font-weight: 800; font-size: calc(var(--u) * 8.5px); text-align: center; white-space: nowrap; overflow: hidden; }
+  .pol.big { width: min(100%, calc(var(--u) * 280px)); padding: calc(var(--u) * 8px) calc(var(--u) * 8px) calc(var(--u) * 30px); margin: 0 auto calc(var(--u) * 10px); cursor: default; }
+  .pol.big span { font-size: calc(var(--u) * 15px); bottom: calc(var(--u) * 6px); }   /* 結果の画像：共有・保存の前に見せる */
   #cardImg { width: 100%; max-width: calc(var(--u) * 300px); aspect-ratio: 1; border-radius: calc(var(--u) * 10px); display: block; box-shadow: 0 calc(var(--u) * 3px) 0 rgba(0,0,0,.25); }
   .endHero { margin: calc(var(--u) * -8px) 0 calc(var(--u) * -10px); }
   .endWhy { display: flex; align-items: center; gap: calc(var(--u) * 6px); margin-top: calc(var(--u) * -6px); color: var(--dim); font-weight: 800; font-size: calc(var(--u) * 12px); }
@@ -511,6 +522,7 @@
         <canvas class="uic endHero" id="endHero" data-w="200" data-h="96" aria-hidden="true" hidden></canvas>
         <h2 id="endTitle">溶岩に呑まれた</h2>
         <div class="endWhy"><canvas class="uic" id="endIcon" data-w="44" data-h="40" aria-hidden="true"></canvas><span id="endLine"></span></div>
+        <div class="photos" id="endPhotos"></div>
         <dl class="stats" id="endStats"></dl>
         <div class="grows" id="eGems"></div>
         <button class="btn" id="btnRetry" type="button">もう一度</button>
@@ -524,16 +536,22 @@
         <div class="row"><button class="sub" id="btnCardBack" type="button">もどる</button></div>
       </div>
     </section>
+    <section id="ovPhoto" class="ov" hidden>
+      <div class="card">
+        <div class="pol big"><img id="photoImg" alt="名場面の写真"><span id="photoCap"></span></div>
+        <div class="row"><button class="sub" id="btnPhotoBack" type="button">もどる</button></div>
+      </div>
+    </section>
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.23.1"></script>
-<script src="data/pieces.js?v=2026.11.23.1"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.23.1"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.23.2"></script>
+<script src="data/pieces.js?v=2026.11.23.2"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.23.2"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.23.1';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.23.2';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -1299,6 +1317,7 @@ function doKick(cm, dir = inputDir) {
 function hurt(dirX, cause, wallSpike = false) {
   if (G.inv > 0) return;
   G.hp--; G.inv = G.invMax = gemVal('longinv') ? gemVal('longinv').t : INVINCIBLE; shake(9); sfx.hurt(); G.charging = false; G.dashT = 0;
+  photoEvent('hurt', `いたっ… ${Math.floor(heightM())}m`, 45, 0.06);
   G.stop = 0.08; G.flash = 1;   // ヒットストップと白い光
   for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'spark', x: P.x, y: P.y, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, life: 0.5, max: 0.5 }); }
   P.side = 0; P.ground = false; P.vx = dirX * MOVE.kickVx * 0.8; P.vy = -220;
@@ -1379,12 +1398,12 @@ function update(dt) {
     if (G.mark % 50 === 0 && !calm) { const e = $('edgeFlash'); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); sfx.chargeFull(); }   // 37. 500m ごと：画面のふちが金色に光る
   }
   if (G.recordM > 0 && !G.recordAt && G.best > G.recordM) {   // 36. 最高記録をこえた：旗が飛んで紙ふぶき（ゲームは止めない）
-    G.recordAt = G.time; G.cheerT = 0.8; floaters.push({ text: '新記録！', x: P.x, y: P.y - 40, life: 1.6 }); sfx.gem2();
+    G.recordAt = G.time; G.cheerT = 0.8; photoEvent('record', `新記録！ ${Math.floor(G.best)}m`, 100, 0.3); floaters.push({ text: '新記録！', x: P.x, y: P.y - 40, life: 1.6 }); sfx.gem2();
     if (!calm) for (let i = 0; i < 44; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 160 + Math.random() * 220; particles.push({ kind: 'dot', x: P.x, y: P.y - 10, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 260, life: 1.2 + Math.random() * 0.6, max: 1.8, r: 1.6 + Math.random(), col: ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff'][i % 4] }); }
   }
 
   const zoneNow = poolAt(G.best).name;
-  if (zoneNow !== G.zone) { G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
+  if (zoneNow !== G.zone) { if (G.zone) photoEvent('zone', `${zoneNow}に着いた`, 60 + G.best / 50, 0.5); G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
   // カメラの先読み：上へ速く飛ぶほど上を広く、壁に張り付いたら少し上、落ちるときは下。溶岩が近いと下を見せる
   const lavaGap = G.lavaDelay > 0 ? 1e9 : G.lavaY - P.y;
   let lead = canAct(P) ? (P.side ? 26 : 0) : clampN(-P.vy * 0.15, -45, 70);
@@ -1398,6 +1417,11 @@ function update(dt) {
   if (sp) hurt(sp === 'L' ? 1 : sp === 'R' ? -1 : world.hitX != null ? Math.sign(P.x - world.hitX) || 1 : (P.x < W / 2 ? 1 : -1), world.hitX != null ? world.hitCause : 'spike', sp === 'L' || sp === 'R');
   else obstacleHit();
   if (state !== 'play') return;
+  // ぎりぎり：空中で、トゲや仕掛けのすぐそば（あと7px）を当たらずに通った瞬間を写真に（2.5秒に1回まで）
+  if (!(G.inv > 0) && !canAct(P) && G.time - (G.nearAt ?? -9) > 2.5) {
+    const ig = P.grace > 0 ? P.graceSide : null;
+    if ([[7, 0], [-7, 0], [0, 7], [0, -7]].some(([dx, dy]) => spikeHit(world, P.x + dx, P.y + dy, ig)) || obstacleHit(7)) { G.nearAt = G.time; photoEvent('near', `ぎりぎり！ ${Math.floor(heightM())}m`, 70 + G.best / 100, 0); }
+  }
 
   if (VERSUS) {}   // 2人対戦：溶岩は2人で1つ（親ページが動かして put で渡す）
   else if (G.lavaDelay > 0) G.lavaDelay -= dt;
@@ -1618,44 +1642,47 @@ function crumbleTouch() {
   }
 }
 function circleRect(x, y, r, a, b, c, d) { const nx = clamp(x, a, c), ny = clamp(y, b, d); return (x - nx) ** 2 + (y - ny) ** 2 < r * r; }
-function obstacleHit() {
-  if (G.inv > 0) return;
+// near：当たらずに、あと near px で当たる所か（写真の「ぎりぎり」用。ダメージは与えない）
+function obstacleHit(near = 0) {
+  const HT = HIT + near;
+  if (!near && G.inv > 0) return;
   for (const o of world.obs) {
     if (o.axis && o.cx != null) {
       const hw = o.w / 2, hh = o.h / 2, T = OB.teeth, x = o.cx, y = o.cy;
       const strips = o.axis === 'x' ? [[x - hw - T, y - hh, x - hw, y + hh], [x + hw, y - hh, x + hw + T, y + hh]] : [[x - hw, y - hh - T, x + hw, y - hh], [x - hw, y + hh, x + hw, y + hh + T]];
-      if (strips.some(s => circleRect(P.x, P.y, HIT, ...s))) return hurt(Math.sign(P.x - x) || 1, 'box');
+      if (strips.some(s => circleRect(P.x, P.y, HT, ...s))) return near ? true : hurt(Math.sign(P.x - x) || 1, 'box');
     } else if (o.type === 'pend' && Math.abs(o.yMid - P.y) < 80) {
       const a = Kabe.pendAngle(G.time, { offset: o.offset, amp: SURF.pendAmp, period: SURF.pendPeriod }), bx = o.x + Math.sin(a) * o.len, by = o.y + Math.cos(a) * o.len;
-      if (Math.hypot(P.x - bx, P.y - by) < SURF.pendHit + HIT) return hurt(Math.sign(P.x - bx) || 1, 'pend');
+      if (Math.hypot(P.x - bx, P.y - by) < SURF.pendHit + HT) return near ? true : hurt(Math.sign(P.x - bx) || 1, 'pend');
     } else if (o.type === 'cannon' && Math.abs(o.y - P.y) < 30) {
-      for (const bx of cannonBalls(o, G.time)) if (Math.hypot(P.x - bx, P.y - o.y) < SURF.ballHit + HIT) return hurt(o.dir, 'ball');
+      for (const bx of cannonBalls(o, G.time)) if (Math.hypot(P.x - bx, P.y - o.y) < SURF.ballHit + HT) return near ? true : hurt(o.dir, 'ball');
     } else if (o.type === 'spin' && Math.abs(o.y - P.y) < 60) {
       const a = Kabe.spinAngle(G.time, o.speed), dx = Math.cos(a), dy = Math.sin(a), u = clamp((P.x - o.x) * dx + (P.y - o.y) * dy, -o.len, o.len);
-      if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HIT + 2.6) return hurt(Math.sign(P.x - o.x) || 1, 'spin');
+      if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HT + 2.6) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'spin');
     } else if (o.type === 'mine' && Math.abs(o.y - P.y) < 60) {
-      const my = minePos(o, G.time); if (Math.hypot(P.x - o.x, P.y - my) < SKY.mineHit + HIT) return hurt(Math.sign(P.x - o.x) || 1, 'mine');
+      const my = minePos(o, G.time); if (Math.hypot(P.x - o.x, P.y - my) < SKY.mineHit + HT) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'mine');
     } else if (o.type === 'bend' && P.y > o.yMin - 60 && P.y < o.yMax + 60) {
       const [bx, by] = railPos(o, G.time), T = 4;
-      if (circleRect(P.x, P.y, HIT, bx - o.w / 2 - T, by - o.h / 2 - T, bx + o.w / 2 + T, by + o.h / 2 + T)) return hurt(Math.sign(P.x - bx) || 1, 'bend');
-    } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.bax === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HIT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HIT)) {
-      return hurt(o.bax === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
+      if (circleRect(P.x, P.y, HT, bx - o.w / 2 - T, by - o.h / 2 - T, bx + o.w / 2 + T, by + o.h / 2 + T)) return near ? true : hurt(Math.sign(P.x - bx) || 1, 'bend');
+    } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.bax === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HT)) {
+      return near ? true : hurt(o.bax === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
     } else if (o.type === 'sat' && Math.abs(o.y - P.y) < o.R + 20) {   // 回る衛星：輪を回るトゲの玉
-      for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, G.time, k); if (Math.hypot(P.x - bx, P.y - by) < SPACE.satHit + HIT) return hurt(Math.sign(P.x - bx) || 1, 'sat'); }
+      for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, G.time, k); if (Math.hypot(P.x - bx, P.y - by) < SPACE.satHit + HT) return near ? true : hurt(Math.sign(P.x - bx) || 1, 'sat'); }
     } else if (o.type === 'ring' && Math.abs(o.y - P.y) < SPACE.ringMax + 20) {   // 衝撃波の輪：線だけ痛い。切れ目は通れる
       const st = ringState(o, G.time), d = Math.hypot(P.x - o.x, P.y - o.y);
-      if (st.r != null && st.fade > 0.3 && Math.abs(d - st.r) < SPACE.ringHit + HIT && angDiff(Math.atan2(P.y - o.y, P.x - o.x), st.gap) > SPACE.ringGap) return hurt(Math.sign(P.x - o.x) || 1, 'ring');
+      if (st.r != null && st.fade > 0.3 && Math.abs(d - st.r) < SPACE.ringHit + HT && angDiff(Math.atan2(P.y - o.y, P.x - o.x), st.gap) > SPACE.ringGap) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'ring');
     } else if (o.type === 'sense' && Math.abs(o.y - P.y) < SPACE.burstR + 20) {   // センサー機雷：玉にさわる／破裂の衝撃波に当たる
       const d = Math.hypot(P.x - o.x, P.y - o.y), e = o.t0 != null ? G.time - o.t0 : -1;
       const wv = senseWave(o, G.time);   // 破裂の衝撃波：広がる縁だけ痛い（全方位）
-      if (wv ? wv.fade > 0.3 && Math.abs(d - wv.r) < SPACE.ringHit + HIT : G.time >= o.back && !o.boom && d < SPACE.senseHit + HIT) return hurt(Math.sign(P.x - o.x) || 1, 'sense');
+      if (wv ? wv.fade > 0.3 && Math.abs(d - wv.r) < SPACE.ringHit + HT : G.time >= o.back && !o.boom && d < SPACE.senseHit + HT) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'sense');
     } else if (o.type === 'mill' && Math.abs(o.y - P.y) < 50) {
       const a0 = Kabe.spinAngle(G.time, o.speed);
       for (let k = 0; k < SKY.millBlades; k++) {   // 羽は真ん中から外へ（羽と羽の間はくぐれる）
         const a = a0 + k * Math.PI * 2 / SKY.millBlades, dx = Math.cos(a), dy = Math.sin(a), u = clamp((P.x - o.x) * dx + (P.y - o.y) * dy, 4, o.len);
-        if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HIT + 1.5) return hurt(Math.sign(P.x - o.x) || 1, 'mill'); }
+        if (Math.hypot(P.x - o.x - dx * u, P.y - o.y - dy * u) < HT + 1.5) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'mill'); }
     }
   }
+  return false;
 }
 // 揺れ：「演出ひかえめ」のときは揺らさない
 function shake(n) { if (!calm) cam.shake = Math.max(cam.shake, n); }
@@ -3778,8 +3805,43 @@ function showEnd() {
   endFx(m > best && !G.test);
   G.cardInfo = { m, isNew: m > best && !G.test, zone: poolAt(G.best).name, time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
   $('btnCard').textContent = '結果を画像にする';
+  showPhotos();
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
 }
+/* ---------- 名場面の写真：プレイ中の瞬間を自動で撮り、結果の画面に3枚並べる ----------
+   撮る瞬間（kind）：record 新記録・zone 新しいゾーン・near ぎりぎり・hurt ダメージ。少し遅らせて撮る（旗が飛ぶ・見出しが出る）。
+   見えている画面（きれい画質は #gl、かるいは #cv）から、おばけのまわりを正方形に切り出す（HUD は入れない）。種類ごとに数を決めて良い方を残す */
+const PHOTO = { size: 240, keep: { record: 1, zone: 1, near: 2, hurt: 1 }, max: 6 };
+function photoEvent(kind, label, score, delay) {
+  if (VERSUS || !G || state !== 'play') return;
+  (G.snapQ || (G.snapQ = [])).push({ kind, label, score, at: G.time + delay });
+}
+function photoTick() {
+  const q = G && G.snapQ; if (!q || !q.length || !P) return;
+  for (let i = q.length - 1; i >= 0; i--) if (G.time >= q[i].at) photoTake(q.splice(i, 1)[0]);
+}
+function photoTake(e) {
+  const src = glcv.hidden ? cv : glcv; if (!src.width) return;
+  const k = src.width / W, S = Math.min(W, H) * 0.66, cx = clamp(P.x, S / 2, W - S / 2), cy = clamp(P.y - cam.y - 10, S / 2, H - S / 2);
+  const c = document.createElement('canvas'); c.width = c.height = PHOTO.size;
+  try { c.getContext('2d').drawImage(src, (cx - S / 2) * k, (cy - S / 2) * k, S * k, S * k, 0, 0, PHOTO.size, PHOTO.size); } catch (er) { return; }
+  const L = G.photos || (G.photos = []), same = L.filter(p => p.kind === e.kind), item = Object.assign({ c, t: G.time }, e);
+  if (same.length >= (PHOTO.keep[e.kind] || 1)) { const low = same.reduce((a, b) => (b.score < a.score ? b : a)); if (low.score > e.score) return; L.splice(L.indexOf(low), 1); }
+  L.push(item);
+  if (L.length > PHOTO.max) L.splice(L.indexOf(L.reduce((a, b) => (b.score < a.score ? b : a))), 1);
+}
+// 結果の画面：点数の高い3枚を、撮った順に並べる。押すと大きく
+function showPhotos() {
+  const box = $('endPhotos'); box.textContent = '';
+  const best = (G.photos || []).slice().sort((a, b) => b.score - a.score).slice(0, 3).sort((a, b) => a.t - b.t);
+  for (const p of best) {
+    const b = document.createElement('button'), img = document.createElement('img'), cap = document.createElement('span'); b.type = 'button'; b.className = 'pol';
+    img.src = p.url || (p.url = p.c.toDataURL('image/jpeg', 0.88)); img.alt = p.label; cap.textContent = p.label; b.append(img, cap);
+    b.onclick = () => { $('photoImg').src = p.url; $('photoCap').textContent = p.label; $('ovPhoto').hidden = false; sfx.door(); };
+    box.append(b);
+  }
+}
+$('btnPhotoBack').onclick = () => { $('ovPhoto').hidden = true; };
 /* ---------- 結果画面の演出：数字のカウントアップ・新記録のガッツポーズ・やられた原因の絵と一言 ---------- */
 const WHY = {   // やられた原因 → [ポーズ, 一言, 絵の飾り]
   lava: ['dizzy', 'あちち…マフラーがこげそう', 'smoke'], spike: ['dizzy', '目がまわる…', 'stars'], box: ['dizzy', 'はさまれた…', 'stars'], spin: ['dizzy', 'くるくる…', 'stars'],
@@ -4691,6 +4753,7 @@ function loop(now) {
   updateEffects(frame); try { ambTick(frame); } catch (e) {}   // 音のつまずきでゲームを止めない
   const t0 = performance.now();
   const keep = lerpIn(); draw(); lerpOut(keep);
+  photoTick();   // 名場面の写真：描いた直後に、見えている画面から切り出す
   const tD = performance.now();
   drawUi(now / 1000); showFx.frame();
   if (PERF.on) { PERF.parts = { upd: tB - tA, fx: t0 - tB, draw: tD - t0, ui: performance.now() - tD }; perfTick(performance.now() - t0, now); }
