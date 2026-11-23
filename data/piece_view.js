@@ -18,7 +18,7 @@ const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canS
 // パーツのいちばん下を行 r0（ふつう 0）に置いたものとして数える（機雷・雷は置く高さで変わるので、r0 を変えると別の出方になる）
 function prepare(pc, r0 = 0) {
   const rows = pc.rows.slice().reverse(), h = rows.length, at = (c, r) => (rows[r] || '')[c] || '.', R = r => r0 + h - 1 - r;
-  const map = rows.map(r => r.replace(/[Kk]/g, '#').replace(/[^#.^/\\]/g, '.'));
+  const map = rows.map(r => r.replace(/[KkAV]/g, '#').replace(/[^#.^/\\]/g, '.'));
   const grid = K.grid(map, '.'), obs = [], seen = new Set();
   // 曲がるトゲブロックの道すじ：同じ文字のつながりを端からたどって、角の点だけ残す
   // 曲がるトゲブロック：本編の railObstacle と同じ（行は下から数える。下の行・左の列から見つけ、同じ順にたどり、角と端で止まる）
@@ -61,8 +61,8 @@ function prepare(pc, r0 = 0) {
     if (ch === '*') obs.push({ k: 'sstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 31) * SPACE.puffPeriod, spin: K.hash(c, R(r), 38) });
     if ((ch === '(' || ch === ')') && at(c, r + 1) !== ch) { let e = r; while (at(c, e - 1) === ch) e--;   // 本編と同じく下のはしから数える
       obs.push({ k: 'beamer', dir: ch === ')' ? 1 : -1, x: x + CELL / 2, yb: (r + 0.5) * CELL, yt: (e + 0.5) * CELL, period: Math.max(1, (r - e) * CELL / 40 + 1), off: c * 0.5 + R(r) * 0.3, boff: K.hash(c, R(r), 39) * SPACE.beamPeriod, ends: (() => { const o = {}; for (let rr = e; rr <= r; rr++) { let cc = c + (ch === ')' ? 1 : -1); while (cc >= 0 && cc < 20 && !'#KkSF%EH'.includes(at(cc, rr))) cc += ch === ')' ? 1 : -1; o[rr] = ch === ')' ? cc * CELL : (cc + 1) * CELL; } return o; })() }); }   // ビームが届く壁（行ごと）
-    if (ch === 'A' || ch === 'V') { const d = ch === 'A' ? -1 : 1; let k = r; while (k + d >= 0 && k + d < h && !'#Kk'.includes(at(c, k + d))) k += d;
-      obs.push({ k: 'vfan', x: x + CELL / 2, y: d < 0 ? y + CELL : y, dir: d, reach: (Math.abs(k - r) + 1) * CELL }); }
+    if (ch === 'A' || ch === 'V') { const d = ch === 'A' ? -1 : 1; let k = r; while (k + d >= 0 && k + d < h && !'#KkAVSF%EH'.includes(at(c, k + d))) k += d;   // そのマスは壁のブロック。A は上の面から、V は下の面から
+      obs.push({ k: 'vfan', x: x + CELL / 2, y: d < 0 ? y : y + CELL, dir: d, reach: Math.max(CELL, Math.abs(k - r) * CELL) }); }
     if (ch === 'F' && at(c, r + 1) !== 'F') { let e = r; while (at(c, e - 1) === 'F') e--; obs.push({ k: 'heat', x, y0: e * CELL, y1: (r + 1) * CELL, off: K.hash(c, R(r), 36) * SPACE.heatPeriod }); }   // 本編と同じく下のはしから数える
     if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: R(r) * 0.47 }); }
   }));
@@ -127,7 +127,7 @@ function draw(g, P, d, t) {
 
 // 壁につく物の置き場所：つけ根が壁でない＝浮いている。扇風機・突風は1マスより背が高いので、つけ根の上下も壁（か斜め）でないと角からはみ出す
 function mounts(PIECES, only) {
-  const W = ch => !!ch && '#SKk%EHF'.includes(ch), WS = ch => W(ch) || ch === '/' || ch === '\\', out = [];
+  const W = ch => !!ch && '#SKk%EHFAV'.includes(ch), WS = ch => W(ch) || ch === '/' || ch === '\\', out = [];
   for (const id of only ? [only] : Object.keys(PIECES)) {
     const R = PIECES[id].rows, n = R.length, at = (r, c) => R[r] && R[r][c];
     // 雷：E から下へ | が続いて E、右へ - が続いて E のときだけ組になる（本編の addObstacles と同じ）。組にならない E は見えない壁になる
@@ -143,8 +143,7 @@ function mounts(PIECES, only) {
         if (!W(at(r, ac))) bad('うしろが壁でない'); else if (!WS(at(r + 1, ac)) || !WS(at(r - 1, ac))) bad('壁の角からはみ出す（つけ根の上下も壁にする）'); }
       if ('^pq'.includes(ch) && !W(at(r, c - 1)) && !W(at(r, c + 1)) && !W(at(r - 1, c)) && !W(at(r + 1, c))) bad('となりに壁がない');
       if ((ch === 'K' || ch === 'k') && !W(at(r, ch === 'K' ? c - 1 : c + 1))) bad('うしろが壁でない');
-      if (ch === 'A' || ch === 'V') { const ar = ch === 'A' ? r + 1 : r - 1;   // 上の扇風機は下が床、下の扇風機は上が天井。羽は1マスより広いので、となりの列も壁（か斜め）に
-        if (!W(at(ar, c))) bad(ch === 'A' ? '下が床でない' : '上が天井でない'); else if (!WS(at(ar, c - 1)) || !WS(at(ar, c + 1))) bad('床・天井のはしからはみ出す（となりの列も壁にする）'); }
+      if ((ch === 'A' || ch === 'V') && (!WS(at(r, c - 1)) || !WS(at(r, c + 1)))) bad('扇風機は1マスより広いので、左右のとなりも壁（か斜め）にする（床・天井の中に置く）');
       if ('E|-'.includes(ch) && !pair.has(r + ',' + c)) bad(ch === 'E' ? '相手の E とつながっていない（見えない壁になる）' : 'E と E の間にない');
       if (ch === '=' && at(r, c - 1) !== '=') { let e = c; while (at(r, e + 1) === '=') e++; if (!W(at(r, c - 1)) || !W(at(r, e + 1))) bad('両はしが壁でない'); }
     }
