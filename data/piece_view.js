@@ -8,8 +8,8 @@ const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['und
 const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Math.floor(m / 100)))]; return K.stagePal(L[0], L[1]); };
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
   O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '-': '雷の柱（横）', E: '雷の装置', H: 'ぽよんブロック', '{': '突風', '}': '突風', W: '風車',
-  '@': '引力の星', '*': 'ふくらむ機雷', C: '回る衛星', R: '浮き岩', U: '衝撃波の輪', F: '熱くなる壁', V: 'センサー機雷' };
-const SPACE = { wellR: 81, puffMin: 8, puffMax: 24, puffPeriod: 3.4, satR: 60, satSpeed: 1.1, satBalls: 2, rockAmp: 12, rockPeriod: 4.2, ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: Math.PI / 6, wellPeriod: 6, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0 };   // 本編の SPACE と同じ
+  '*': 'ふくらむ機雷', F: '熱くなる壁', '(': 'ビームのレール', ')': 'ビームのレール', A: '上の扇風機', V: '下の扇風機' };
+const SPACE = { puffMin: 8, puffMax: 24, puffPeriod: 3.4, heatPeriod: 3.6, heatCool: 1.1, heatWarn: 0.5, beamW: 18, beamH: 20, beamPeriod: 3.0, beamOn: 1.0, beamWarn: 0.7 };   // 本編の SPACE と同じ
 const SKY = { bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5 };   // 本編の SKY と同じ（曲がるトゲブロック）
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 
@@ -58,12 +58,11 @@ function prepare(pc, r0 = 0) {
     }
     if (ch === 'H') obs.push({ k: 'jelly', x, y });
     // 宇宙の仕掛け（ずらし方は本編の addObstacles と同じ）
-    if (ch === '@') obs.push({ k: 'gstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 37) * SPACE.wellPeriod });
     if (ch === '*') obs.push({ k: 'sstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 31) * SPACE.puffPeriod, spin: K.hash(c, R(r), 38) });
-    if (ch === 'C') obs.push({ k: 'sat', x: x + CELL / 2, y: y + CELL / 2, speed: (c < 10 ? 1 : -1) * SPACE.satSpeed, phase: K.hash(c, R(r), 32) * 6.28 });
-    if (ch === 'R' && at(c - 1, r) !== 'R') { let e = c; while (at(e + 1, r) === 'R') e++; obs.push({ k: 'rock', x, y, w: (e - c + 1) * CELL, off: K.hash(c, R(r), 33) * SPACE.rockPeriod }); }
-    if (ch === 'U') obs.push({ k: 'ring', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 34) * SPACE.ringPeriod, gap0: K.hash(c, R(r), 35) * 6.28 });
-    if (ch === 'V') obs.push({ k: 'sense', x: x + CELL / 2, y: y + CELL / 2 });
+    if ((ch === '(' || ch === ')') && at(c, r + 1) !== ch) { let e = r; while (at(c, e - 1) === ch) e--;   // 本編と同じく下のはしから数える
+      obs.push({ k: 'beamer', dir: ch === ')' ? 1 : -1, x: x + CELL / 2, yb: (r + 0.5) * CELL, yt: (e + 0.5) * CELL, period: Math.max(1, (r - e) * CELL / 40 + 1), off: c * 0.5 + R(r) * 0.3, boff: K.hash(c, R(r), 39) * SPACE.beamPeriod, c, row: r }); }
+    if (ch === 'A' || ch === 'V') { const d = ch === 'A' ? -1 : 1; let k = r; while (k + d >= 0 && k + d < h && !'#Kk'.includes(at(c, k + d))) k += d;
+      obs.push({ k: 'vfan', x: x + CELL / 2, y: d < 0 ? y + CELL : y, dir: d, reach: (Math.abs(k - r) + 1) * CELL }); }
     if (ch === 'F' && at(c, r + 1) !== 'F') { let e = r; while (at(c, e - 1) === 'F') e--; obs.push({ k: 'heat', x, y0: e * CELL, y1: (r + 1) * CELL, off: K.hash(c, R(r), 36) * SPACE.heatPeriod }); }   // 本編と同じく下のはしから数える
     if (ch === '}' || ch === '{') { const d = ch === '}' ? 1 : -1; let k = c; while (k + d >= 0 && k + d < 20 && at(k + d, r) !== '#') k += d; const fx = d > 0 ? x : x + CELL; obs.push({ k: 'gust', x: fx, y: y + CELL / 2, dir: d, reach: Math.abs((d > 0 ? (k + 1) * CELL : k * CELL) - fx), off: R(r) * 0.47 }); }
   }));
@@ -104,24 +103,21 @@ function draw(g, P, d, t) {
     }
     else if (o.k === 'jelly') K.jellyBlock(g, P, o.x, o.y, 0);
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
-    else if (o.k === 'gstar') K.gravStar(g, P, o.x, o.y, SPACE.wellR, ((t + o.off) % SPACE.wellPeriod + SPACE.wellPeriod) % SPACE.wellPeriod < SPACE.wellPeriod / 2 ? 1 : -1);   // 本編と同じく引く・押すを入れかえる
     else if (o.k === 'sstar') {   // 本編の puffState と同じ（小さい → ふくらむ → 大きいまま → しぼむ）
       const ph = ((t + o.off) % SPACE.puffPeriod + SPACE.puffPeriod) % SPACE.puffPeriod, sm = k => k * k * (3 - 2 * k), A = SPACE.puffMin, B = SPACE.puffMax, small = SPACE.puffPeriod - 2.0;
       const r = ph < small ? A : ph < small + 0.4 ? A + (B - A) * sm((ph - small) / 0.4) : ph < small + 1.6 ? B : B - (B - A) * sm((ph - small - 1.6) / 0.4);
       g.save(); g.translate(o.x, o.y); g.rotate(t * 0.5 + o.spin * 6); K.puffMine(g, P, 0, 0, r, false); g.restore(); }
-    else if (o.k === 'sat') { K.satellite(g, P, o.x, o.y, SPACE.satR); for (let k = 0; k < SPACE.satBalls; k++) { const a = o.phase + t * o.speed + k * Math.PI * 2 / SPACE.satBalls; K.mine(g, P, o.x + Math.cos(a) * SPACE.satR, o.y + Math.sin(a) * SPACE.satR, 6); } }
-    else if (o.k === 'rock') K.floatRock(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / SPACE.rockPeriod) * SPACE.rockAmp, o.w, t);
-    else if (o.k === 'heat') { const ph = ((t + o.off) % SPACE.heatPeriod + SPACE.heatPeriod) % SPACE.heatPeriod, s0 = SPACE.heatPeriod - SPACE.heatOn, k = ph >= s0 ? 1 : ph >= s0 - SPACE.heatWarn ? (ph - s0 + SPACE.heatWarn) / SPACE.heatWarn : 0;
+    else if (o.k === 'heat') { const ph = ((t + o.off) % SPACE.heatPeriod + SPACE.heatPeriod) % SPACE.heatPeriod, c = SPACE.heatCool, k = ph >= c ? 1 : Math.max(1 - Math.min(1, ph / 0.25), ph > c - SPACE.heatWarn ? (ph - c + SPACE.heatWarn) / SPACE.heatWarn : 0);   // 本編の heatState と同じ（熱いのが基本）
       for (let yy = o.y0; yy < o.y1; yy += CELL) K.heatPanel(g, P, o.x, yy, k); }
-    else if (o.k === 'sense') K.senseMine(g, P, o.x, o.y, 'idle', false);
-    else if (o.k === 'ring') {
-      const u = t + o.off, n = Math.floor(u / SPACE.ringPeriod), ph = u - n * SPACE.ringPeriod, gap = o.gap0 + n * Math.PI / 4;
-      if (ph < SPACE.ringGrow) { const e = ph / SPACE.ringGrow, r = 9 + (SPACE.ringMax - 9) * (1 - (1 - e) * (1 - e)), fade = 1 - Math.max(0, e - 0.75) / 0.25;
-        g.save(); g.lineCap = 'round';   // 本編と同じ：外は紫のにじみ、まん中はこはく色、芯は白
-        for (const [w, col] of [[14, P.glow + '29'], [6, 'rgba(255,201,130,' + 0.6 * fade + ')'], [2.2, 'rgba(255,248,232,' + 0.95 * fade + ')']]) { g.strokeStyle = col; g.lineWidth = w; g.beginPath(); g.arc(o.x, o.y, r, gap + SPACE.ringGap, gap + Math.PI * 2 - SPACE.ringGap); g.stroke(); }
-        g.restore(); }
-      K.pulseEmitter(g, P, o.x, o.y, ph > SPACE.ringPeriod - SPACE.ringWarn ? (ph - SPACE.ringPeriod + SPACE.ringWarn) / SPACE.ringWarn : 0);
+    else if (o.k === 'beamer') {   // 本編と同じ：ブロックが上下に動き、決まった周期で横へビーム（予告はうすい点線）
+      const by = o.yb + (o.yt - o.yb) * K.slide(t, o.period, o.off), ph = ((t + o.boff) % SPACE.beamPeriod + SPACE.beamPeriod) % SPACE.beamPeriod, s0 = SPACE.beamPeriod - SPACE.beamOn, on = ph >= s0, warn = !on && ph >= s0 - SPACE.beamWarn;
+      K.track(g, P, o.x, o.yb + SPACE.beamH / 2, o.x, o.yt - SPACE.beamH / 2);
+      const row = Math.floor(by / CELL); let cc = o.c + o.dir; while (cc >= 0 && cc < 20 && !'#Kk'.includes(at(cc, row))) cc += o.dir;
+      const x0 = o.x + o.dir * SPACE.beamW / 2, x1 = o.dir > 0 ? cc * CELL : (cc + 1) * CELL;
+      if (on || warn) { g.save(); g.lineCap = 'round'; for (const [w, col] of on ? [[7, 'rgba(255,179,71,.3)'], [3, 'rgba(255,217,138,.85)'], [1.2, '#fff']] : [[0.8, 'rgba(255,226,176,.6)']]) { g.strokeStyle = col; g.lineWidth = w; if (!on) g.setLineDash([5, 5]); g.beginPath(); g.moveTo(x0, by); g.lineTo(x1, by); g.stroke(); } g.restore(); }
+      K.beamer(g, P, o.x - SPACE.beamW / 2, by - SPACE.beamH / 2, SPACE.beamW, SPACE.beamH, o.dir, on ? 1 : warn ? 0.5 : 0);
     }
+    else if (o.k === 'vfan') { g.save(); g.translate(o.x, o.y); g.rotate(o.dir < 0 ? -Math.PI / 2 : Math.PI / 2); K.fan(g, P, 0, 0, 'R', o.reach, t); g.restore(); }   // 横の扇風機を回して上・下向きに
     else if (o.k === 'rail') {   // 本編の railPos と同じ（角と端で止まり、なめらかに動き出す）
       K.railPath(g, P, o.pts); let u = ((t + o.off) % o.period + o.period) % o.period, x = o.pts[0][0], y = o.pts[0][1];
       for (const p of o.plan) { if (u <= p.d) { const k = p.d ? u / p.d : 1, e = k * k * (3 - 2 * k); x = p.a[0] + (p.b[0] - p.a[0]) * e; y = p.a[1] + (p.b[1] - p.a[1]) * e; break; } u -= p.d; }
@@ -132,7 +128,7 @@ function draw(g, P, d, t) {
 
 // 壁につく物の置き場所：つけ根が壁でない＝浮いている。扇風機・突風は1マスより背が高いので、つけ根の上下も壁（か斜め）でないと角からはみ出す
 function mounts(PIECES, only) {
-  const W = ch => !!ch && '#SKk%EH@UF'.includes(ch), WS = ch => W(ch) || ch === '/' || ch === '\\', out = [];
+  const W = ch => !!ch && '#SKk%EHF'.includes(ch), WS = ch => W(ch) || ch === '/' || ch === '\\', out = [];
   for (const id of only ? [only] : Object.keys(PIECES)) {
     const R = PIECES[id].rows, n = R.length, at = (r, c) => R[r] && R[r][c];
     // 雷：E から下へ | が続いて E、右へ - が続いて E のときだけ組になる（本編の addObstacles と同じ）。組にならない E は見えない壁になる
@@ -148,6 +144,8 @@ function mounts(PIECES, only) {
         if (!W(at(r, ac))) bad('うしろが壁でない'); else if (!WS(at(r + 1, ac)) || !WS(at(r - 1, ac))) bad('壁の角からはみ出す（つけ根の上下も壁にする）'); }
       if ('^pq'.includes(ch) && !W(at(r, c - 1)) && !W(at(r, c + 1)) && !W(at(r - 1, c)) && !W(at(r + 1, c))) bad('となりに壁がない');
       if ((ch === 'K' || ch === 'k') && !W(at(r, ch === 'K' ? c - 1 : c + 1))) bad('うしろが壁でない');
+      if (ch === 'A' || ch === 'V') { const ar = ch === 'A' ? r + 1 : r - 1;   // 上の扇風機は下が床、下の扇風機は上が天井。羽は1マスより広いので、となりの列も壁（か斜め）に
+        if (!W(at(ar, c))) bad(ch === 'A' ? '下が床でない' : '上が天井でない'); else if (!WS(at(ar, c - 1)) || !WS(at(ar, c + 1))) bad('床・天井のはしからはみ出す（となりの列も壁にする）'); }
       if ('E|-'.includes(ch) && !pair.has(r + ',' + c)) bad(ch === 'E' ? '相手の E とつながっていない（見えない壁になる）' : 'E と E の間にない');
       if (ch === '=' && at(r, c - 1) !== '=') { let e = c; while (at(r, e + 1) === '=') e++; if (!W(at(r, c - 1)) || !W(at(r, e + 1))) bad('両はしが壁でない'); }
     }

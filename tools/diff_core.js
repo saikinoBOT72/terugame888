@@ -2,12 +2,12 @@
 // プールの目標（中央値）。0〜700m で 2.4 まで上げ、上空（800m〜）はほぼ平ら（動く仕掛けは数字より難しく感じるので）
 const TARGET = { 0: 0.5, 100: 0.75, 200: 1.0, 300: 1.3, 400: 1.6, 500: 1.9, 600: 2.2, 700: 2.4, 800: 2.4, 900: 2.43, 1000: 2.47, 1100: 2.5, 1200: 2.6, 1300: 2.7, 1400: 2.8, 1500: 2.9 };   // 800m からはゆるやかに（1100m で 2.5 まで）
 const LOW = 1.0, HIGH = 1.2;   // 幅は 目標-1.0〜目標+1.2
-const DIFF_W = { T: 2.0, O: 1.2, K: 1.0, k: 1.0, Y: 0.9, X: 0.9, Z: 0.8, B: 0.4, '%': 0.3, '=': 0.8, M: 0.8, W: 1.6, J: 1.2, L: 1.2, '|': 1.0, '-': 1.0, H: 0.4, '{': 0.6, '}': 0.6, '*': 0.4, C: 1.4, R: 0.3, U: 1.6, F: 0.5, V: 1.0 };   // 1つずつ（X = Z B % は横の並び、Y は縦の並びで1つ）
+const DIFF_W = { T: 2.0, O: 1.2, K: 1.0, k: 1.0, Y: 0.9, X: 0.9, Z: 0.8, B: 0.4, '%': 0.3, '=': 0.8, M: 0.8, W: 1.6, J: 1.2, L: 1.2, '|': 1.0, '-': 1.0, H: 0.4, '{': 0.6, '}': 0.6, '*': 0.8, F: 0.5, '(': 1.4, ')': 1.4 };   // 1つずつ（X = Z B % は横の並び、Y は縦の並びで1つ）
 function inPage(W) {
   const K = window.__kabe, { newWorld, appendRows, newBody, kick, physStep, airJump, canAct, spikeHit } = K._dbg, CHECK = K.CHECK, PIECES = K.PIECES;
   const CELL = 18, HB = 10, DT = 1 / 120;
     function analyze(id) {
-    const pc = PIECES[id], w = Object.assign(newWorld(), { gustAlways: true, wellMode: 1 }), bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1], rows = [];
+    const pc = PIECES[id], w = Object.assign(newWorld(), { gustAlways: true }), bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1], rows = [];
     for (let i = 0; i < CHECK.padBelow; i++) rows.push(bottom); for (const r of pc.rows) rows.push(r); for (let i = 0; i < CHECK.padAbove; i++) rows.push(top);
     appendRows(w, rows); if (pc.lowg) w.lowg.push([CHECK.padBelow, CHECK.padBelow + pc.rows.length - 1]);
     const goalY = -(CHECK.padBelow + pc.rows.length + 1) * CELL, fallY = -CELL;
@@ -58,7 +58,7 @@ function inPage(W) {
       if (ch === 'J' || ch === 'L') {   // 曲がるトゲブロック：道すじの端（となりが1つ）2つで1つ
         const nb = [[0, 1], [0, -1], [1, 0], [-1, 0]].filter(([dr, dc]) => R[r + dr] && R[r + dr][c + dc] === ch).length;
         if (nb <= 1) haz[ch] = (haz[ch] || 0) + 0.5; continue; }
-      const run = ch === 'Y' || ch === '|' || ch === 'F' ? (R[r - 1] && R[r - 1][c] === ch) : 'X=ZB%-R'.includes(ch) ? R[r][c - 1] === ch : false;   // 並びのはじめだけ数える
+      const run = ch === 'Y' || ch === '|' || ch === 'F' || ch === '(' || ch === ')' ? (R[r - 1] && R[r - 1][c] === ch) : 'X=ZB%-'.includes(ch) ? R[r][c - 1] === ch : false;   // 並びのはじめだけ数える
       if (!run) haz[ch] = (haz[ch] || 0) + 1; }
     let h = 0; for (const c in haz) h += W[c] * haz[c];
     const bits = n ? tot / n : 99;

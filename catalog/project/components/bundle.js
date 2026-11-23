@@ -672,29 +672,6 @@ window.Kabe = (function () {
     g.save(); g.strokeStyle = alpha(col, a); g.lineWidth = 1.1; g.setLineDash(dash || [2, 5]); g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke(); g.restore();
   }
   // 引力の星（1マスの硬いブロック。乗れる・張り付ける）：金属の枠の中に光る星。R：届く範囲（うすい点線）。
-  // mode：1＝引く（紫の光）、-1＝押す（水色の光。星のまわりに外向きの小さな矢じり）
-  function gravStar(g, P, cx, cy, R, mode) {
-    var push = mode === -1, col = push ? '#9fe8ff' : P.glow, i;
-    if (R) { dashRing(g, cx, cy, R, col, 0.3, [2, 6]); dashRing(g, cx, cy, R * 0.55, col, 0.2, [2, 6]); }
-    metalSolid(g, P, function () { rr(g, cx - 9, cy - 9, 18, 18, 5); }, 1.2);
-    g.fillStyle = alpha(col, 0.45); ell(g, cx, cy, 7, 7); g.fill();
-    g.fillStyle = push ? '#effcff' : '#fffaf0'; g.beginPath();
-    for (i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 2.2 : 5.4; g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); }
-    g.closePath(); g.fill(); g.strokeStyle = alpha(col, 0.95); g.lineWidth = 0.8; g.stroke();
-    if (R) { g.strokeStyle = alpha(col, 0.55); g.lineWidth = 1.2; g.lineCap = 'round';   // 向きの矢じり（引く＝内向き、押す＝外向き）
-      for (i = 0; i < 4; i++) { var b = Math.PI / 4 + i * Math.PI / 2, r0 = R * 0.35, d = push ? 1 : -1, tx = cx + Math.cos(b) * (r0 + d * 4), ty = cy + Math.sin(b) * (r0 + d * 4);
-        g.beginPath(); g.moveTo(tx - Math.cos(b) * d * 4 + Math.cos(b + 1.57) * 3, ty - Math.sin(b) * d * 4 + Math.sin(b + 1.57) * 3); g.lineTo(tx, ty); g.lineTo(tx - Math.cos(b) * d * 4 - Math.cos(b + 1.57) * 3, ty - Math.sin(b) * d * 4 - Math.sin(b + 1.57) * 3); g.stroke(); } }
-    shine(g, cx - 5, cy - 5.5, 2.2, 1.1, 0.35);
-  }
-  // とげ星（痛い。まわりを引っぱる）：トゲの金属の星。R：引く範囲
-  function spikeStar(g, P, cx, cy, R, a) {
-    if (R) dashRing(g, cx, cy, R, P.hazardLight, 0.3, [3, 4]);
-    a = a || 0; var i;
-    blade(g, P, function () { g.beginPath(); for (i = 0; i < 16; i++) { var aa = a + i * Math.PI / 8, rr2 = i % 2 ? 6.8 : 9.6; g.lineTo(cx + Math.cos(aa) * rr2, cy + Math.sin(aa) * rr2); } g.closePath(); });
-    metalSolid(g, P, function () { ell(g, cx, cy, 6.5, 6.5); }, 1.1);
-    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(cx, cy, 3.4, 0.4, 2.7); g.stroke();
-    shine(g, cx - 2.4, cy - 2.6, 1.8, 1, 0.5);
-  }
   // ふくらむ機雷：トゲの金属の玉。r：玉の半径（小さい 8 〜 大きい 24）。トゲは鈍角、大きいほど数を増やす。lit：ふくらむ前の点滅
   function puffMine(g, P, x, y, r, lit) {
     var n = r < 12 ? 16 : r < 18 ? 20 : 24, i, a;
@@ -704,50 +681,28 @@ window.Kabe = (function () {
     if (lit) { g.fillStyle = 'rgba(255,248,225,0.55)'; ell(g, x, y, r, r); g.fill(); }
     shine(g, x - r * 0.35, y - r * 0.4, r * 0.3, r * 0.17, 0.5);
   }
-  // 回る衛星の通り道（うすい点線の輪だけ。真ん中には何も置かない）。R：輪の半径
-  function satellite(g, P, cx, cy, R) {
-    dashRing(g, cx, cy, R, P.metalLight, 0.3, [1.5, 5]);
-  }
-  // 浮き岩（乗れる・張り付ける足場）。x〜x+w、y は上の面、高さ1マス
-  function floatRock(g, P, x, y, w, t) {
-    var i, n = Math.max(1, Math.round(w / 18));
-    g.fillStyle = alpha(P.glow, 0.18 + 0.06 * Math.sin((t || 0) * 3)); ell(g, x + w / 2, y + 23, w * 0.42, 3.2); g.fill();   // 下のかすかな光（浮いている）
-    solid(g, function () { g.beginPath(); g.moveTo(x + 2, y); g.lineTo(x + w - 2, y); g.quadraticCurveTo(x + w, y, x + w, y + 3); g.lineTo(x + w - 1, y + 12);
-      g.quadraticCurveTo(x + w * 0.5, y + 21, x + 1, y + 12); g.lineTo(x, y + 3); g.quadraticCurveTo(x, y, x + 2, y); g.closePath(); }, P.terrain, P.terrainShade, P.ink, 1.6, 1.1);
-    g.fillStyle = P.terrainLight; g.fillRect(x + 2, y + 0.6, w - 4, 2.2);
-    for (i = 0; i < n; i++) { var cx = x + (i + 0.5) * w / n + (hash(i, w, 5) - 0.5) * 5, cy = y + 7 + hash(i, w, 6) * 4, cr = 1.6 + hash(i, w, 7) * 1.6;
-      g.fillStyle = alpha(P.terrainShade, 0.9); ell(g, cx, cy, cr, cr * 0.7); g.fill(); g.fillStyle = alpha(P.terrainLight, 0.7); ell(g, cx + 0.5, cy + 0.6, cr * 0.6, cr * 0.35); g.fill(); }   // クレーター
-  }
-  // 衝撃波の装置（1マスの硬いブロック）。k：0〜1 の予告の明るさ
-  function pulseEmitter(g, P, cx, cy, k) {
-    k = k || 0;
-    metalSolid(g, P, function () { rr(g, cx - 9, cy - 9, 18, 18, 3); }, 1.3);
-    g.fillStyle = mix(P.metalShade, '#000000', 0.35); ell(g, cx, cy, 5.6, 5.6); g.fill();
-    g.fillStyle = mix(P.metalLight, '#ffffff', k); ell(g, cx, cy, 3.6, 3.6); g.fill();
-    if (k > 0) { g.fillStyle = 'rgba(255,255,255,' + (0.35 * k) + ')'; ell(g, cx, cy, 7.5, 7.5); g.fill(); }
-    g.strokeStyle = alpha(P.metalLight, 0.8); g.lineWidth = 0.8; ell(g, cx, cy, 7, 7); g.stroke();
-    bolt(g, P, cx - 6, cy - 6, 0.9); bolt(g, P, cx + 6, cy - 6, 0.9); bolt(g, P, cx - 6, cy + 6, 0.9); bolt(g, P, cx + 6, cy + 6, 0.9);
-  }
-  // 熱くなる壁の板（1マス）。k：0〜1 の熱さ（1＝熱い）。赤は使わず、灰色の金属がこはく色〜白に光る
+  // 熱くなる壁の板（1マス）。k：0〜1 の熱さ（1＝熱い）。赤は使わず、灰色の金属がこはく色〜白に焼ける（熱いのが基本）
   function heatPanel(g, P, x, y, k) {
     k = k || 0;
-    var base = mixHex(P.metal, '#ffc46b', k * 0.75), shade = mixHex(P.metalShade, '#e89a3c', k * 0.6);
+    var base = mixHex(P.metal, '#ffb347', k * 0.9), shade = mixHex(P.metalShade, '#e0862e', k * 0.85), core = mixHex(P.metalShade, '#fff6d8', k);
     solid(g, function () { rr(g, x + 0.5, y + 0.5, 17, 17, 2); }, base, shade, P.ink, 1, 0.9);
-    g.strokeStyle = mixHex(P.metalShade, '#fff1c8', k); g.lineWidth = 1.4; g.lineCap = 'round';
-    for (var i = 0; i < 3; i++) { g.beginPath(); g.moveTo(x + 4, y + 4.5 + i * 4.5); g.lineTo(x + 14, y + 4.5 + i * 4.5); g.stroke(); }   // 放熱のすじ
-    if (k >= 1) { g.fillStyle = 'rgba(255,248,225,0.55)'; g.fillRect(x + 1.5, y + 1.5, 15, 15); }
+    if (k > 0.3) { var gr = g.createRadialGradient(x + 9, y + 9, 1, x + 9, y + 9, 11); gr.addColorStop(0, 'rgba(255,250,230,' + (0.85 * k) + ')'); gr.addColorStop(1, 'rgba(255,190,90,0)'); g.fillStyle = gr; g.fillRect(x + 1, y + 1, 16, 16); }   // 真ん中ほど白く焼ける
+    g.strokeStyle = core; g.lineWidth = 1.6; g.lineCap = 'round';
+    for (var i = 0; i < 3; i++) { g.beginPath(); g.moveTo(x + 4, y + 4.5 + i * 4.5); g.lineTo(x + 14, y + 4.5 + i * 4.5); g.stroke(); }   // 放熱のすじ（熱いと白く光る）
+    if (k >= 1) { g.strokeStyle = 'rgba(255,240,200,0.9)'; g.lineWidth = 1; rr(g, x + 1.5, y + 1.5, 15, 15, 2); g.stroke(); }   // ふちが光る
     bolt(g, P, x + 2.6, y + 2.6, 0.8); bolt(g, P, x + 15.4, y + 15.4, 0.8);
   }
-  // センサー機雷：アンテナのついたトゲの玉。st：'idle' 'arm'（点滅中・lit で光る）'off'（戻る途中・うすい）
-  function senseMine(g, P, cx, cy, st, lit) {
-    if (st === 'off') { g.globalAlpha *= 0.3; }
-    var i, a;
-    blade(g, P, function () { g.beginPath(); for (i = 0; i < 12; i++) { a = i / 12 * Math.PI * 2; var rr2 = i % 2 ? 7.2 : 10.2; g.lineTo(cx + Math.cos(a) * rr2, cy + Math.sin(a) * rr2); } g.closePath(); });
-    metalSolid(g, P, function () { ell(g, cx, cy, 7.5, 7.5); }, 1.2);
-    g.fillStyle = mix(P.metalShade, '#000000', 0.4); ell(g, cx, cy, 3.6, 3.6); g.fill();   // センサーの目
-    g.fillStyle = st === 'arm' ? (lit ? '#ffffff' : '#ffd27a') : st === 'off' ? P.metalShade : '#9ff0d8'; ell(g, cx, cy, 2.3, 2.3); g.fill();
-    if (st === 'arm' && lit) { g.fillStyle = 'rgba(255,240,200,0.45)'; ell(g, cx, cy, 6, 6); g.fill(); }
-    shine(g, cx - 3, cy - 3.6, 1.8, 1, 0.45);
+  // ビームのレールのブロック：縦に動く金属の箱。dir（1＝右、-1＝左）の面にレンズ。k：0〜1 の光り方（1＝ビームが出ている）。(x, y) は左上
+  function beamer(g, P, x, y, w, h, dir, k) {
+    k = k || 0;
+    metalSolid(g, P, function () { rr(g, x, y, w, h, 3); }, 1.4);
+    g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; rr(g, x + 3, y + 3, w - 6, h - 6, 1.5); g.stroke();
+    var lx = dir > 0 ? x + w : x;
+    solid(g, function () { rr(g, lx - (dir > 0 ? 3 : 2), y + h / 2 - 5, 5, 10, 1.5); }, P.metal, P.metalShade, P.ink, 0.6, 0.9);   // レンズの台
+    g.fillStyle = mixHex('#5b5466', '#fff6d8', k); ell(g, lx + dir * 1.5, y + h / 2, 2.6, 3.4); g.fill();
+    if (k > 0) { g.fillStyle = 'rgba(255,220,150,' + (0.45 * k) + ')'; ell(g, lx + dir * 2, y + h / 2, 6, 6); g.fill(); }
+    shine(g, x + 4.5, y + 3.5, 2.6, 1.3, 0.35);
+    bolt(g, P, x + 3.4, y + h - 3.4, 1); bolt(g, P, x + w - 3.4, y + h - 3.4, 1);
   }
   // 雷（白い光の折れ線）。k：0〜1 の強さ、seed で形が変わる
   function lightningBolt(g, x, y0, y1, k, seed) {
@@ -2141,7 +2096,7 @@ window.Kabe = (function () {
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     OUTFIT: OUTFIT, OUTFIT_COLORS: OUTFIT_COLORS, OUTFIT_ITEMS: OUTFIT_ITEMS, HAT_TOP: HAT_TOP, hatPal: hatPal, wearBack: wearBack, wearFront: wearFront, hatDraw: hatDraw, propDraw: propDraw, MOUTH_AIM: MOUTH_AIM, outfitIcon: outfitIcon, outfitGet: outfitGet, withOutfit: withOutfit,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, gravStar: gravStar, spikeStar: spikeStar, satellite: satellite, puffMine: puffMine, floatRock: floatRock, pulseEmitter: pulseEmitter, heatPanel: heatPanel, senseMine: senseMine, dashRing: dashRing, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, puffMine: puffMine, heatPanel: heatPanel, beamer: beamer, dashRing: dashRing, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();

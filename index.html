@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
-<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.23.2">
+<link rel="stylesheet" href="catalog/project/tokens.css?v=2026.11.23.3">
 <style>
   /* Layout: one fixed 360x640 game frame, centered and scaled; menus are rounded cards over it.
      Look: 統一カタログ（catalog/project/tokens.css）のゾーンの色。赤はプレイヤーの着せ替えとハートだけなので、ボタンは ui-ink、強調は glow。 */
@@ -545,13 +545,13 @@
   </div>
 </div>
 
-<script src="catalog/project/components/bundle.js?v=2026.11.23.2"></script>
-<script src="data/pieces.js?v=2026.11.23.2"></script>
-<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.23.2"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
+<script src="catalog/project/components/bundle.js?v=2026.11.23.3"></script>
+<script src="data/pieces.js?v=2026.11.23.3"></script>
+<script>if (/[?&]bot\b/.test(location.search)) document.write('<script src="tools/bot_core.js?v=2026.11.23.3"><\/script>');   // 開発用：ボット（tools/bot_core.js）</script>
 <script>
 (() => {
 'use strict';
-const VERSION = '2026.11.23.2';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
+const VERSION = '2026.11.23.3';   // push のたびに上げる（アプデボタンがこれで新旧を見分ける）
 // 2人対戦（versus.html の中で ?vs=0|1&seed=N）：地形は種つきの乱数で2人とも同じ。入力・音・相手の位置は親ページから
 const A = {};   // おばけの動きの差分（resetAnim で中身を入れる）
 
@@ -592,12 +592,11 @@ const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, pendHit: 10, canPeri
 // 突風（周期・吹く秒・予告の秒・押す強さ・帯の半分の高さ）、雷の柱（周期・予告・雷の秒・当たりの半分の幅）、風車（羽の長さ・回る速さ）
 const SKY = { mineAmp: 12, minePeriod: 2.8, mineHit: 10, bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5, bendTall: [18, 36], bendWide: [36, 18],
   gustPeriod: 3.4, gustOn: 1.6, gustWarn: 0.7, gustAcc: 1500, gustMax: 330, gustBand: 26, boltPeriod: 2.8, boltWarn: 0.7, boltStrike: 0.45, boltHit: 6, bounceDelay: 0.6, bounceVx: 330, bounceVy: 170, millLen: 22, millSpeed: 0.6, millBlades: 3 };   // 風車：羽3枚（間をくぐれる）
-// 宇宙の仕掛け：引力の星 @（引く半径・いちばん強い引き）、ふくらむ機雷 *（小さい・大きい半径、周期、ふくらむ・しぼむ秒、大きいままの秒、予告の秒）、回る衛星 C（輪の半径・速さ・玉の数・玉の当たり）、
-// 浮き岩 R（ゆれ幅・周期）、衝撃波の輪 U（周期・予告・広がる秒・届く半径・切れ目の半分の角度・線の当たり）、熱くなる壁 F（周期・熱い秒・予告の秒・当たりのふくらみ）、
-// センサー機雷 V（気づく半径・破裂までの秒・破裂の半径・破裂の秒・戻るまでの秒・玉の当たり）、ふわり帯（重力の倍率）
-const SPACE = { wellR: 81, wellAcc: 900, puffMin: 8, puffMax: 24, puffPeriod: 3.4, puffGrow: 0.4, puffBig: 1.2, puffWarn: 0.5, satR: 60, satSpeed: 1.1, satBalls: 2, satHit: 7, rockAmp: 12, rockPeriod: 4.2,
-  ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: Math.PI / 6, ringHit: 3, wellPeriod: 6, wellWarn: 0.7, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0, heatPad: 3,
-  senseR: 54, senseFuse: 0.7, burstR: 62, burstT: 0.45, senseBack: 6, senseHit: 8, lowG: 0.6 };
+// 宇宙の仕掛け：ふくらむ機雷 *（小さい・大きい半径、周期、ふくらむ・しぼむ秒、大きいままの秒、予告の秒）、
+// 熱くなる壁 F（周期・冷めている秒・熱くなる前の予告の秒・当たりのふくらみ）、ふわり帯（重力の倍率）、
+// ビームのレール ( )（上下に動くブロックの大きさ・ビームの周期・出ている秒・予告の秒・当たりの半分の太さ）
+const SPACE = { puffMin: 8, puffMax: 24, puffPeriod: 3.4, puffGrow: 0.4, puffBig: 1.2, puffWarn: 0.5,
+  heatPeriod: 3.6, heatCool: 1.1, heatWarn: 0.5, heatPad: 3, lowG: 0.6, beamW: 18, beamH: 20, beamPeriod: 3.0, beamOn: 1.0, beamWarn: 0.7, beamHit: 3 };
 const KICK_GRACE = 0.2;   // 壁を蹴った直後、その壁のトゲには当たらない時間（トゲの真下から跳んでも痛くない）
 
 /* ---------- ローグライク：結晶（お金）→ ステージ上のガチャ所で水晶を引く → 2枠に装備。次のプレイには持ち越さない ---------- */
@@ -649,6 +648,7 @@ const HOVER_V = 30;   // ホバリング中の落ちる速さの上限（px/秒�
 
 /* パーツとプールは data/pieces.js（KABE_DATA）。描き方は STAGES.md */
 const { PIECES, POOLS, poolAt } = KABE_DATA;
+const zoneName = m => { let n = POOLS[0].name; for (const q of POOLS) if (m >= q.from) n = q.name; return n; };   // ゾーンの名前（パーツのまだないプールでも、その高さの名前）
 const GACHA_PIECES = Object.keys(PIECES).filter(id => PIECES[id].station);   // ガチャ所の形（data/pieces.js の G のあるパーツ）
 
 /* =====================================================================
@@ -672,14 +672,14 @@ const OPT = Object.assign({ resp: 5, predict: false }, store.get(OPT_KEY, {}), {
 
 function newWorld() { return { rows: [], edges: [], edgeRow: -1, placed: [], rains: [], obs: [], fans: [], dynEdges: [], popOn: null, gems: [], stations: [], nextGacha: GACHA.every,
   stakeRow: {}, stakeAmt: null, crumbleAt: {}, broken: new Set(), springs: [], springHit: {}, gusts: [], clouds: [], railSeen: new Set(), time: 0, gustAlways: null,
-  wells: [], sstars: [], heat: {}, heatRuns: [], lowg: [], wellMode: null }; }
+  sstars: [], heat: {}, heatRuns: [], lowg: [], vfans: [] }; }
 // 行 r は y = -(r+1)*CELL 〜 -r*CELL（上がマイナス）。r < 0 は地面、範囲外の列は壁
 function raw(w, c, r) { if (c < 0 || c >= COLS || r < 0) return '#'; const row = w.rows[r]; return row ? row[c] : '.'; }
-const SOLIDS = '#SKk%EH@UF';   // 壁として扱う文字（S バネ、K k 筒、% 崩れる足場、E 雷の装置、H ぽよんブロック、@ 引力の星、U 衝撃波の装置、F 熱くなる壁）
+const SOLIDS = '#SKk%EHF';   // 壁として扱う文字（S バネ、K k 筒、% 崩れる足場、E 雷の装置、H ぽよんブロック、F 熱くなる壁）
 const isWall = t => !!t && SOLIDS.includes(t);
 function tile(w, c, r) {
   const t = raw(w, c, r);
-  if (t === 'S' || t === 'K' || t === 'k' || t === '%' || t === 'E' || t === 'H' || t === '@' || t === 'U' || t === 'F') return '#';
+  if (t === 'S' || t === 'K' || t === 'k' || t === '%' || t === 'E' || t === 'H' || t === 'F') return '#';
   if (t === '/') {   // ◢（右下が壁）か ◤（左上が壁）
     const br = isWall(raw(w, c + 1, r)) + isWall(raw(w, c, r - 1)), tl = isWall(raw(w, c - 1, r)) + isWall(raw(w, c, r + 1));
     return br >= tl ? 'BR' : 'TL';
@@ -764,12 +764,15 @@ function addObstacles(w, r0, n) {
       if (ch === '~' && row[c - 1] !== '~') { let e = c; while (row[e + 1] === '~') e++; w.clouds.push({ x: c * CELL, x1: (e + 1) * CELL, y: -(r + 1) * CELL }); }
       if (ch === 'M') w.obs.push({ type: 'mine', x, y, offset: Kabe.hash(c, r, 13) * 4, period: SKY.minePeriod * (0.85 + Kabe.hash(c, r, 15) * 0.3), amp: SKY.mineAmp * (0.75 + Kabe.hash(c, r, 14) * 0.5), yMid: y });   // 玉ごとに、はじめの時間・周期・ゆれ幅をずらす
       // 宇宙の仕掛け
-      if (ch === '@') w.wells.push({ x, y, R: SPACE.wellR, acc: SPACE.wellAcc, flip: true, offset: Kabe.hash(c, r, 37) * SPACE.wellPeriod });   // 引力の星（硬いブロック）。引く・押すを入れかえる
       if (ch === '*') { const s0 = { x, y, offset: Kabe.hash(c, r, 31) * SPACE.puffPeriod, spin: Kabe.hash(c, r, 38) }; w.sstars.push(s0); w.obs.push(Object.assign({ type: 'sstar', yMid: y }, s0)); }   // ふくらむ機雷（大きくなったり小さくなったりするトゲの玉）
-      if (ch === 'C') w.obs.push({ type: 'sat', x, y, R: SPACE.satR, speed: (c < COLS / 2 ? 1 : -1) * SPACE.satSpeed, phase: Kabe.hash(c, r, 32) * 6.28, yMid: y });
-      if (ch === 'R' && row[c - 1] !== 'R') { let e = c; while (row[e + 1] === 'R') e++; w.obs.push({ type: 'rock', x0: c * CELL, x1: (e + 1) * CELL, y: -(r + 1) * CELL, offset: Kabe.hash(c, r, 33) * SPACE.rockPeriod, yMid: y }); }
-      if (ch === 'U') w.obs.push({ type: 'ring', x, y, offset: Kabe.hash(c, r, 34) * SPACE.ringPeriod, gap0: Kabe.hash(c, r, 35) * 6.28, yMid: y });
-      if (ch === 'V') w.obs.push({ type: 'sense', x, y, t0: null, back: -99, yMid: y });
+      if ((ch === '(' || ch === ')') && (r === r0 || w.rows[r - 1][c] !== ch)) {   // ビームのレール：縦の並びを上下に動くブロック。) は右へ、( は左へビーム
+        let e = r; while (e + 1 < r0 + n && w.rows[e + 1][c] === ch) e++;
+        w.obs.push({ type: 'beamer', dir: ch === ')' ? 1 : -1, x0: x, y0: y, y1: -(e + 0.5) * CELL, w: SPACE.beamW, h: SPACE.beamH, period: Math.max(1, (e - r) * CELL / 40 + 1), offset: c * 0.5 + r * 0.3, beamOff: Kabe.hash(c, r, 39) * SPACE.beamPeriod });
+      }
+      if (ch === 'A' || ch === 'V') {   // 上の扇風機 A（床につけて上へ）・下の扇風機 V（天井につけて下へ）
+        const d = ch === 'A' ? -1 : 1; let k = r; while (k - d >= 0 && !isWall(raw(w, c, k - d)) && Math.abs(k - r) < 40) k -= d;
+        w.vfans.push({ x, y: d < 0 ? -r * CELL : -(r + 1) * CELL, dir: d, reach: (Math.abs(k - r) + 1) * CELL });
+      }
       if (ch === 'F' && raw(w, c, r - 1) !== 'F') {   // 熱くなる壁：縦に続く F を1枚の板として、同じ時間で熱くなる
         let e = r; while (e + 1 < r0 + n && w.rows[e + 1][c] === 'F') e++;
         const run = { c, r0: r, r1: e, offset: Kabe.hash(c, r, 36) * SPACE.heatPeriod, yMid: -((r + e) / 2 + 0.5) * CELL };
@@ -824,25 +827,14 @@ function railPos(o, t) {
 }
 const minePos = (o, t) => o.y + Math.sin((t + o.offset) * Math.PI * 2 / o.period) * o.amp;
 function boltState(o, t) { const ph = ((t + o.offset) % SKY.boltPeriod + SKY.boltPeriod) % SKY.boltPeriod, s = SKY.boltPeriod - SKY.boltStrike; return ph >= s ? 'strike' : ph >= s - SKY.boltWarn ? 'warn' : 'idle'; }
-// 熱くなる壁：熱い（hot）・予告の明るさ（0〜1）
-function heatState(run, t) { const ph = ((t + run.offset) % SPACE.heatPeriod + SPACE.heatPeriod) % SPACE.heatPeriod, s = SPACE.heatPeriod - SPACE.heatOn;
-  return ph >= s ? { hot: true, k: 1 } : { hot: false, k: ph >= s - SPACE.heatWarn ? (ph - (s - SPACE.heatWarn)) / SPACE.heatWarn : 0 }; }
-// 衝撃波の輪：いまの半径（出ていなければ null）・切れ目の向き・予告の明るさ
-function ringState(o, t) {
-  const u = t + o.offset, n = Math.floor(u / SPACE.ringPeriod), ph = u - n * SPACE.ringPeriod;
-  const gap = o.gap0 + n * Math.PI / 4, next = o.gap0 + (n + 1) * Math.PI / 4;
-  if (ph < SPACE.ringGrow) { const e = ph / SPACE.ringGrow; return { r: 9 + (SPACE.ringMax - 9) * (1 - (1 - e) * (1 - e)), gap, fade: 1 - Math.max(0, e - 0.75) / 0.25, warn: 0 }; }
-  const w0 = SPACE.ringPeriod - SPACE.ringWarn; return { r: null, gap: next, fade: 0, warn: ph >= w0 ? (ph - w0) / SPACE.ringWarn : 0 };
-}
-const angDiff = (a, b) => { let d = (a - b) % (Math.PI * 2); if (d < -Math.PI) d += Math.PI * 2; if (d > Math.PI) d -= Math.PI * 2; return Math.abs(d); };
-const satBall = (o, t, k) => { const a = o.phase + t * o.speed + k * Math.PI * 2 / SPACE.satBalls; return [o.x + Math.cos(a) * o.R, o.y + Math.sin(a) * o.R]; };
-const rockY = (o, t) => o.y + Math.sin((t + o.offset) * Math.PI * 2 / SPACE.rockPeriod) * SPACE.rockAmp;
-// 引力の星：1＝引く、-1＝押す（半分ずつ入れかわる）。チェックでは w.wellMode で決めて両方調べる。とげ星はいつも引く
-const wellPh = (q, t) => ((t + q.offset) % SPACE.wellPeriod + SPACE.wellPeriod) % SPACE.wellPeriod;
-const wellSign = (w, q) => !q.flip ? 1 : w.wellMode != null ? w.wellMode : wellPh(q, w.time || 0) < SPACE.wellPeriod / 2 ? 1 : -1;
-const wellWarnK = (q, t) => { const ph = wellPh(q, t) % (SPACE.wellPeriod / 2), s = SPACE.wellPeriod / 2 - SPACE.wellWarn; return ph > s ? (ph - s) / SPACE.wellWarn : 0; };
-// センサー機雷の破裂：全方位に広がる衝撃波（半径・薄れ）。出ていなければ null
-function senseWave(o, t) { if (o.t0 == null) return null; const e = t - o.t0 - SPACE.senseFuse; if (e < 0 || e >= SPACE.burstT) return null; const k = e / SPACE.burstT; return { r: 8 + (SPACE.burstR - 8) * (1 - (1 - k) * (1 - k)), fade: 1 - Math.max(0, k - 0.7) / 0.3 }; }
+// 熱くなる壁：熱いのが基本。周期のはじめに短く冷める（hot：痛い、k：熱さ 0〜1。冷めている間に下がって、予告で上がる）
+function heatState(run, t) { const ph = ((t + run.offset) % SPACE.heatPeriod + SPACE.heatPeriod) % SPACE.heatPeriod, c = SPACE.heatCool;
+  if (ph >= c) return { hot: true, k: 1, cool: false };
+  const down = Math.min(1, ph / 0.25), up = ph > c - SPACE.heatWarn ? (ph - c + SPACE.heatWarn) / SPACE.heatWarn : 0;
+  return { hot: false, k: Math.max(1 - down, up), warn: up, cool: true }; }
+// ビームのレール：ビームが出ている（on）・予告の明るさ（warn 0〜1）
+function beamState(o, t) { const ph = ((t + o.beamOff) % SPACE.beamPeriod + SPACE.beamPeriod) % SPACE.beamPeriod, s0 = SPACE.beamPeriod - SPACE.beamOn;
+  return { on: ph >= s0, warn: ph >= s0 - SPACE.beamWarn && ph < s0 ? (ph - s0 + SPACE.beamWarn) / SPACE.beamWarn : 0 }; }
 // ふくらむ機雷：いまの半径（小さい → 予告 → ふくらむ → 大きいまま → しぼむ）と予告の明るさ
 function puffState(s, t) {
   const ph = ((t + s.offset) % SPACE.puffPeriod + SPACE.puffPeriod) % SPACE.puffPeriod, A = SPACE.puffMin, B = SPACE.puffMax, g = SPACE.puffGrow;
@@ -951,10 +943,9 @@ function physStep(w, b, dt) {
       if (!gustOn(w, f) || Math.abs(b.y - f.y) > SKY.gustBand || (b.x - f.x) * f.dir < 0 || (b.x - f.x) * f.dir > f.reach) continue;
       b.vx = f.dir > 0 ? Math.min(SKY.gustMax, b.vx + SKY.gustAcc * dt) : Math.max(-SKY.gustMax, b.vx - SKY.gustAcc * dt);
     }
-    for (const q of w.wells) {   // 引力の星：空中にいる間だけ、星の方へ引く・押す（近いほど強い）
-      const dx = q.x - b.x, dy = q.y - b.y; if (dy > q.R || dy < -q.R || dx > q.R || dx < -q.R) continue;
-      const d = Math.hypot(dx, dy); if (d >= q.R || d < 1) continue;
-      const a = q.acc * wellSign(w, q) * (1 - d / q.R) * dt / d; b.vx += dx * a; b.vy += dy * a;
+    for (const f of w.vfans) {   // 上・下の扇風機：空中にいる間だけ、上（dir -1）か下（dir 1）へ押す
+      if (Math.abs(b.x - f.x) > Kabe.FAN_BAND + 4 || (b.y - f.y) * f.dir <= 0 || (b.y - f.y) * f.dir > f.reach) continue;
+      b.vy = f.dir < 0 ? Math.min(b.vy, Math.max(-FAN.max, b.vy - FAN.acc * dt)) : Math.max(b.vy, Math.min(FAN.max, b.vy + FAN.acc * dt));
     }
     b.vy += MOVE.gravity * (lowgAt(w, b.y) ? SPACE.lowG : 1) * dt; if (MOVE.maxFall > 0) b.vy = Math.min(b.vy, MOVE.maxFall);   // ふわり帯：重力が軽い
       if (Math.abs(b.vx) > 1) b.face = Math.sign(b.vx); }   // 空中では進んでいる方を向く
@@ -1018,15 +1009,14 @@ const canAct = b => b.side !== 0 || b.ground;
    ===================================================================== */
 const CHECK = { padBelow: 6, padAbove: 10, djStep: 1 / 12, djMax: 1.8, maxT: 3.5, settle: 0.4 };
 // 突風のあるパーツは「ずっと吹いている」と「吹いていない」の両方で調べて、どちらも OK のときだけ OK
-// 引力の星のあるパーツは「ずっと引く」と「ずっと押す」の両方で調べる（突風と同じやり方。両方あれば4通り）
 function checkPiece(id) {
-  const rows = PIECES[id].rows, gs = rows.some(r => /[{}]/.test(r)) ? [true, false] : [null], ws = rows.some(r => r.includes('@')) ? [1, -1] : [null], list = [];
-  for (const g of gs) for (const m of ws) list.push(checkPieceOnce(id, g, m));
+  const rows = PIECES[id].rows, gs = rows.some(r => /[{}]/.test(r)) ? [true, false] : [null], list = [];
+  for (const g of gs) list.push(checkPieceOnce(id, g));
   return list.reduce((a, b) => Object.assign({}, a, { ok: a.ok && b.ok, entryOk: Math.min(a.entryOk, b.entryOk), hurtSpots: Math.max(a.hurtSpots, b.hurtSpots), softlocks: a.softlocks + b.softlocks,
     badEntries: a.badEntries.concat(b.badEntries), points: a.points.concat(b.points), states: a.states + b.states, sims: a.sims + b.sims }));
 }
-function checkPieceOnce(id, gust, wellMode = null) {
-  const pc = PIECES[id], w = newWorld(); w.gustAlways = gust; w.wellMode = wellMode;
+function checkPieceOnce(id, gust) {
+  const pc = PIECES[id], w = newWorld(); w.gustAlways = gust;
   const bottom = pc.rows[0], top = pc.rows[pc.rows.length - 1];
   const rows = [];
   for (let i = 0; i < CHECK.padBelow; i++) rows.push(bottom);
@@ -1156,9 +1146,9 @@ function placePiece(id) {
 // 仕掛けと重ならないように：仕掛けのとなりのマス、筒の撃つ行、回る棒から3マス以内、振り子の下（軸から4マス）には置かない
 function gemBlocked(c, r) {
   const at = (x, y) => raw(world, x, y);
-  for (let y = r - 1; y <= r + 1; y++) for (let x = c - 1; x <= c + 1; x++) if ('KkZB%SXY=pq<>TOMJL|W{}~EH-@*CRUFV'.includes(at(x, y))) return true;
+  for (let y = r - 1; y <= r + 1; y++) for (let x = c - 1; x <= c + 1; x++) if ('KkZB%SXY=pq<>TOMJL|W{}~EH-*F()AV'.includes(at(x, y))) return true;
   for (let x = 0; x < COLS; x++) if (at(x, r) === 'K' || at(x, r) === 'k') return true;
-  for (let y = r - 3; y <= r + 3; y++) for (let x = c - 3; x <= c + 3; x++) if ('TWMC*UV'.includes(at(x, y))) return true;
+  for (let y = r - 3; y <= r + 3; y++) for (let x = c - 3; x <= c + 3; x++) if ('TWM*()'.includes(at(x, y))) return true;
   for (let y = r; y <= r + 4; y++) for (let x = c - 4; x <= c + 4; x++) if (at(x, y) === 'O') return true;
   return false;
 }
@@ -1235,7 +1225,7 @@ function newGame() {
     const fr = appendRows(world, ['#'.repeat(COLS)]);
     P = newBody(2 * CELL + HB, -(fr + 1) * CELL - HB, -1); P.squash = 0;
     cam.y = P.y + HB + 60 - H; G.lavaY = P.y + HB + 200; G.test = TEST_FROM;
-    G.best = heightM(); G.mark = Math.floor(G.best / 10); G.zone = poolAt(G.best).name; G.crystals = Math.round(TEST_FROM / 100 * TEST_CRYSTALS);
+    G.best = heightM(); G.mark = Math.floor(G.best / 10); G.zone = zoneName(G.best); G.crystals = Math.round(TEST_FROM / 100 * TEST_CRYSTALS);
   }
   if (TRY) world.tryOn = true;
   if (TEST_MODE) { G.test = TEST_FROM || 'test'; G.gems = Object.assign({}, TG.gems); G.equip = TG.equip.filter(id => G.gems[id]); if (!TEST_FROM) G.crystals = TEST_CRYSTALS; }   // テスト：選んだ水晶で始める（記録は残らない）
@@ -1317,7 +1307,7 @@ function doKick(cm, dir = inputDir) {
 function hurt(dirX, cause, wallSpike = false) {
   if (G.inv > 0) return;
   G.hp--; G.inv = G.invMax = gemVal('longinv') ? gemVal('longinv').t : INVINCIBLE; shake(9); sfx.hurt(); G.charging = false; G.dashT = 0;
-  photoEvent('hurt', `いたっ… ${Math.floor(heightM())}m`, 45, 0.06);
+  photoEvent('hurt', `あぶない！ ${Math.floor(heightM())}m`, 45, 0, true);   // 当たる少し前の画面
   G.stop = 0.08; G.flash = 1;   // ヒットストップと白い光
   for (let i = 0; i < 10; i++) { const a = Math.random() * Math.PI * 2; particles.push({ kind: 'spark', x: P.x, y: P.y, vx: Math.cos(a) * 110, vy: Math.sin(a) * 110, life: 0.5, max: 0.5 }); }
   P.side = 0; P.ground = false; P.vx = dirX * MOVE.kickVx * 0.8; P.vy = -220;
@@ -1402,7 +1392,7 @@ function update(dt) {
     if (!calm) for (let i = 0; i < 44; i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.4, v = 160 + Math.random() * 220; particles.push({ kind: 'dot', x: P.x, y: P.y - 10, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 260, life: 1.2 + Math.random() * 0.6, max: 1.8, r: 1.6 + Math.random(), col: ['#f2d36b', '#7fd6c8', '#fff4e6', '#b7a6ff'][i % 4] }); }
   }
 
-  const zoneNow = poolAt(G.best).name;
+  const zoneNow = zoneName(G.best);
   if (zoneNow !== G.zone) { if (G.zone) photoEvent('zone', `${zoneNow}に着いた`, 60 + G.best / 50, 0.5); G.zone = zoneNow; G.zoneT = 3; sfx.zone(); }
   // カメラの先読み：上へ速く飛ぶほど上を広く、壁に張り付いたら少し上、落ちるときは下。溶岩が近いと下を見せる
   const lavaGap = G.lavaDelay > 0 ? 1e9 : G.lavaY - P.y;
@@ -1429,7 +1419,7 @@ function update(dt) {
     const gr = gemVal('greed') ? gemVal('greed').lava : 1, bk = gemVal('brake'), near = (G.lavaY - P.y) / PX_PER_M < 3;
     G.lavaY -= LAVA.speed * (bk && near ? bk.k + (gr - 1) : gr) * dt;   // ブレーキは欲ばりで増えた分には効かない
   }
-  if (P.y + HB * 0.4 > G.lavaY) { G.cause = 'lava'; die(); }
+  if (P.y + HB * 0.4 > G.lavaY) { photoEvent('hurt', `${riseName()}がすぐそこ！`, 50, 0, true); G.cause = 'lava'; die(); }
   if (simpleMode()) respSafe();
 }
 /* ---------- ぽよんブロック（H）：乗る・張り付くと SKY.bounceDelay 秒で、ぷるっとしてから横へはじく ---------- */
@@ -1487,12 +1477,6 @@ function rollGem() {
 }
 
 /* ---------- 障害物（時間 G.time だけで動く） ---------- */
-// 衝撃波が出た瞬間：まわりへ火花が飛び、近ければ画面が揺れる
-function waveBurst(x, y, n = 14) {
-  if (Math.abs(y - (cam.y + H / 2)) > H / 2 + 60) return;
-  if (Math.hypot(P.x - x, P.y - y) < 150) shake(2.5);
-  if (!calm) for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + Math.random() * 0.3, v = 140 + Math.random() * 120; particles.push({ kind: 'spark', x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.4, max: 0.4 }); }
-}
 function rectEdges(d, x0, y0, x1, y1, sides) {
   const E = (ax, ay, bx, by, nx, ny) => world.dynEdges.push({ ax, ay, bx, by, nx, ny, dyn: d, minX: Math.min(ax, bx), maxX: Math.max(ax, bx), minY: Math.min(ay, by), maxY: Math.max(ay, by) });
   E(x0, y0, x1, y0, 0, -1); E(x0, y1, x1, y1, 0, 1);
@@ -1554,24 +1538,13 @@ function updateObstacles() {
       }
       continue;
     }
-    if (o.type === 'rock') {   // 浮き岩：ゆっくり上下にただよう岩の足場（乗る・張り付くと運ばれる）
-      const y = rockY(o, t);
-      o.dx = 0; o.dy = o.cx == null ? 0 : y - o.cy; o.cx = (o.x0 + o.x1) / 2; o.cy = y; o.carry = true;
-      rectEdges(o, o.x0, y, o.x1, y + CELL, true);
-      continue;
-    }
-    if (o.type === 'ring') {   // 衝撃波の輪：出た瞬間の音（見えているときだけ）
-      const n = Math.floor((t + o.offset) / SPACE.ringPeriod);
-      if (o.n != null && n !== o.n && Math.abs(o.y - (cam.y + H / 2)) < H / 2 + 60) { sfx.ring(); waveBurst(o.x, o.y); }
-      o.n = n; continue;
-    }
-    if (o.type === 'sense') {   // センサー機雷：近づくと点滅して、少しあとで破裂。しばらくすると戻る
-      if (o.t0 == null && t >= o.back && Math.hypot(P.x - o.x, P.y - o.y) < SPACE.senseR && state === 'play') { o.t0 = t; sfx.senseArm(); }
-      if (o.t0 != null) {
-        const e = t - o.t0;
-        if (e >= SPACE.senseFuse && !o.boom) { o.boom = true; sfx.senseBurst(); sfx.ring(); shake(Math.abs(P.y - o.y) < 160 ? 5 : 1.5); waveBurst(o.x, o.y, 22); }
-        if (e >= SPACE.senseFuse + SPACE.burstT) { o.t0 = null; o.boom = false; o.back = t + SPACE.senseBack; }
-      }
+    if (o.type === 'beamer') {
+      const k = Kabe.slide(t, o.period, o.offset), cy = o.y0 + (o.y1 - o.y0) * k, cx = o.x0;
+      o.dx = 0; o.dy = o.cx == null ? 0 : cy - o.cy; o.cx = cx; o.cy = cy; o.carry = true;
+      rectEdges(o, cx - o.w / 2, cy - o.h / 2, cx + o.w / 2, cy + o.h / 2, true);
+      const rr = Math.floor(-cy / CELL); let c = Math.floor((cx + o.dir * (o.w / 2 + 1)) / CELL);
+      while (c >= 0 && c < COLS && !isWall(raw(world, c, rr))) c += o.dir;
+      o.bx0 = cx + o.dir * o.w / 2; o.bx1 = o.dir > 0 ? c * CELL : (c + 1) * CELL;
       continue;
     }
     if (o.axis) {   // 箱：4つの面とも壁。トゲの面に触れると痛い（obstacleHit）。乗る・張り付くと運ばれる
@@ -1666,15 +1639,8 @@ function obstacleHit(near = 0) {
       if (circleRect(P.x, P.y, HT, bx - o.w / 2 - T, by - o.h / 2 - T, bx + o.w / 2 + T, by + o.h / 2 + T)) return near ? true : hurt(Math.sign(P.x - bx) || 1, 'bend');
     } else if (o.type === 'bolt' && boltState(o, G.time) === 'strike' && (o.bax === 'y' ? P.y > o.a && P.y < o.b && Math.abs(P.x - o.x) < SKY.boltHit + HT : P.x > o.a && P.x < o.b && Math.abs(P.y - o.y) < SKY.boltHit + HT)) {
       return near ? true : hurt(o.bax === 'y' ? Math.sign(P.x - o.x) || 1 : P.face || 1, 'bolt');
-    } else if (o.type === 'sat' && Math.abs(o.y - P.y) < o.R + 20) {   // 回る衛星：輪を回るトゲの玉
-      for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, G.time, k); if (Math.hypot(P.x - bx, P.y - by) < SPACE.satHit + HT) return near ? true : hurt(Math.sign(P.x - bx) || 1, 'sat'); }
-    } else if (o.type === 'ring' && Math.abs(o.y - P.y) < SPACE.ringMax + 20) {   // 衝撃波の輪：線だけ痛い。切れ目は通れる
-      const st = ringState(o, G.time), d = Math.hypot(P.x - o.x, P.y - o.y);
-      if (st.r != null && st.fade > 0.3 && Math.abs(d - st.r) < SPACE.ringHit + HT && angDiff(Math.atan2(P.y - o.y, P.x - o.x), st.gap) > SPACE.ringGap) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'ring');
-    } else if (o.type === 'sense' && Math.abs(o.y - P.y) < SPACE.burstR + 20) {   // センサー機雷：玉にさわる／破裂の衝撃波に当たる
-      const d = Math.hypot(P.x - o.x, P.y - o.y), e = o.t0 != null ? G.time - o.t0 : -1;
-      const wv = senseWave(o, G.time);   // 破裂の衝撃波：広がる縁だけ痛い（全方位）
-      if (wv ? wv.fade > 0.3 && Math.abs(d - wv.r) < SPACE.ringHit + HT : G.time >= o.back && !o.boom && d < SPACE.senseHit + HT) return near ? true : hurt(Math.sign(P.x - o.x) || 1, 'sense');
+    } else if (o.type === 'beamer' && o.cy != null && o.bx1 != null && Math.abs(o.cy - P.y) < 30 && beamState(o, G.time).on) {   // ビーム：出ている間、ブロックから壁まで
+      if (Math.abs(P.y - o.cy) < SPACE.beamHit + HT && (P.x - o.bx0) * o.dir > -HT && (P.x - o.bx1) * o.dir < HT) return near ? true : hurt(Math.sign(P.x - o.cx) || o.dir, 'beam');
     } else if (o.type === 'mill' && Math.abs(o.y - P.y) < 50) {
       const a0 = Kabe.spinAngle(G.time, o.speed);
       for (let k = 0; k < SKY.millBlades; k++) {   // 羽は真ん中から外へ（羽と羽の間はくぐれる）
@@ -1797,7 +1763,7 @@ function rockDepth(c, r) {
 // ゲームの行（下から）を Kabe のマス目（上から）として見せる。i 行目 ＝ ゲームの top - i 行
 function bandGrid(r0, i0 = 0, n = BAND) {   // i0・n：上から i0 行目から n 行だけ（帯を切れに分けて描くとき）
   // バネ（S）・崩れる足場（%）・雷の装置（E）・ぽよんブロック（H）は地形の絵に入れない（動く絵で上に描く）
-  const top = r0 + BAND - 1 - i0, R = i => top - i, t = (c, i) => { const ch = raw(world, c, R(i)); return ch === 'S' || ch === '%' || ch === 'E' || ch === 'H' || ch === '@' || ch === 'U' || ch === 'F' ? '.' : tile(world, c, R(i)); }, has = solidSide;
+  const top = r0 + BAND - 1 - i0, R = i => top - i, t = (c, i) => { const ch = raw(world, c, R(i)); return ch === 'S' || ch === '%' || ch === 'E' || ch === 'H' || ch === 'F' ? '.' : tile(world, c, R(i)); }, has = solidSide;
   return {
     rows: n, cols: COLS,
     raw: (c, i) => raw(world, c, R(i)),
@@ -2105,68 +2071,56 @@ function skyDraw(sp, seg, vis) {
     }
   }
 }
-// ゆがみの波の縁：熱を帯びて光る（外は太い紫のにじみ、まん中はこはく色、芯は白）。少し内側にこだまの輪。出た直後は真ん中が光る。
-// gap：切れ目の向き（null なら全方位）。切れ目の所は光らない。縁にちりちりと火花
-function waveDraw(seg, disc, x, y, r, f, gap, t) {
-  const full = gap == null, n = 44, a0 = full ? 0 : gap + SPACE.ringGap, span = full ? Math.PI * 2 : Math.PI * 2 - SPACE.ringGap * 2;
-  if (r < 34) disc(x, y, 30, '#fff3d6', 0.7 * (1 - (r - 8) / 26));   // 出た瞬間の光
-  for (const [rr, k] of [[r, 1], [r * 0.82, 0.35]]) {
-    let px = x + Math.cos(a0) * rr, py = y + Math.sin(a0) * rr;
-    for (let i = 1; i <= n; i++) {
-      const a = a0 + span * i / n, j = Math.sin(a * 9 + t * 25) * 1.6 * k, xx = x + Math.cos(a) * (rr + j), yy = y + Math.sin(a) * (rr + j), edge = full ? 1 : Math.min(1, Math.min(i, n - i) / 3), A = f * edge * k;
-      seg(px, py, xx, yy, 11, PAL.glow, 0.2 * A); seg(px, py, xx, yy, 4.5, '#ffbe6e', 0.7 * A); seg(px, py, xx, yy, 1.6, '#fffaf0', A); px = xx; py = yy;
-      if (k === 1 && !calm && Kabe.hash(i, Math.floor(t * 16), 61) > 0.55) disc(xx + Math.cos(a) * 4, yy + Math.sin(a) * 4, 1.6, '#fff3d6', f * edge);
-    }
-  }
-}
+// 横の扇風機の絵（右向き）を回して、上向き（dir -1）・下向き（dir 1）に使う
+const vfanRot = f => f.dir < 0 ? -Math.PI / 2 : Math.PI / 2;
+const rotAt = (x, y, cx, cy, a) => { const c = Math.cos(a), s2 = Math.sin(a), dx = x - cx, dy = y - cy; return [cx + dx * c - dy * s2, cy + dx * s2 + dy * c]; };
 // 宇宙の仕掛け（2D と GPU で共通。sp は絵を置く、seg は線、disc は丸）
 function spaceDraw(sp, seg, vis, disc) {
   const t = G.time;
-  for (const run of world.heatRuns) {   // 熱くなる壁：熱さを 1/6 きざみにして絵を使い回す
+  for (const run of world.heatRuns) {   // 熱くなる壁：熱いのが基本。熱さを 1/6 きざみにして絵を使い回す。熱い間はゆらめく光・火の粉・陽炎（シェーダー）
     if (!vis(run.yMid) && !vis(-(run.r0 + 1) * CELL) && !vis(-(run.r1 + 1) * CELL)) continue;
-    const st = heatState(run, t), k = st.hot ? 1 : Math.round(st.k * 6) / 6, x = run.c * CELL;
+    const st = heatState(run, t), lit = st.warn > 0 && t % 0.14 < 0.07, k = st.hot ? 1 : lit ? 0.85 : Math.round(st.k * 6) / 6, x = run.c * CELL, fl = 0.75 + 0.25 * Math.sin(t * 13 + run.c) * Math.sin(t * 7.3);
+    if (st.hot) for (let r = run.r0; r <= run.r1; r++) { const y = -(r + 0.5) * CELL; disc(x + CELL / 2, y, 22, '#ffb347', 0.16 * fl); disc(x + CELL / 2, y, 13, '#ffe7a8', 0.22 * fl); }   // まわりの熱い光
     for (let r = run.r0; r <= run.r1; r++) { const y = -(r + 1) * CELL; sp(`heat|${k}`, x, y, [-2, -2, CELL + 2, CELL + 2], () => Kabe.heatPanel(ctx, PAL, x, y, k)); }
-    if (st.hot && !calm) for (let r = run.r0; r <= run.r1; r++) { const y = -(r + 0.5) * CELL, f = (t * 1.3 + r * 0.37) % 1; disc(x + CELL / 2 + Math.sin(t * 3 + r) * 4, y - f * 16, 1.6 * (1 - f), '#fff1c8', 0.8 * (1 - f)); }   // 立ちのぼる熱
-  }
-  for (const q of world.wells) {   // 引力の星：引くときは粒が吸いこまれ、押すときは吹き出す。まわりを光の弧が回る
-    if (!vis(q.y)) continue;
-    const sg = wellSign(world, q), col = sg > 0 ? PAL.glow : '#9fe8ff', star = q.acc === SPACE.wellAcc;
-    if (!calm) {
-      for (let i = 0; i < 10; i++) { const h = Kabe.hash(q.x, q.y + i, 41), u = (t * 0.55 + h) % 1, f = sg > 0 ? 1 - u : u, a = h * 6.28 + t * 0.5 * sg, r = 12 + f * (q.R - 12); disc(q.x + Math.cos(a) * r, q.y + Math.sin(a) * r, 1.5, col, 0.7 * (1 - f) * (star ? 1 : 0.6)); }
-      for (let k = 0; k < 3; k++) { const r = 15 + k * 7, a0 = t * (2.2 - k * 0.5) * sg + k * 2.1; for (let j = 0; j < 5; j++) { const a = a0 + j * 0.18, b = a + 0.18; seg(q.x + Math.cos(a) * r, q.y + Math.sin(a) * r, q.x + Math.cos(b) * r, q.y + Math.sin(b) * r, 1.2, col, (0.55 - k * 0.15) * (1 - j / 5) * (star ? 1 : 0.6)); } }
+    if (st.hot && !calm) for (let r = run.r0; r <= run.r1; r++) for (let j = 0; j < 3; j++) {   // 立ちのぼる火の粉
+      const y = -(r + 0.5) * CELL, f = (t * (1.1 + j * 0.3) + r * 0.37 + j * 0.33) % 1, sx = x + CELL / 2 + Math.sin(t * 3 + r + j * 2) * 7 + (j - 1) * 4;
+      disc(sx, y - f * 26, 1.8 * (1 - f) + 0.4, j === 1 ? '#fff6d8' : '#ffc26b', 0.9 * (1 - f));
     }
-    disc(q.x, q.y, 20, col, (star ? 0.14 : 0.08) * (1 + 0.4 * Math.sin(t * 4)));   // ぼんやり光る
-    if (!star) continue;
-    const wk = wellWarnK(q, t), m = wk > 0 && t % 0.16 < 0.08 ? -sg : sg;   // 入れかわる前に点滅
-    sp(`gstar|${m}`, q.x, q.y, [-SPACE.wellR - 2, -SPACE.wellR - 2, SPACE.wellR + 2, SPACE.wellR + 2], () => Kabe.gravStar(ctx, PAL, q.x, q.y, SPACE.wellR, m));
   }
-  if (world.lowg.length && !calm) for (const [a, b] of world.lowg) {   // ふわり帯：ゆっくり昇る星くず
+  if (world.lowg.length) for (const [a, b] of world.lowg) {   // ふわり帯：うすい水色の帯・上下のさかいの光る点線・ゆっくり昇る星くずと ↑
     const y0 = -(b + 1) * CELL, y1 = -a * CELL; if (y1 < cam.y - 40 || y0 > cam.y + H + 40) continue;
-    for (let i = 0; i < 26; i++) { const h1 = Kabe.hash(i, a, 51), h2 = Kabe.hash(i, a, 52), span = y1 - y0, yy = y1 - ((h2 * span + t * (10 + h1 * 12)) % span), tw = 0.5 + 0.5 * Math.sin(t * 2 + i);
-      disc(2 * CELL + h1 * (W - 4 * CELL) + Math.sin(t * 0.7 + i) * 6, yy, 1.1 + h2, PAL.glow, 0.35 * tw); }
+    const hh = (y1 - y0) / 2; seg(2 * CELL, y0 + hh, W - 2 * CELL, y0 + hh, hh, '#9fe8ff', 0.07);
+    for (const yy of [y0, y1]) for (let x = 2 * CELL; x < W - 2 * CELL; x += 14) seg(x, yy, x + 7, yy, 1.3, '#bff4ff', 0.55 + 0.25 * Math.sin(t * 3 + x * 0.1));
+    if (calm) continue;
+    for (let i = 0; i < 36; i++) { const h1 = Kabe.hash(i, a, 51), h2 = Kabe.hash(i, a, 52), span = y1 - y0, yy = y1 - ((h2 * span + t * (14 + h1 * 16)) % span), tw = 0.5 + 0.5 * Math.sin(t * 2 + i);
+      disc(2 * CELL + h1 * (W - 4 * CELL) + Math.sin(t * 0.7 + i) * 6, yy, 1.4 + h2 * 1.2, '#dff8ff', 0.6 * tw); }
+    for (let i = 0; i < 4; i++) { const xx = (i % 2 ? W * 0.3 : W * 0.7) + (i - 1.5) * 10, f = (t * 0.35 + i * 0.25) % 1, yy = y1 - f * (y1 - y0), A = 0.45 * Math.sin(f * Math.PI);   // ふわっと昇る ↑
+      seg(xx, yy, xx, yy - 14, 1.3, '#dff8ff', A); seg(xx, yy - 14, xx - 5, yy - 9, 1.3, '#dff8ff', A); seg(xx, yy - 14, xx + 5, yy - 9, 1.3, '#dff8ff', A); }
+  }
+  for (const f of world.vfans) {   // 上・下の扇風機：横の扇風機の絵を回して置く
+    if (!vis(f.y) && !vis(f.y + f.dir * f.reach)) continue;
+    const a = vfanRot(f);
+    for (const l of Kabe.fanStreaks(f.x, f.y, 'R', f.reach, t)) { const [p0, p1] = [rotAt(l[0], l[1], f.x, f.y, a), rotAt(l[2], l[3], f.x, f.y, a)]; seg(p0[0], p0[1], p1[0], p1[1], 0.7, '#ffffff', l[4]); }
+    sp('fan|R', f.x, f.y, [-17, -17, 17, 17], () => Kabe.fanBody(ctx, PAL, f.x, f.y, 'R'), 1, true, a);
+    const bl = Kabe.fanBlade(f.x, f.y, 'R', t), q0 = rotAt(bl[0], bl[1], f.x, f.y, a), q1 = rotAt(bl[2], bl[3], f.x, f.y, a); seg(q0[0], q0[1], q1[0], q1[1], 0.75, PAL.metalLight, 1);
+    sp('fanbolt|R', f.x, f.y, [-13, -13, 13, 13], () => Kabe.fanBolt(ctx, PAL, f.x, f.y, 'R'), 1, true, a);
   }
   for (const o of world.obs) {
+    if (o.type === 'beamer') {   // ビームのレール：レール・ブロック・ビーム（予告はうすい点線が点滅、出ている間は太い光と、当たった壁に火花）
+      if (!vis(o.y0) && !vis(o.y1)) continue;
+      const dy = o.y1 - o.y0; sp(`track|0|${dy}`, o.x0, o.y0 + o.h / 2, [-5, Math.min(0, dy - o.h) - 5, 5, Math.max(0, dy - o.h) + 5], () => Kabe.track(ctx, PAL, o.x0, o.y0 + o.h / 2, o.x0, o.y1 - o.h / 2));
+      const cx = o.cx != null ? o.cx : o.x0, cy = o.cy != null ? o.cy : o.y0, st = beamState(o, t), k = st.on ? 1 : Math.round(st.warn * 6) / 6;
+      if (st.on && o.bx1 != null) { seg(o.bx0, cy, o.bx1, cy, 7, '#ffb347', 0.3); seg(o.bx0, cy, o.bx1, cy, 3, '#ffd98a', 0.85); seg(o.bx0, cy, o.bx1, cy, 1.2, '#ffffff', 1);
+        if (!calm) for (let i = 0; i < 3; i++) disc(o.bx1 - o.dir * (2 + Math.random() * 5), cy + (Math.random() - 0.5) * 10, 1.6, '#fff3d6', 0.9); }
+      else if (st.warn > 0 && o.bx1 != null && t % 0.2 < 0.12) for (let x = o.bx0; (x - o.bx1) * o.dir < 0; x += o.dir * 10) seg(x, cy, x + o.dir * 5, cy, 0.8, '#ffe2b0', 0.25 + 0.4 * st.warn);
+      const bx = cx - o.w / 2, by = cy - o.h / 2; sp(`beamer|${o.dir}|${k}`, bx, by, [-6, -6, o.w + 6, o.h + 6], () => Kabe.beamer(ctx, PAL, bx, by, o.w, o.h, o.dir, k));
+      continue;
+    }
     if (!vis(o.yMid)) continue;
     if (o.type === 'sstar') {   // ふくらむ機雷：大きさは1pxきざみで絵を使い回す。ふくらむ前に白く点滅
       const st = puffState(o, t), r = Math.round(st.r), lit = st.warn > 0 && t % 0.16 < 0.08;
       if (st.warn > 0) disc(o.x, o.y, SPACE.puffMax + 3, '#fff3d6', 0.06 + 0.1 * st.warn);   // ふくらむ大きさがうすく見える
       sp(`puff|${r}|${lit}`, o.x, o.y, [-r - 6, -r - 6, r + 6, r + 6], () => Kabe.puffMine(ctx, PAL, o.x, o.y, r, lit), 1, true, t * 0.5 + o.spin * 6);
-    }
-    else if (o.type === 'sat') {
-      sp(`satorbit|${o.R}`, o.x, o.y, [-o.R - 3, -o.R - 3, o.R + 3, o.R + 3], () => Kabe.satellite(ctx, PAL, o.x, o.y, o.R));
-      for (let k = 0; k < SPACE.satBalls; k++) { const [bx, by] = satBall(o, t, k); sp('satball', bx, by, [-12, -12, 12, 12], () => Kabe.mine(ctx, PAL, bx, by, 6), 1, true, t * 2); }
-    } else if (o.type === 'rock') { const y = rockY(o, t), w = o.x1 - o.x0; sp(`rock|${w}`, o.x0, y, [-3, -3, w + 3, CELL + 8], () => Kabe.floatRock(ctx, PAL, o.x0, y, w, 0)); }
-    else if (o.type === 'ring') {
-      const st = ringState(o, t), k = Math.round(st.warn * 6) / 6, lit = st.warn > 0 && t % 0.2 < 0.1;
-      if (st.warn > 0) for (const s2 of [-1, 1]) { const a = st.gap + s2 * SPACE.ringGap; seg(o.x + Math.cos(a) * 14, o.y + Math.sin(a) * 14, o.x + Math.cos(a) * 30, o.y + Math.sin(a) * 30, 1, '#ffe2b0', 0.5 * st.warn); }   // 予告：次の切れ目の向き（装置のそばだけ）
-      if (st.r != null) waveDraw(seg, disc, o.x, o.y, st.r, st.fade, st.gap, t);
-      sp(`pulse|${lit ? 1 : k}`, o.x, o.y, [-11, -11, 11, 11], () => Kabe.pulseEmitter(ctx, PAL, o.x, o.y, lit ? 1 : k));
-    } else if (o.type === 'sense') {
-      const e = o.t0 != null ? t - o.t0 : -1, off = t < o.back || o.boom, st2 = off ? 'off' : e >= 0 ? 'arm' : 'idle', lit = e >= 0 && (e * (6 + e * 14)) % 1 < 0.5;
-      const wv = senseWave(o, t);
-      if (wv) waveDraw(seg, disc, o.x, o.y, wv.r, wv.fade, null, t);
-      else if (e >= 0 && !o.boom) disc(o.x, o.y, 10 + 8 * (e / SPACE.senseFuse), '#fff3d6', 0.15 + 0.35 * (e / SPACE.senseFuse));   // ためて光る
-      sp(`sense|${st2}|${lit}`, o.x, o.y, [-13, -13, 13, 13], () => Kabe.senseMine(ctx, PAL, o.x, o.y, st2, lit));
     }
   }
 }
@@ -2439,7 +2393,7 @@ function drawHud() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   const label = `${Math.floor(G.best)}m`;
   ctx.font = `800 15px ${FONT}`; const tw = ctx.measureText(label).width;
-  ctx.font = `500 10px ${FONT}`; const zone = poolAt(G.best).name, zw = ctx.measureText(zone).width;
+  ctx.font = `500 10px ${FONT}`; const zone = zoneName(G.best), zw = ctx.measureText(zone).width;
   const pw = Math.max(tw, zw) + 28;
   pill(W / 2 - pw / 2, HUD_GAP, pw, 36);
   ctx.fillStyle = PAL.uiInk; ctx.font = `800 15px ${FONT}`; ctx.fillText(label, W / 2, HUD_GAP + 13);
@@ -3043,7 +2997,7 @@ const glfx = (() => {
       gl_FragColor = vec4(acc * 0.5 + dn, clamp(gs / max(ws, 1e-4), 0.0, 1.0)); }`;
   const COMP = HEAD + `uniform sampler2D scene, bloom, lmA; uniform vec2 res, px, lp; uniform float lite, t, amb, emb, lavaY, flash, calm, danger, rain, rt, haze;
     uniform vec3 lavaC, shadowT, lightT;   // lp：自分の灯りの位置（凹凸を照らす向き）
-    uniform vec4 warp[6]; uniform float warpG[6];   // 空間のゆがみ（宇宙）：xy 画面の点、z>0 衝撃波の半径（warpG は切れ目の向き）、z<0 引力のレンズの半径、w 強さ
+    uniform vec4 warp[6]; uniform float warpG[6];   // 陽炎：warp＝板の真ん中（画面の点）と半分の幅・高さ、warpG＝強さ（0 なら無し）
     float h(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float fbmLite(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
     float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
@@ -3061,16 +3015,12 @@ const glfx = (() => {
       vec2 uv = v, p = vec2(v.x, 1.0 - v.y) * res;           // p：画面の点（px、上が0）
       vec3 dr = vec3(0.0);
       if (rain > 0.01) { dr = drops(p, rt) * rain; uv += vec2(dr.x, -dr.y) * px * 7.0; }   // 水滴の向こうがゆがんで見える
-      if (calm < 0.5) {   // 空間のゆがみ：衝撃波は輪の帯が外へふくらみ、引力の星・とげ星のまわりはレンズのように引きこむ
+      if (calm < 0.5) {   // 陽炎：熱くなる壁のまわり（板と、そこから約1.5マス）がゆらゆらゆれる。外へ行くほどなだらかに弱く
         vec2 dP = vec2(0.0);
         for (int i = 0; i < 6; i++) {
-          vec4 wv = warp[i]; if (wv.w == 0.0) continue;
-          vec2 dv = p - wv.xy; float d = length(dv); vec2 dir = dv / max(d, 1.0);
-          if (wv.z > 0.0) {
-            float a = atan(dv.y, dv.x) - warpG[i]; a = abs(mod(a + 3.14159, 6.28318) - 3.14159);
-            float band = exp(-pow((d - wv.z) / 34.0, 2.0)) * (warpG[i] < -5.0 ? 1.0 : smoothstep(0.42, 0.85, a));   // 広く・なだらかに（境目を作らない）
-            dP -= dir * band * wv.w * (1.0 + 0.25 * sin(d * 0.6 - t * 20.0));
-          } else { float R = -wv.z, f = clamp((d - 12.0) / (R - 12.0), 0.0, 1.0), g = sin(3.14159 * f); dP -= dir * g * g * wv.w; }   // 星のブロックはゆがめず、そこから外へ なだらかに強く→弱く
+          float st = warpG[i]; if (st == 0.0) continue;
+          vec4 wv = warp[i]; vec2 q = abs(p - wv.xy) - wv.zw; float o = length(max(q, 0.0)), m = 1.0 - smoothstep(0.0, 28.0, o);
+          dP += vec2(sin(p.y * 0.23 + t * 10.0 + p.x * 0.05), 0.6 * sin(p.x * 0.19 + p.y * 0.11 + t * 8.0)) * m * st * 1.6;
         }
         uv += vec2(dP.x / res.x, -dP.y / res.y);
       }
@@ -3462,6 +3412,7 @@ function collectLights() {
   const px = P.x, py = P.y - cy;
   const lk = PAL.lightK == null ? 1 : PAL.lightK; if (lk !== 1) for (const l of out) l.i *= lk;   // 地上は明るいので光を弱める
   obstacleLights(out, cy, inView, Math.max(0.75, lk));
+  for (const run of world.heatRuns) { if (!inView(run.yMid, 80)) continue; const k = heatState(run, G.time).k; if (k > 0.05) out.push({ x: (run.c + 0.5) * CELL, y: run.yMid - cy, r: 60 + (run.r1 - run.r0) * 10, i: 0.75 * k * (0.85 + 0.15 * Math.sin(G.time * 13 + run.c)), c: '#ffb347', s: 0 }); }   // 熱くなる壁はこはく色に光る
   out.sort((a, b) => (a.x - px) ** 2 + (a.y - py) ** 2 - (b.x - px) ** 2 - (b.y - py) ** 2);
   let ns = 0; for (const l of out) if (l.s && ++ns > FX.shadows) l.s = 0;   // 影を落とすのは近い光だけ（重さを決まった分に）
   return out;
@@ -3478,21 +3429,15 @@ function occMap() {
   }
   return { data, w: COLS, h: OCC.n, top: -(OCC.r1 + 1) * CELL - cam.y, hpx: OCC.n * CELL, k: 1 };
 }
-// 空間のゆがみ（衝撃波の輪・引力の星）を画面の近い順に6つまで。画面の点（上が0）・半径・強さ
+// 陽炎（熱くなる壁）を画面の近い順に6つまで。板の真ん中（画面の点）・半分の幅と高さ・強さ（冷めると0）
 const WARP0 = { v: new Float32Array(24), g: new Float32Array(6) };
 function warpList() {
-  if (!world || !world.obs || PAL.id !== 'space' && !world.wells.length) return null;
+  if (!world || !world.heatRuns.length) return null;
   const L = [], t = G.time, cy = cam.y + H / 2;
-  for (const o of world.obs) {
-    if (Math.abs(o.y - cy) > H / 2 + 100) continue;
-    // ゆがみの強さは、出てから消えるまで なめらかに大きくなって小さくなる
-    if (o.type === 'ring') { const st = ringState(o, t); if (st.r != null) L.push([o.x, o.y - cam.y, st.r, 14 * Math.sin(Math.PI * clamp((st.r - 9) / (SPACE.ringMax - 9), 0, 1)) * st.fade, st.gap]); }
-    if (o.type === 'sense') { const wv = senseWave(o, t); if (wv) L.push([o.x, o.y - cam.y, wv.r, 13 * Math.sin(Math.PI * clamp((wv.r - 8) / (SPACE.burstR - 8), 0, 1)), -10]); }   // 全方位（切れ目なし）
-  }
-  for (const q of world.wells) {   // 引力の星：引く・押すのそれぞれの間に 0→最大→0 となめらかに（押すときは逆向き）
-    if (Math.abs(q.y - cy) > H / 2 + 60) continue;
-    const half = SPACE.wellPeriod / 2, k = Math.sin(Math.PI * (wellPh(q, t) % half) / half) * wellSign(world, q);
-    L.push([q.x, q.y - cam.y, -96, 11 * k, 0]);
+  for (const run of world.heatRuns) {
+    if (Math.abs(run.yMid - cy) > H / 2 + 60) continue;
+    const st = heatState(run, t); if (st.k <= 0.02) continue;
+    L.push([(run.c + 0.5) * CELL, run.yMid - cam.y, CELL / 2, (run.r1 - run.r0 + 1) * CELL / 2, st.k]);
   }
   if (!L.length) return null;
   L.sort((a, b) => Math.abs(a[1] - H / 2) - Math.abs(b[1] - H / 2));
@@ -3599,7 +3544,7 @@ function drawZoneHint() {
 function drawZoneBanner() {
   if (!(G.zoneT > 0) || G.zoneT > 3) return;   // 3秒より多いのは「まだ出さない」（分け方を見せている間）
   const T = 3 - G.zoneT, inK = Math.min(1, T / 0.4), out = Math.min(1, G.zoneT / 0.5), a = Math.min(inK, out);
-  const pool = poolAt(G.best), y = 118 + SAFE.top + (1 - inK) * -16;
+  const pool = POOLS.reduce((a, q) => (G.best >= q.from ? q : a), POOLS[0]), y = 118 + SAFE.top + (1 - inK) * -16;   // パーツのまだないプールでも、その高さの名前
   ctx.save(); ctx.globalAlpha = a; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `800 22px ${FONT}`; const tw = ctx.measureText(pool.name).width;
   const w = tw + 60; pill(W / 2 - w / 2, y - 26, w, 52, rgba(PAL.uiPanel, 0.9));
@@ -3666,9 +3611,6 @@ const sfx = {
   cannon() { noise(0.12, 0.05, 150, 900); tone(110, 0.15, 'sine', 0.08, 60); },
   thunder(v = 1) { [0, 0.32, 0.7].forEach((d, i) => setTimeout(() => { noise(0.5, 0.05 * v / (i + 1), 25, 240 - i * 50); }, d * 1000)); tone(52, 1.3, 'sine', 0.05 * v, 38, 0, 0.08); },
   clank() { tone(520, 0.06, 'triangle', 0.03, 380); noise(0.03, 0.015, 1500, 5000); },
-  senseArm() { [1760, 1760, 1760].forEach((f, i) => tone(f, 0.06, 'square', 0.02, 0, i * 0.2, 0.002)); },   // センサー機雷：ピ・ピ・ピ
-  senseBurst() { noise(0.3, 0.07, 300, 4000); tone(180, 0.25, 'sine', 0.08, 60, 0, 0.003); },
-  ring() { tone(260, 0.5, 'sine', 0.035, 520, 0, 0.02); tone(780, 0.35, 'sine', 0.015, 1560, 0, 0.02); },   // 衝撃波：ふぉん
   heat() { noise(0.25, 0.012, 2000, 7000); },
   hurt() { tone(420, 0.3, 'triangle', 0.12, 160, 0, 0.003); tone(400, 0.3, 'triangle', 0.08, 150, 0.02, 0.003); },
   die() { tone(520, 0.5, 'triangle', 0.12, 140, 0, 0.003); tone(260, 0.6, 'sine', 0.1, 70, 0.08, 0.01); },
@@ -3795,7 +3737,7 @@ function startGame() {
 function showEnd() {
   const m = Math.floor(G.best), bk = MODES[MODE].best, best = store.get(bk, 0);
   if (m > best && !G.test) store.set(bk, m);
-  $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた', bolt: '雷で力尽きた', mill: '風車で力尽きた', sstar: 'ふくらむ機雷で力尽きた', sat: '衛星で力尽きた', ring: '衝撃波で力尽きた', heat: '熱い壁で力尽きた', sense: '機雷の破裂で力尽きた' }[G.cause] || 'おしまい';
+  $('endTitle').textContent = { lava: `${riseName()}に呑まれた`, spike: 'トゲで力尽きた', box: 'トゲの箱で力尽きた', spin: '回る棒で力尽きた', pend: '振り子で力尽きた', ball: '鉄球で力尽きた', mine: '機雷で力尽きた', bend: 'トゲブロックで力尽きた', bolt: '雷で力尽きた', mill: '風車で力尽きた', sstar: 'ふくらむ機雷で力尽きた', heat: '熱い壁で力尽きた', beam: 'ビームで力尽きた' }[G.cause] || 'おしまい';
   const st = $('endStats'); st.textContent = '';
   const rows = [['モード', MODES[MODE].name], ['高さ', m + 'm', m > best && !G.test], ['タイム', G.time.toFixed(1) + '秒'], simpleMode() ? ['やられた', (G.downs || 0) + '回'] : ['拾った結晶', G.got + '個'], ['最高', Math.max(m, best) + 'm']];
   for (const [a, b, isNew] of rows) {
@@ -3803,7 +3745,7 @@ function showEnd() {
   }
   gemRows($('eGems'), GEM_ORDER.filter(id => G.gems[id]), true);
   endFx(m > best && !G.test);
-  G.cardInfo = { m, isNew: m > best && !G.test, zone: poolAt(G.best).name, time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
+  G.cardInfo = { m, isNew: m > best && !G.test, zone: zoneName(G.best), time: G.time.toFixed(1), got: G.got, cause: $('endTitle').textContent, gems: GEM_ORDER.filter(id => G.gems[id]) };
   $('btnCard').textContent = '結果を画像にする';
   showPhotos();
   showOnly('end'); $('btnRetry').focus({ preventScroll: true });
@@ -3811,20 +3753,41 @@ function showEnd() {
 /* ---------- 名場面の写真：プレイ中の瞬間を自動で撮り、結果の画面に3枚並べる ----------
    撮る瞬間（kind）：record 新記録・zone 新しいゾーン・near ぎりぎり・hurt ダメージ。少し遅らせて撮る（旗が飛ぶ・見出しが出る）。
    見えている画面（きれい画質は #gl、かるいは #cv）から、おばけのまわりを正方形に切り出す（HUD は入れない）。種類ごとに数を決めて良い方を残す */
-const PHOTO = { size: 240, keep: { record: 1, zone: 1, near: 2, hurt: 1 }, max: 6 };
-function photoEvent(kind, label, score, delay) {
+const PHOTO = { size: 240, keep: { record: 1, zone: 1, near: 2, hurt: 1 }, max: 6, every: 0.15, ringN: 4, before: 0.12 };
+// past：当たった・呑まれた瞬間は、その少し前（before 秒）の画面を使う（飛び散ったあとではなく、まだ「ぎりぎり」の写真に）
+function photoEvent(kind, label, score, delay, past = false) {
   if (VERSUS || !G || state !== 'play') return;
-  (G.snapQ || (G.snapQ = [])).push({ kind, label, score, at: G.time + delay });
+  (G.snapQ || (G.snapQ = [])).push({ kind, label, score, at: G.time + (past ? -PHOTO.before : delay), past });
 }
-function photoTick() {
-  const q = G && G.snapQ; if (!q || !q.length || !P) return;
-  for (let i = q.length - 1; i >= 0; i--) if (G.time >= q[i].at) photoTake(q.splice(i, 1)[0]);
-}
-function photoTake(e) {
-  const src = glcv.hidden ? cv : glcv; if (!src.width) return;
+// 見えている画面（きれい画質は #gl、かるいは #cv）から、おばけのまわりを正方形に切り出す（HUD は入れない）。into があればそこへ描く
+function photoGrab(into) {
+  const src = glcv.hidden ? cv : glcv; if (!src.width) return null;
   const k = src.width / W, S = Math.min(W, H) * 0.66, cx = clamp(P.x, S / 2, W - S / 2), cy = clamp(P.y - cam.y - 10, S / 2, H - S / 2);
-  const c = document.createElement('canvas'); c.width = c.height = PHOTO.size;
-  try { c.getContext('2d').drawImage(src, (cx - S / 2) * k, (cy - S / 2) * k, S * k, S * k, 0, 0, PHOTO.size, PHOTO.size); } catch (er) { return; }
+  const c = into || document.createElement('canvas'); if (!into) c.width = c.height = PHOTO.size;
+  try { c.getContext('2d').drawImage(src, (cx - S / 2) * k, (cy - S / 2) * k, S * k, S * k, 0, 0, PHOTO.size, PHOTO.size); } catch (er) { return null; }
+  return c;
+}
+// 描いた直後に呼ぶ。遊んでいる間は 0.15秒ごとに小さな画面を4枚だけ回して持っておく（少し前の写真用。軽い）
+function photoTick() {
+  if (!G || !P || VERSUS) return;
+  const R = G.ring || (G.ring = []);
+  if (state === 'play' && !(G.time - (G.ringT ?? -9) < PHOTO.every)) {
+    G.ringT = G.time;
+    const old = R.length >= PHOTO.ringN ? R.shift() : null, c = photoGrab(old && old.c);
+    if (c) R.push({ t: G.time, c });
+  }
+  const q = G.snapQ; if (!q || !q.length) return;
+  for (let i = q.length - 1; i >= 0; i--) {
+    const e = q[i];
+    if (e.past) {   // 少し前の画面：持っている中から、その時刻より前でいちばん新しいもの（なければいま）
+      q.splice(i, 1); let f = null; for (const r of R) if (r.t <= e.at && (!f || r.t > f.t)) f = r;
+      const c = document.createElement('canvas'); c.width = c.height = PHOTO.size;
+      if (f) c.getContext('2d').drawImage(f.c, 0, 0); else if (!photoGrab(c)) continue;
+      photoKeep(e, c);
+    } else if (G.time >= e.at) { q.splice(i, 1); if (state !== 'play') continue; const c = photoGrab(); if (c) photoKeep(e, c); }   // やられたあと（飛び散っている所）は撮らない
+  }
+}
+function photoKeep(e, c) {
   const L = G.photos || (G.photos = []), same = L.filter(p => p.kind === e.kind), item = Object.assign({ c, t: G.time }, e);
   if (same.length >= (PHOTO.keep[e.kind] || 1)) { const low = same.reduce((a, b) => (b.score < a.score ? b : a)); if (low.score > e.score) return; L.splice(L.indexOf(low), 1); }
   L.push(item);
@@ -3846,7 +3809,7 @@ $('btnPhotoBack').onclick = () => { $('ovPhoto').hidden = true; };
 const WHY = {   // やられた原因 → [ポーズ, 一言, 絵の飾り]
   lava: ['dizzy', 'あちち…マフラーがこげそう', 'smoke'], spike: ['dizzy', '目がまわる…', 'stars'], box: ['dizzy', 'はさまれた…', 'stars'], spin: ['dizzy', 'くるくる…', 'stars'],
   pend: ['dizzy', 'ごつん', 'stars'], ball: ['dizzy', 'どーん', 'stars'], mine: ['dizzy', 'ぱちっ', 'stars'], bend: ['dizzy', 'ぶつかった…', 'stars'], bolt: ['dizzy', 'しびれた…', 'zap'], mill: ['dizzy', 'まきこまれた…', 'stars'],
-  sstar: ['dizzy', 'ちくっ', 'stars'], sat: ['dizzy', 'こつん', 'stars'], ring: ['dizzy', 'ふっとんだ…', 'stars'], heat: ['dizzy', 'あちち…', 'stars'], sense: ['dizzy', 'ぼーん', 'stars'],
+  sstar: ['dizzy', 'ちくっ', 'stars'], heat: ['dizzy', 'あちち…', 'stars'], beam: ['dizzy', 'じりっ…', 'zap'],
 };
 const END = { t0: -1, newRec: false, why: null };
 function endFx(newRec) {
