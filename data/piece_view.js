@@ -60,7 +60,7 @@ function prepare(pc, r0 = 0) {
     // 宇宙の仕掛け（ずらし方は本編の addObstacles と同じ）
     if (ch === '*') obs.push({ k: 'sstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 31) * SPACE.puffPeriod, spin: K.hash(c, R(r), 38) });
     if ((ch === '(' || ch === ')') && at(c, r + 1) !== ch) { let e = r; while (at(c, e - 1) === ch) e--;   // 本編と同じく下のはしから数える
-      obs.push({ k: 'beamer', dir: ch === ')' ? 1 : -1, x: x + CELL / 2, yb: (r + 0.5) * CELL, yt: (e + 0.5) * CELL, period: Math.max(1, (r - e) * CELL / 40 + 1), off: c * 0.5 + R(r) * 0.3, boff: K.hash(c, R(r), 39) * SPACE.beamPeriod, c, row: r }); }
+      obs.push({ k: 'beamer', dir: ch === ')' ? 1 : -1, x: x + CELL / 2, yb: (r + 0.5) * CELL, yt: (e + 0.5) * CELL, period: Math.max(1, (r - e) * CELL / 40 + 1), off: c * 0.5 + R(r) * 0.3, boff: K.hash(c, R(r), 39) * SPACE.beamPeriod, ends: (() => { const o = {}; for (let rr = e; rr <= r; rr++) { let cc = c + (ch === ')' ? 1 : -1); while (cc >= 0 && cc < 20 && !'#KkSF%EH'.includes(at(cc, rr))) cc += ch === ')' ? 1 : -1; o[rr] = ch === ')' ? cc * CELL : (cc + 1) * CELL; } return o; })() }); }   // ビームが届く壁（行ごと）
     if (ch === 'A' || ch === 'V') { const d = ch === 'A' ? -1 : 1; let k = r; while (k + d >= 0 && k + d < h && !'#Kk'.includes(at(c, k + d))) k += d;
       obs.push({ k: 'vfan', x: x + CELL / 2, y: d < 0 ? y + CELL : y, dir: d, reach: (Math.abs(k - r) + 1) * CELL }); }
     if (ch === 'F' && at(c, r + 1) !== 'F') { let e = r; while (at(c, e - 1) === 'F') e--; obs.push({ k: 'heat', x, y0: e * CELL, y1: (r + 1) * CELL, off: K.hash(c, R(r), 36) * SPACE.heatPeriod }); }   // 本編と同じく下のはしから数える
@@ -112,8 +112,7 @@ function draw(g, P, d, t) {
     else if (o.k === 'beamer') {   // 本編と同じ：ブロックが上下に動き、決まった周期で横へビーム（予告はうすい点線）
       const by = o.yb + (o.yt - o.yb) * K.slide(t, o.period, o.off), ph = ((t + o.boff) % SPACE.beamPeriod + SPACE.beamPeriod) % SPACE.beamPeriod, s0 = SPACE.beamPeriod - SPACE.beamOn, on = ph >= s0, warn = !on && ph >= s0 - SPACE.beamWarn;
       K.track(g, P, o.x, o.yb + SPACE.beamH / 2, o.x, o.yt - SPACE.beamH / 2);
-      const row = Math.floor(by / CELL); let cc = o.c + o.dir; while (cc >= 0 && cc < 20 && !'#Kk'.includes(at(cc, row))) cc += o.dir;
-      const x0 = o.x + o.dir * SPACE.beamW / 2, x1 = o.dir > 0 ? cc * CELL : (cc + 1) * CELL;
+      const row = Math.floor(by / CELL), x0 = o.x + o.dir * SPACE.beamW / 2, x1 = o.ends[row] != null ? o.ends[row] : o.dir > 0 ? 20 * CELL : 0;
       if (on || warn) { g.save(); g.lineCap = 'round'; for (const [w, col] of on ? [[7, 'rgba(255,179,71,.3)'], [3, 'rgba(255,217,138,.85)'], [1.2, '#fff']] : [[0.8, 'rgba(255,226,176,.6)']]) { g.strokeStyle = col; g.lineWidth = w; if (!on) g.setLineDash([5, 5]); g.beginPath(); g.moveTo(x0, by); g.lineTo(x1, by); g.stroke(); } g.restore(); }
       K.beamer(g, P, o.x - SPACE.beamW / 2, by - SPACE.beamH / 2, SPACE.beamW, SPACE.beamH, o.dir, on ? 1 : warn ? 0.5 : 0);
     }
