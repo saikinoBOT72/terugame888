@@ -8,8 +8,8 @@ const LOOKS = [['underground', 0], ['underground', 1], ['underground', 2], ['und
 const lookPal = m => { const L = LOOKS[Math.max(0, Math.min(LOOKS.length - 1, Math.floor(m / 100)))]; return K.stagePal(L[0], L[1]); };
 const NAMES = { p: '出入りトゲ', q: '出入りトゲ', '>': '扇風機', '<': '扇風機', X: '往復ブロック', Y: '上下ブロック', T: '回る棒', '=': 'シャッター', '^': 'トゲ', '/': '斜め', '\\': '斜め',
   O: '振り子', K: '筒', k: '筒', Z: '杭', B: '跳ね橋', S: 'バネ', '%': '崩れる足場', '~': '雲の足場', M: '機雷', J: 'トゲブロック縦', L: 'トゲブロック横', '|': '雷の柱', '-': '雷の柱（横）', E: '雷の装置', H: 'ぽよんブロック', '{': '突風', '}': '突風', W: '風車',
-  '@': '引力の星', '*': 'とげ星', C: '回る衛星', R: '浮き岩', U: '衝撃波の輪', F: '熱くなる壁', V: 'センサー機雷' };
-const SPACE = { wellR: 81, sstarR: 63, satR: 60, satSpeed: 1.1, satBalls: 2, rockAmp: 12, rockPeriod: 4.2, ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: Math.PI / 6, wellPeriod: 6, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0 };   // 本編の SPACE と同じ
+  '@': '引力の星', '*': 'ふくらむ機雷', C: '回る衛星', R: '浮き岩', U: '衝撃波の輪', F: '熱くなる壁', V: 'センサー機雷' };
+const SPACE = { wellR: 81, puffMin: 8, puffMax: 24, puffPeriod: 3.4, satR: 60, satSpeed: 1.1, satBalls: 2, rockAmp: 12, rockPeriod: 4.2, ringPeriod: 3.4, ringWarn: 0.8, ringGrow: 1.1, ringMax: 81, ringGap: Math.PI / 6, wellPeriod: 6, heatPeriod: 3.6, heatOn: 1.2, heatWarn: 1.0 };   // 本編の SPACE と同じ
 const SKY = { bendSpeed: 50, bendCorner: 0.25, bendEnd: 0.5 };   // 本編の SKY と同じ（曲がるトゲブロック）
 const SURF = { pendLen: 54, pendAmp: 1.05, pendPeriod: 2.6, canPeriod: 2.8, canSpeed: 120, canWarn: 0.5 };   // 本編の SURF と同じ
 
@@ -59,7 +59,7 @@ function prepare(pc, r0 = 0) {
     if (ch === 'H') obs.push({ k: 'jelly', x, y });
     // 宇宙の仕掛け（ずらし方は本編の addObstacles と同じ）
     if (ch === '@') obs.push({ k: 'gstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 37) * SPACE.wellPeriod });
-    if (ch === '*') obs.push({ k: 'sstar', x: x + CELL / 2, y: y + CELL / 2, spin: K.hash(c, R(r), 31) });
+    if (ch === '*') obs.push({ k: 'sstar', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 31) * SPACE.puffPeriod, spin: K.hash(c, R(r), 38) });
     if (ch === 'C') obs.push({ k: 'sat', x: x + CELL / 2, y: y + CELL / 2, speed: (c < 10 ? 1 : -1) * SPACE.satSpeed, phase: K.hash(c, R(r), 32) * 6.28 });
     if (ch === 'R' && at(c - 1, r) !== 'R') { let e = c; while (at(e + 1, r) === 'R') e++; obs.push({ k: 'rock', x, y, w: (e - c + 1) * CELL, off: K.hash(c, R(r), 33) * SPACE.rockPeriod }); }
     if (ch === 'U') obs.push({ k: 'ring', x: x + CELL / 2, y: y + CELL / 2, off: K.hash(c, R(r), 34) * SPACE.ringPeriod, gap0: K.hash(c, R(r), 35) * 6.28 });
@@ -105,7 +105,10 @@ function draw(g, P, d, t) {
     else if (o.k === 'jelly') K.jellyBlock(g, P, o.x, o.y, 0);
     else if (o.k === 'gust') { const ph = ((t + o.off) % 3.4 + 3.4) % 3.4, on = ph > 1.8; if (on) K.fan(g, P, o.x, o.y, o.dir > 0 ? 'R' : 'L', o.reach, t * 2); K.gustVent(g, P, o.x, o.y, o.dir, ph > 1.1 && !on && ph % 0.24 < 0.12); }
     else if (o.k === 'gstar') K.gravStar(g, P, o.x, o.y, SPACE.wellR, ((t + o.off) % SPACE.wellPeriod + SPACE.wellPeriod) % SPACE.wellPeriod < SPACE.wellPeriod / 2 ? 1 : -1);   // 本編と同じく引く・押すを入れかえる
-    else if (o.k === 'sstar') { g.save(); g.translate(o.x, o.y); g.rotate(t * 0.6 + o.spin * 6); K.spikeStar(g, P, 0, 0, SPACE.sstarR, 0); g.restore(); }
+    else if (o.k === 'sstar') {   // 本編の puffState と同じ（小さい → ふくらむ → 大きいまま → しぼむ）
+      const ph = ((t + o.off) % SPACE.puffPeriod + SPACE.puffPeriod) % SPACE.puffPeriod, sm = k => k * k * (3 - 2 * k), A = SPACE.puffMin, B = SPACE.puffMax, small = SPACE.puffPeriod - 2.0;
+      const r = ph < small ? A : ph < small + 0.4 ? A + (B - A) * sm((ph - small) / 0.4) : ph < small + 1.6 ? B : B - (B - A) * sm((ph - small - 1.6) / 0.4);
+      g.save(); g.translate(o.x, o.y); g.rotate(t * 0.5 + o.spin * 6); K.puffMine(g, P, 0, 0, r, false); g.restore(); }
     else if (o.k === 'sat') { K.satellite(g, P, o.x, o.y, SPACE.satR); for (let k = 0; k < SPACE.satBalls; k++) { const a = o.phase + t * o.speed + k * Math.PI * 2 / SPACE.satBalls; K.mine(g, P, o.x + Math.cos(a) * SPACE.satR, o.y + Math.sin(a) * SPACE.satR, 6); } }
     else if (o.k === 'rock') K.floatRock(g, P, o.x, o.y + Math.sin((t + o.off) * Math.PI * 2 / SPACE.rockPeriod) * SPACE.rockAmp, o.w, t);
     else if (o.k === 'heat') { const ph = ((t + o.off) % SPACE.heatPeriod + SPACE.heatPeriod) % SPACE.heatPeriod, s0 = SPACE.heatPeriod - SPACE.heatOn, k = ph >= s0 ? 1 : ph >= s0 - SPACE.heatWarn ? (ph - s0 + SPACE.heatWarn) / SPACE.heatWarn : 0;

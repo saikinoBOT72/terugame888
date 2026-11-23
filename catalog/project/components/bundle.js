@@ -695,6 +695,15 @@ window.Kabe = (function () {
     g.strokeStyle = alpha(P.metalShade, 0.9); g.lineWidth = 0.8; g.beginPath(); g.arc(cx, cy, 3.4, 0.4, 2.7); g.stroke();
     shine(g, cx - 2.4, cy - 2.6, 1.8, 1, 0.5);
   }
+  // ふくらむ機雷：トゲの金属の玉。r：玉の半径（小さい 8 〜 大きい 24）。トゲは鈍角、大きいほど数を増やす。lit：ふくらむ前の点滅
+  function puffMine(g, P, x, y, r, lit) {
+    var n = r < 12 ? 16 : r < 18 ? 20 : 24, i, a;
+    blade(g, P, function () { g.beginPath(); for (i = 0; i < n; i++) { a = i / n * Math.PI * 2; var rr2 = i % 2 ? r - 0.3 : r + Math.max(2.4, r * 0.22); g.lineTo(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2); } g.closePath(); });
+    metalSolid(g, P, function () { ell(g, x, y, r, r); }, 1.3);
+    g.strokeStyle = alpha(P.metalShade, 0.8); g.lineWidth = 0.8; g.beginPath(); g.arc(x, y, r * 0.6, 0.3, 2.6); g.stroke(); g.beginPath(); g.arc(x, y, r * 0.35, 3.4, 5.6); g.stroke();   // ふくらむ継ぎ目
+    if (lit) { g.fillStyle = 'rgba(255,248,225,0.55)'; ell(g, x, y, r, r); g.fill(); }
+    shine(g, x - r * 0.35, y - r * 0.4, r * 0.3, r * 0.17, 0.5);
+  }
   // 回る衛星の通り道（うすい点線の輪だけ。真ん中には何も置かない）。R：輪の半径
   function satellite(g, P, cx, cy, R) {
     dashRing(g, cx, cy, R, P.metalLight, 0.3, [1.5, 5]);
@@ -2132,7 +2141,7 @@ window.Kabe = (function () {
     rise: rise, riseCrusts: riseCrusts, riseCrust: riseCrust, ghost: ghost, SCARF: SCARF, SCARF_DEF: SCARF_DEF, SCARF_COLORS: SCARF_COLORS, scarfPal: scarfPal, scarfTail: scarfTail, scarfWrap: scarfWrap, lineEyes: lineEyes,
     OUTFIT: OUTFIT, OUTFIT_COLORS: OUTFIT_COLORS, OUTFIT_ITEMS: OUTFIT_ITEMS, HAT_TOP: HAT_TOP, hatPal: hatPal, wearBack: wearBack, wearFront: wearFront, hatDraw: hatDraw, propDraw: propDraw, MOUTH_AIM: MOUTH_AIM, outfitIcon: outfitIcon, outfitGet: outfitGet, withOutfit: withOutfit,
     effects: effects, heart: heart, hud: hud,
-    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, gravStar: gravStar, spikeStar: spikeStar, satellite: satellite, floatRock: floatRock, pulseEmitter: pulseEmitter, heatPanel: heatPanel, senseMine: senseMine, dashRing: dashRing, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
+    GEM_KINDS: GEM_KINDS, GEM_ORDER: GEM_ORDER, FUDA: FUDA, fudaOf: fudaOf, gemTone: gemTone, mote: mote, gem: gem, gemBadge: gemBadge, gachaHouse: gachaHouse, gachaFlask: gachaFlask, cloudPlat: cloudPlat, mine: mine, spikeBlock: spikeBlock, railPath: railPath, windmill: windmill, lightningRod: lightningRod, electrode: electrode, jellyBlock: jellyBlock, gravStar: gravStar, spikeStar: spikeStar, satellite: satellite, puffMine: puffMine, floatRock: floatRock, pulseEmitter: pulseEmitter, heatPanel: heatPanel, senseMine: senseMine, dashRing: dashRing, lightningBolt: lightningBolt, gustVent: gustVent, gachaLantern: gachaLantern, candle: candle, CANDLE: CANDLE, scarfItem: scarfItem, gemBurst: gemBurst, twinkle: twinkle,
     canvas: canvas, animate: animate, zoneRow: zoneRow, ghostSheet: ghostSheet
   };
 })();
